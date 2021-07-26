@@ -345,18 +345,18 @@ void ScriptMgr::OnNetworkStop()
     FOREACH_SCRIPT(ServerScript)->OnNetworkStop();
 }
 
-void ScriptMgr::OnSocketOpen(WorldSocket* socket)
+void ScriptMgr::OnSocketOpen(std::shared_ptr<WorldSocket> socket)
 {
     ASSERT(socket);
 
     FOREACH_SCRIPT(ServerScript)->OnSocketOpen(socket);
 }
 
-void ScriptMgr::OnSocketClose(WorldSocket* socket, bool wasNew)
+void ScriptMgr::OnSocketClose(std::shared_ptr<WorldSocket> socket)
 {
     ASSERT(socket);
 
-    FOREACH_SCRIPT(ServerScript)->OnSocketClose(socket, wasNew);
+    FOREACH_SCRIPT(ServerScript)->OnSocketClose(socket);
 }
 
 void ScriptMgr::OnPacketReceive(WorldSession* session, WorldPacket const& packet)
@@ -2809,23 +2809,23 @@ bool ScriptMgr::CanSendMessageBGQueue(BattlegroundQueue* queue, Player* leader, 
     return ret;
 }
 
-bool ScriptMgr::CanSendJoinMessageArenaQueue(BattlegroundQueue* queue, Player* leader, GroupQueueInfo* ginfo, PvPDifficultyEntry const* bracketEntry, bool isRated)
+bool ScriptMgr::OnBeforeSendJoinMessageArenaQueue(BattlegroundQueue* queue, Player* leader, GroupQueueInfo* ginfo, PvPDifficultyEntry const* bracketEntry, bool isRated)
 {
     bool ret = true;
 
     FOR_SCRIPTS_RET(BGScript, itr, end, ret) // return true by default if not scripts
-        if (!itr->second->CanSendJoinMessageArenaQueue(queue, leader, ginfo, bracketEntry, isRated))
+        if (!itr->second->OnBeforeSendJoinMessageArenaQueue(queue, leader, ginfo, bracketEntry, isRated))
             ret = false; // we change ret value only when scripts return false
 
     return ret;
 }
 
-bool ScriptMgr::CanExitJoinMessageArenaQueue(BattlegroundQueue* queue, GroupQueueInfo* ginfo)
+bool ScriptMgr::OnBeforeSendExitMessageArenaQueue(BattlegroundQueue* queue, GroupQueueInfo* ginfo)
 {
     bool ret = true;
 
     FOR_SCRIPTS_RET(BGScript, itr, end, ret) // return true by default if not scripts
-        if (!itr->second->CanExitJoinMessageArenaQueue(queue, ginfo))
+        if (!itr->second->OnBeforeSendExitMessageArenaQueue(queue, ginfo))
             ret = false; // we change ret value only when scripts return false
 
     return ret;
