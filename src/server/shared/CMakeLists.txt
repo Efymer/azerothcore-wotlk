@@ -33,8 +33,20 @@ target_include_directories(shared
 target_link_libraries(shared
   PRIVATE
     acore-core-interface
+    rapidjson
   PUBLIC
-    database)
+    database
+    protobuf)
+
+if (MSVC)
+  # protobuf 2.6.1 headers (pulled in by ProtobufJSON) use CRT/STL APIs that
+  # newer MSVC flags as deprecated/unsafe; silence them on that source only.
+  set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/JSON/ProtobufJSON.cpp
+    PROPERTIES
+      COMPILE_DEFINITIONS "_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS"
+      COMPILE_OPTIONS "/wd4996")
+endif()
 
 set_target_properties(shared
   PROPERTIES
