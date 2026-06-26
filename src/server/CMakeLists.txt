@@ -17,6 +17,10 @@ if ((APPS_BUILD AND NOT APPS_BUILD STREQUAL "none") OR BUILD_TOOLS_DB_IMPORT)
 endif()
 
 if (BUILD_APPLICATION_AUTHSERVER OR BUILD_APPLICATION_WORLDSERVER)
+  # proto only depends on the vendored protobuf + common, so it is added before
+  # shared/game. Building any application implies APPS_BUILD is enabled, which is
+  # also the guard that pulls in the protobuf dependency target.
+  add_subdirectory(proto)
   add_subdirectory(shared)
 endif()
 
