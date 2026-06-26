@@ -63,13 +63,19 @@ enum ProxyHeaderAddressFamilyAndProtocol {
     PROXY_HEADER_ADDRESS_FAMILY_AND_PROTOCOL_TCP_V6 = 0x21,
 };
 
-template<class T>
+// Socket is stream-templated: the default Stream is a plain TCP socket (IoContextTcpSocket),
+// which preserves the original behavior exactly. A TLS-capable stream (see SslStream.h) can be
+// plugged in by passing a different Stream type, as long as it exposes the same tcp::socket-like
+// API used below (remote_endpoint, close, shutdown, set_option, async_read_some, async_write_some,
+// write_some, async_wait).
+template<class T, class Stream = IoContextTcpSocket>
 class Socket : public std::enable_shared_from_this<T>
 {
 public:
-    explicit Socket(IoContextTcpSocket&& socket) : _socket(std::move(socket)), _remoteAddress(_socket.remote_endpoint().address()),
-        _remotePort(_socket.remote_endpoint().port()), _readBuffer(), _state(SocketState::Open), _isWritingAsync(false),
-        _proxyHeaderReadingState(PROXY_HEADER_READING_STATE_NOT_STARTED)
+    template<typename... StreamArgs>
+    explicit Socket(IoContextTcpSocket&& socket, StreamArgs&&... streamArgs) : _socket(std::move(socket), std::forward<StreamArgs>(streamArgs)...),
+        _remoteAddress(_socket.remote_endpoint().address()), _remotePort(_socket.remote_endpoint().port()), _readBuffer(),
+        _state(SocketState::Open), _isWritingAsync(false), _proxyHeaderReadingState(PROXY_HEADER_READING_STATE_NOT_STARTED)
     {
         _readBuffer.Resize(READ_BLOCK_SIZE);
     }
@@ -124,7 +130,7 @@ public:
         _readBuffer.Normalize();
         _readBuffer.EnsureFreeSpace();
         _socket.async_read_some(boost::asio::buffer(_readBuffer.GetWritePointer(), _readBuffer.GetRemainingSpace()),
-            std::bind(&Socket<T>::ReadHandlerInternal, this->shared_from_this(), std::placeholders::_1, std::placeholders::_2));
+            std::bind(&Socket::ReadHandlerInternal, this->shared_from_this(), std::placeholders::_1, std::placeholders::_2));
     }
 
     void AsyncReadProxyHeader()
@@ -139,7 +145,7 @@ public:
         _readBuffer.Normalize();
         _readBuffer.EnsureFreeSpace();
         _socket.async_read_some(boost::asio::buffer(_readBuffer.GetWritePointer(), _readBuffer.GetRemainingSpace()),
-            std::bind(&Socket<T>::ProxyReadHeaderHandler, this->shared_from_this(), std::placeholders::_1, std::placeholders::_2));
+            std::bind(&Socket::ProxyReadHeaderHandler, this->shared_from_this(), std::placeholders::_1, std::placeholders::_2));
     }
 
     void AsyncReadWithCallback(void (T::*callback)(boost::system::error_code, std::size_t))
@@ -199,6 +205,10 @@ public:
 
     MessageBuffer& GetReadBuffer() { return _readBuffer; }
 
+    /// Direct access to the underlying stream (plain TCP socket by default, or a TLS stream).
+    /// Useful for stream-specific operations such as the TLS handshake.
+    Stream& underlying_stream() { return _socket; }
+
 protected:
     virtual void OnClose() { }
     virtual SocketReadCallbackResult ReadHandler() = 0;
@@ -212,7 +222,7 @@ protected:
 
 #ifdef AC_SOCKET_USE_IOCP
         MessageBuffer& buffer = _writeQueue.front();
-        _socket.async_write_some(boost::asio::buffer(buffer.GetReadPointer(), buffer.GetActiveSize()), std::bind(&Socket<T>::WriteHandler,
+        _socket.async_write_some(boost::asio::buffer(buffer.GetReadPointer(), buffer.GetActiveSize()), std::bind(&Socket::WriteHandler,
             this->shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 #else
         _socket.async_wait(boost::asio::socket_base::wait_write, [self = this->shared_from_this()](boost::system::error_code error)
@@ -443,7 +453,7 @@ private:
     }
 #endif
 
-    IoContextTcpSocket _socket;
+    Stream _socket;
 
     boost::asio::ip::address _remoteAddress;
     uint16 _remotePort;
