@@ -10,42 +10,87 @@
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-# Protocol Buffers is required by the modern Battle.net login server (bnetserver),
-# which speaks protobuf over its session. We prefer a system/package-manager
-# provided Protobuf and wrap it as an interface target, consistent with how the
-# other dependencies (openssl, boost, mysql) are exposed.
+# Vendored Protocol Buffers 2.6.1 (from TrinityCore dep/protobuf). The modern
+# Battle.net login server (bnetserver) and its pre-generated .pb.* code are
+# locked to this version, so we build it from source as a static library rather
+# than relying on a system/package-manager Protobuf.
 
-# Do not pin a version. Modern Protobuf (abseil-based, e.g. 6.x / libprotoc
-# 33.x as provided by vcpkg) ships a CONFIG package whose version-compat is
-# SameMajorVersion, so any explicit "minimum" major (e.g. 3.0.0) is rejected
-# against a higher installed major. We only need the modern imported targets
-# (protobuf::libprotobuf, protobuf::protoc), which all supported versions ship.
-find_package(Protobuf REQUIRED)
+set(protobuf_STAT_SRCS
+  src/google/protobuf/compiler/importer.cc
+  src/google/protobuf/compiler/parser.cc
+  src/google/protobuf/descriptor.cc
+  src/google/protobuf/descriptor.pb.cc
+  src/google/protobuf/descriptor_database.cc
+  src/google/protobuf/dynamic_message.cc
+  src/google/protobuf/extension_set.cc
+  src/google/protobuf/extension_set_heavy.cc
+  src/google/protobuf/generated_message_reflection.cc
+  src/google/protobuf/generated_message_util.cc
+  src/google/protobuf/io/coded_stream.cc
+  src/google/protobuf/io/gzip_stream.cc
+  src/google/protobuf/io/printer.cc
+  src/google/protobuf/io/strtod.cc
+  src/google/protobuf/io/tokenizer.cc
+  src/google/protobuf/io/zero_copy_stream.cc
+  src/google/protobuf/io/zero_copy_stream_impl.cc
+  src/google/protobuf/io/zero_copy_stream_impl_lite.cc
+  src/google/protobuf/message.cc
+  src/google/protobuf/message_lite.cc
+  src/google/protobuf/reflection_ops.cc
+  src/google/protobuf/repeated_field.cc
+  src/google/protobuf/service.cc
+  src/google/protobuf/stubs/common.cc
+  src/google/protobuf/stubs/once.cc
+  src/google/protobuf/stubs/stringprintf.cc
+  src/google/protobuf/stubs/structurally_valid.cc
+  src/google/protobuf/stubs/strutil.cc
+  src/google/protobuf/stubs/substitute.cc
+  src/google/protobuf/text_format.cc
+  src/google/protobuf/unknown_field_set.cc
+  src/google/protobuf/wire_format.cc
+  src/google/protobuf/wire_format_lite.cc
+)
 
-if(NOT Protobuf_FOUND)
-  message(FATAL_ERROR "Protobuf wasn't found on your system but it's required to build the Battle.net login server (bnetserver)! Install it (e.g. via your package manager or vcpkg) and make sure CMake can locate it.")
+if (MSVC)
+  set(protobuf_STAT_SRCS
+    ${protobuf_STAT_SRCS}
+    src/google/protobuf/stubs/atomicops_internals_x86_msvc.cc
+  )
+else()
+  set(protobuf_STAT_SRCS
+    ${protobuf_STAT_SRCS}
+    src/google/protobuf/stubs/atomicops_internals_x86_gcc.cc
+  )
 endif()
 
-add_library(protobuf INTERFACE)
-
-target_link_libraries(protobuf
-  INTERFACE
-    protobuf::libprotobuf)
+add_library(protobuf STATIC ${protobuf_STAT_SRCS})
 
 target_include_directories(protobuf
-  INTERFACE
-    ${Protobuf_INCLUDE_DIRS})
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/tc_custom)
 
-# Expose the protoc compiler to later CMake code that generates .pb.cc/.pb.h
-# from the vendored proto definitions. FindProtobuf populates the
-# Protobuf_PROTOC_EXECUTABLE cache variable and, where available, the
-# protobuf::protoc imported target; surface both for downstream consumers.
-if(NOT Protobuf_PROTOC_EXECUTABLE AND TARGET protobuf::protoc)
-  get_target_property(Protobuf_PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION_RELEASE)
+# acore-dependency-interface bundles the default compile options together with
+# warning suppression (acore-no-warning-interface) and hidden-symbol settings,
+# keeping this third-party target out of AzerothCore's strict -Werror build.
+target_link_libraries(protobuf
+  PRIVATE
+    acore-dependency-interface
+  PUBLIC
+    threads)
+
+if (MSVC)
+  target_compile_options(protobuf
+    PRIVATE
+      /wd4996)
+
+  target_compile_definitions(protobuf
+    PRIVATE
+      _SCL_SECURE_NO_WARNINGS)
 endif()
 
-set(PROTOBUF_PROTOC_EXECUTABLE "${Protobuf_PROTOC_EXECUTABLE}"
-  CACHE FILEPATH "Path to the protoc Protocol Buffers compiler executable" FORCE)
-
-message(STATUS "Found Protobuf: ${Protobuf_VERSION}")
-message(STATUS "  * protoc compiler: ${PROTOBUF_PROTOC_EXECUTABLE}")
+set_target_properties(protobuf
+  PROPERTIES
+    FOLDER
+      "deps")

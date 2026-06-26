@@ -41,7 +41,7 @@ OpenSSL (general-purpose cryptography library)
 
 Protobuf (Protocol Buffers - Google's data interchange format)
   https://github.com/protocolbuffers/protobuf
-  Version: external
+  Version: 2.6.1 (vendored, via TrinityCore dep/protobuf)
 
 CascLib (library for reading the CASC storage of modern WoW clients)
   https://github.com/ladislav-zezula/CascLib
