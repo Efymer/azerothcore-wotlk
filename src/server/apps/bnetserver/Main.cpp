@@ -295,9 +295,11 @@ void StopDB()
 /// Mirrors TrinityCore's Battlenet::AccountMgr::CreateBattlenetAccount using AzerothCore's API.
 int RegisterBnetAccount(std::string email, std::string const& password)
 {
-    // The battle.net SRP username is the uppercased email.
+    // The battle.net SRP username is the hex-encoded SHA-256 of the uppercased
+    // email — this MUST match how LoginRESTService derives it at login time
+    // (HexStr(SHA256(account_name))), otherwise the verifier never matches.
     Utf8ToUpperOnlyLatin(email);
-    std::string const& srpUsername = email;
+    std::string const srpUsername = ByteArrayToHexStr(Acore::Crypto::SHA256::GetDigestOf(email));
 
     // Reject duplicates up front.
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_ACCOUNT_ID_BY_EMAIL);
