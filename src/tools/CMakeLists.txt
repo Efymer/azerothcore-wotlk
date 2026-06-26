@@ -24,7 +24,7 @@ if (TOOLS_BUILD MATCHES "-only")
   set(BUILD_TOOLS_USE_WHITELIST ON)
 
   if (TOOLS_BUILD STREQUAL "maps-only")
-    list(APPEND BUILD_TOOLS_WHITELIST map_extractor mmaps_generator vmap4_assembler vmap4_extractor)
+    list(APPEND BUILD_TOOLS_WHITELIST extractor_common map_extractor mmaps_generator vmap4_assembler vmap4_extractor)
   endif()
 
   if (TOOLS_BUILD STREQUAL "db-only")
@@ -92,6 +92,36 @@ foreach(TOOL_NAME ${TOOLS_BUILD_LIST})
   ToolNameToVariable(${TOOL_NAME} TOOL_BUILD_VARIABLE)
 
   if (${TOOL_BUILD_VARIABLE} STREQUAL "disabled")
+    continue()
+  endif()
+
+  # extractor_common is the shared CASC-access static library consumed by the
+  # maps/DB2 extractors, not a standalone executable. Build it as a library and
+  # skip the executable generation below.
+  if (${TOOL_NAME} STREQUAL "extractor_common")
+    unset(EXTRACTOR_COMMON_SOURCES)
+    CollectSourceFiles(
+      ${SOURCE_TOOL_PATH}
+      EXTRACTOR_COMMON_SOURCES)
+
+    add_library(extractor_common STATIC ${EXTRACTOR_COMMON_SOURCES})
+
+    target_link_libraries(extractor_common
+      PRIVATE
+        acore-dependency-interface
+      PUBLIC
+        casc
+        common)
+
+    target_include_directories(extractor_common
+      PUBLIC
+        ${SOURCE_TOOL_PATH})
+
+    set_target_properties(extractor_common
+      PROPERTIES
+        FOLDER
+          "tools")
+
     continue()
   endif()
 
