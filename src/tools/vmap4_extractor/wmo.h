@@ -1,10 +1,10 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,30 +18,28 @@
 #ifndef WMO_H
 #define WMO_H
 
+#include "vec3d.h"
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
-#include "vec3d.h"
-#include "loadlib/loadlib.h"
-
 // MOPY flags
 enum MopyFlags
 {
-    WHO_MATERIAL_UNK01            = 0x01,
-    WMO_MATERIAL_NOCAMCOLLIDE     = 0x02,
-    WMO_MATERIAL_DETAIL           = 0x04,
-    WMO_MATERIAL_COLLISION        = 0x08,
-    WMO_MATERIAL_HINT             = 0x10,
-    WMO_MATERIAL_RENDER           = 0x20,
-    WMO_MATERIAL_WALL_SURFACE     = 0x40, // Guessed
-    WMO_MATERIAL_COLLIDE_HIT      = 0x80,
+    WMO_MATERIAL_UNK01          = 0x01,
+    WMO_MATERIAL_NOCAMCOLLIDE   = 0x02,
+    WMO_MATERIAL_DETAIL         = 0x04,
+    WMO_MATERIAL_COLLISION      = 0x08,
+    WMO_MATERIAL_HINT           = 0x10,
+    WMO_MATERIAL_RENDER         = 0x20,
+    WMO_MATERIAL_WALL_SURFACE   = 0x40, // Guessed
+    WMO_MATERIAL_COLLIDE_HIT    = 0x80
 };
 
 class WMOInstance;
-class WMOMgr;
-class MPQFile;
+class WMOManager;
+class CASCFile;
 namespace ADT { struct MODF; }
 
 namespace WMO
@@ -65,12 +63,13 @@ namespace WMO
 }
 
 /* for whatever reason a certain company just can't stick to one coordinate system... */
-static inline Vec3D fixCoords(const Vec3D& v) { return Vec3D(v.z, v.x, v.y); }
+static inline Vec3D fixCoords(Vec3D const& v){ return Vec3D(v.z, v.x, v.y); }
 
 struct WMODoodadData
 {
     std::vector<WMO::MODS> Sets;
     std::unique_ptr<char[]> Paths;
+    std::unique_ptr<uint32[]> FileDataIds;
     std::vector<WMO::MODD> Spawns;
     std::unordered_set<uint16> References;
 };
@@ -81,13 +80,15 @@ private:
     std::string filename;
 public:
     unsigned int color;
-    uint32 nTextures, nGroups, nPortals, nLights, nDoodadNames, nDoodadDefs, nDoodadSets, RootWMOID, flags;
+    uint32 nTextures, nGroups, nPortals, nLights, nDoodadNames, nDoodadDefs, nDoodadSets, RootWMOID;
     float bbcorn1[3];
     float bbcorn2[3];
+    uint16 flags, numLod;
 
     std::vector<char> GroupNames;
     WMODoodadData DoodadData;
     std::unordered_set<uint32> ValidDoodadNames;
+    std::vector<uint32> groupFileDataIDs;
 
     WMORoot(std::string const& filename);
 
@@ -122,9 +123,8 @@ private:
 public:
     // MOGP
 
-    char* MOPY;
-    uint16* MOVI;
-    uint16* MoviEx;
+    std::unique_ptr<uint16[]> MPY2;
+    std::unique_ptr<uint32[]> MOVX;
     float* MOVT;
     uint16* MOBA;
     int* MobaEx;
@@ -140,8 +140,11 @@ public:
     uint16 nBatchA;
     uint16 nBatchB;
     uint32 nBatchC, fogIdx, groupLiquid, groupWMOID;
+    uint32 mogpFlags2;
+    int16 parentOrFirstChildSplitGroupIndex;
+    int16 nextSplitChildGroupIndex;
 
-    int mopy_size, moba_size;
+    int moba_size;
     int LiquEx_size;
     unsigned int nVertices; // number when loaded
     int nTriangles; // number when loaded
@@ -150,6 +153,8 @@ public:
     std::vector<uint16> DoodadReferences;
 
     WMOGroup(std::string const& filename);
+    WMOGroup(WMOGroup&&) = default;
+    WMOGroup& operator=(WMOGroup&&) = default;
     ~WMOGroup();
 
     bool open(WMORoot* rootWMO);

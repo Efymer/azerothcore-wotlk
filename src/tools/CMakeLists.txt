@@ -177,6 +177,58 @@ foreach(TOOL_NAME ${TOOLS_BUILD_LIST})
     continue()
   endif()
 
+  # vmap4_extractor reads the CASC-based 3.4.x client (CascLib + the DB2 reader)
+  # like map_extractor, so it must NOT link the legacy mpq/Recast stack. It does
+  # use G3D geometry (G3D::Matrix3/Quat) when transforming WMO doodad spawns, so
+  # it additionally links g3dlib. Build it as a standalone executable wired
+  # against the CASC extraction toolchain and skip the generic generation below.
+  if (${TOOL_NAME} STREQUAL "vmap4_extractor")
+    GetProjectNameOfToolName(${TOOL_NAME} TOOL_PROJECT_NAME)
+
+    unset(VMAP4_EXTRACTOR_SOURCES)
+    CollectSourceFiles(
+      ${SOURCE_TOOL_PATH}
+      VMAP4_EXTRACTOR_SOURCES)
+
+    if (WIN32)
+      list(APPEND VMAP4_EXTRACTOR_SOURCES ${winDebugging})
+    endif()
+
+    add_executable(${TOOL_PROJECT_NAME}
+      ${VMAP4_EXTRACTOR_SOURCES})
+
+    add_dependencies(${TOOL_PROJECT_NAME} revision.h)
+
+    target_link_libraries(${TOOL_PROJECT_NAME}
+      PRIVATE
+        acore-dependency-interface
+      PUBLIC
+        casc
+        extractor_common
+        common
+        g3dlib
+        zlib)
+
+    target_include_directories(${TOOL_PROJECT_NAME}
+      PUBLIC
+        ${SOURCE_TOOL_PATH}
+      PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/${TOOL_NAME})
+
+    set_target_properties(${TOOL_PROJECT_NAME}
+      PROPERTIES
+        FOLDER
+          "tools")
+
+    if (UNIX)
+      install(TARGETS ${TOOL_PROJECT_NAME} DESTINATION bin)
+    elseif (WIN32)
+      install(TARGETS ${TOOL_PROJECT_NAME} DESTINATION "${CMAKE_INSTALL_PREFIX}")
+    endif()
+
+    continue()
+  endif()
+
   unset(TOOL_PRIVATE_SOURCES)
   CollectSourceFiles(
     ${SOURCE_TOOL_PATH}

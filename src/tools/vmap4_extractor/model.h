@@ -1,10 +1,10 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,11 +18,11 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include "loadlib/loadlib.h"
-#include "modelheaders.h"
 #include "vec3d.h"
+#include "modelheaders.h"
+#include <vector>
 
-class MPQFile;
+class CASCFile;
 struct WMODoodadData;
 namespace ADT { struct MDDF; struct MODF; }
 
@@ -42,7 +42,8 @@ private:
 public:
     ModelHeader header;
     Vec3D* vertices;
-    uint16* indices;
+    uint32* indices;
+    AaBox3D bounds;
 
     bool open();
     bool ConvertToVMAPModel(char const* outfilename);

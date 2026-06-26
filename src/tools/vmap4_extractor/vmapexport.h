@@ -1,10 +1,10 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,7 +18,7 @@
 #ifndef VMAPEXPORT_H
 #define VMAPEXPORT_H
 
-#include "loadlib/loadlib.h"
+#include "Define.h"
 #include <string>
 #include <unordered_map>
 
@@ -28,11 +28,14 @@ namespace VMAP
     const char RAW_VMAP_MAGIC[] = "VMAP048";                // used in extracted vmap files with raw data
 }
 
+// flags of each model spawn written into the dir_bin file. Kept identical to the
+// values expected by AzerothCore's vmap4_assembler (TileAssembler) and the
+// worldserver collision loader - do not change the binary meaning of these.
 enum ModelFlags
 {
-    MOD_M2 = 1,
-    MOD_WORLDSPAWN = 1 << 1,
-    MOD_HAS_BOUND = 1 << 2
+    MOD_M2          = 1,
+    MOD_WORLDSPAWN  = 1 << 1,
+    MOD_HAS_BOUND   = 1 << 2
 };
 
 struct WMODoodadData;
@@ -42,8 +45,7 @@ extern std::unordered_map<std::string, WMODoodadData> WmoDoodads;
 
 uint32 GenerateUniqueObjectId(uint32 clientId, uint16 clientDoodadId);
 
-bool FileExists(const char* file);
-void strToLower(char* str);
+bool FileExists(const char * file);
 
 bool ExtractSingleWmo(std::string& fname);
 bool ExtractSingleModel(std::string& fname);
