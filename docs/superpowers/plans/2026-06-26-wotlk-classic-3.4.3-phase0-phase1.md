@@ -344,6 +344,108 @@ TEST(DB2Store, ParsesHeaderRecordCount)
 
 ---
 
+## Deferred work & technical debt (found during implementation)
+
+> Gaps, stubs, and limits discovered while building Phase 0 + the bnetserver this session. Each is an
+> actionable deferred task: **where it surfaced**, **files**, **what to do**. **🔴 = blocks world
+> entry** (must be done before/with the world-protocol bricks); 🟡 = correctness/quality; ⚪ = cleanup.
+> Cross-reference: `docs/wotlk-classic-3.4.3/KNOWLEDGE.md` §5.
+
+### Database / schema
+
+- [ ] **🔴 D1 — Widen `account.session_key` for the 64-byte bnet key.** Surfaced in `BnetRealmList::JoinRealm`
+  (brick D+E): `account.session_key` is `binary(40)` (legacy grunt SHA1 key) but the modern bnet session
+  key is **64 bytes**, so `JoinRealm` truncates it. **Files:** new `data/sql/updates/pending_db_auth/rev_*.sql`;
+  `src/server/shared/Realms/BnetRealmList.cpp`; `src/server/database/Database/Implementation/LoginDatabase.{h,cpp}`.
+  **Do:** add `session_key_bnet binary(64)`, `client_build int unsigned`, `timezone_offset int` columns to
+  `account` (TC's layout); store the full 64-byte key + build + tz in `JoinRealm`; the world-auth handshake
+  (world brick D/E) reads them. Unblocks D3's `LOGIN_UPD_BNET_GAME_ACCOUNT_LOGIN_INFO`.
+
+- [ ] **🟡 D2 — Add `region`/`battlegroup` to `realmlist`.** Surfaced in brick D+E: `Battlenet::RealmHandle`
+  Region/Site default to 0 (single "0-0-0" sub-region) and character-count queries report region/bg as 1.
+  **Files:** `data/sql/updates/pending_db_auth/rev_*.sql`; `LOGIN_SEL_REALMLIST` in `LoginDatabase.cpp`;
+  `src/server/shared/Realms/{Realm,RealmList,BnetRealmList}.*`. **Do:** add the columns, extend the SELECT,
+  populate `RealmHandle` from them so multiple bnet sub-regions work.
+
+- [ ] **🟡 D3 — Un-stub the 9 deferred BNET prepared statements.** Surfaced bricks 1 & 3. Currently absent or
+  stubbed: `LOGIN_UPD_BNET_GAME_ACCOUNT_LOGIN_INFO` (needs D1 columns), the `LOGIN_SEL_BNET_LAST_PLAYER_CHARACTERS`
+  family (stubbed `... AND 0`, needs an `account_last_played_character` table), `LOGIN_SEL_BNET_CHARACTER_COUNTS_BY_*`
+  (needs D2). **Files:** `LoginDatabase.{h,cpp}`; new schema. **Do:** add the schema (D1/D2 + last-played table) and
+  replace the stubs with real queries.
+
+- [ ] **🟡 D4 — Build the hotfix *delivery* protocol.** Surfaced 1a.2: the `acore_hotfixes` DB + `HotfixDatabase`
+  pool exist, but `SMSG_HOTFIX_CONNECT`/`SMSG_HOTFIX_MESSAGE` + `DB2HotfixGenerator` are not built. **Files:**
+  `src/server/game/Server/Packets/HotfixPackets.*` (new); `src/server/game/DataStores/DB2HotfixGenerator.*` (port).
+  **Do:** Phase 1c.5 / Phase 4 — needed once we serve custom/modified data to unmodified clients.
+
+- [ ] **⚪ D5 — Resolve the `codestyle-sql` base-dir warning for `db_hotfixes`.** Surfaced 1a.2/1a.4: adding
+  `data/sql/base/db_hotfixes/` trips the linter's "notify a maintainer" warning (normal for any base-dir add).
+  **Do:** maintainer ack, or align with the proper base-DB registration path if upstreaming to the fork's CI.
+
+### bnetserver stubs
+
+- [ ] **🟡 B1 — `ClientBuildInfo::AuthKeys` is an empty stub.** Surfaced brick D+E: AC has no `build_auth_key`
+  table, so the client auth-key/CRC version check is effectively skipped. **Files:** `src/server/shared/Realms/ClientBuildInfo.{h,cpp}`;
+  new `build_auth_key` schema. **Do:** populate the auth keys + enable the check if strict version validation is wanted.
+
+- [ ] **🟡 B2 — `Acore::Timezone::GetOffsetByHash` returns UTC for everything.** Surfaced brick D+E (stub in
+  `src/common/Utilities/Timezone.h`). **Do:** port TC's real timezone-offset table for correct client time display.
+
+- [ ] **⚪ B3 — `Battlenet::SslContext::UsesDevWildcardCertificate()` returns `false`.** Surfaced brick 3
+  (`src/server/shared/Network/SslContext.h`). **Do:** implement only if a dev wildcard / http-fallback path is wanted.
+
+### ConnectTo / world handoff
+
+- [ ] **🔴 C1 — Complete the bnet→world ConnectTo handoff.** Surfaced brick D+E: `JoinRealm` mints a join key
+  but (a) stores only 40/64 bytes (see D1) and (b) the worldserver doesn't validate it (3.4.3 world auth handshake
+  unbuilt). **Files:** `BnetRealmList.cpp`; world brick D/E (WorldSocket handshake). **Do:** D1 + read the protobuf
+  join ticket in the modern WorldSocket handshake. This is the link between login (done) and world entry.
+
+### Networking / cleanup
+
+- [ ] **⚪ N1 — Remove redundant Brick-2 `SslStream`/`SslContext`.** Surfaced brick A: the modern `Acore::Net`
+  stack (`src/common/network/SslStream.h`) supersedes the simplified `src/server/shared/Network/SslStream.h` +
+  `SslContext.{h,cpp}` from brick 2. **Do:** confirm nothing (bnetserver/authserver) references the Brick-2 files,
+  then delete them; keep `Battlenet::SslContext` only where actually used.
+
+- [ ] **⚪ N2 — De-fragile the two colliding `Socket.h`.** Surfaced brick 3: legacy `src/server/shared/Network/Socket.h`
+  (global `Socket<T>`) and modern `src/common/network/Socket.h` (`Acore::Net::Socket`) share bare filenames; the
+  bnetserver CMake prepends the modern include dir to resolve `#include "Socket.h"`. **Do:** rename/namespace one set
+  (e.g. modern → `NetSocket.h` or include via `network/Socket.h`) to remove the include-order dependency.
+
+- [ ] **🔴 N3 — Proxy-protocol parity for `WorldSocketMgr` on `Acore::Net`.** Surfaced world-brick-2 scoping: the
+  modern `Acore::Net::NetworkThread` lacks `EnableProxyProtocol` that AC's `WorldSocketMgr::CreateThreads` uses.
+  **Files:** `src/common/network/NetworkThread.h`; `src/server/game/Server/WorldSocketMgr.cpp`. **Do:** port proxy-protocol
+  support to the modern NetworkThread, or drop the feature when moving WorldSocketMgr onto Acore::Net (world brick E/F).
+
+### Verify (low-risk but unconfirmed)
+
+- [ ] **⚪ V1 — Confirm the `CONNECTION_BOTH` change is harmless.** Surfaced in the register-account brick:
+  `LOGIN_INS_ACCOUNT` + `LOGIN_UPD_BNET_GAME_ACCOUNT_LINK` were moved `CONNECTION_ASYNC` → `CONNECTION_BOTH` so the
+  `--register-bnet` CLI can `DirectExecute` them. **Do:** confirm the async worldserver paths still work (they should —
+  `CONNECTION_BOTH` prepares on both pools).
+
+- [ ] **⚪ V2 — Runtime-test the grunt auth path (or confirm irrelevant).** Surfaced bricks 1/2/D+E: the battlenet
+  account-model additions are link-verified (authserver compiles+links) but the legacy grunt login wasn't run
+  end-to-end. **Do:** smoke-test grunt login, or document it as intentionally-abandoned (fork-replace auth).
+
+### Server-side DB2 (the Phase 1c on-ramp)
+
+- [ ] **🔴 S1 — Generate 54261 DB2 metadata for the ~30-40 world-entry server tables.** Surfaced in Phase 0: only the
+  6 *extractor* tables have 54261 metadata (`ExtractorDB2LoadInfo.h`). The server runtime store layer (tasks 1c.1-1c.3,
+  spec §7 list) needs the world-entry set via the **same proven WoWDBDefs method** (`.dbd` LAYOUT block for 54261 →
+  `DB2Meta`/`LoadInfo`, cross-checking hashes deterministically — WebFetch misreports them). **Do:** Phase 1c DB2 store
+  layer using WoWDBDefs for build 54261.
+
+### Observability
+
+- [ ] **⚪ O1 — Make bnetserver logs readable at runtime.** Surfaced during login debugging: the console appender uses
+  the Windows Console API (uncapturable via stdout redirect) and the file appender buffers until graceful shutdown, so
+  `Bnet.log` is empty on a force-kill. **Do:** add a flush-on-write / line-buffered file-appender option (or a clean
+  shutdown path) so runtime diagnosis doesn't rely on DB + TCP-connection-state forensics.
+
+---
+
 ## Self-review notes
 
 - **Spec coverage:** every Phase-0/1 spec section maps to tasks — bnetserver (1a.3–1a.4), proto dep (0.1/1a.1), TLS/cert (0.6), CASC+DB2 toolchain (0.2–0.5), 4th DB (1a.2), world handshake/crypt (1b.2), opcodes (1b.3), UpdateFields (1c.4), DB2 read layer + subset (1c.1–1c.3), hotfix handshake (1c.5), movement/chat/objects (1d). Build 54261 (1b.1). Phases 2–5 outlined per the "full multi-phase, Phase 0/1 in depth" instruction.
