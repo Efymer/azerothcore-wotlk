@@ -39,6 +39,14 @@ OpenSSL (general-purpose cryptography library)
   https://www.openssl.org/
   Version: external
 
+Protobuf (Protocol Buffers - Google's data interchange format)
+  https://github.com/protocolbuffers/protobuf
+  Version: external
+
+CascLib (library for reading the CASC storage of modern WoW clients)
+  https://github.com/ladislav-zezula/CascLib
+  Version: external
+
 MySQL (the world's most popular open source database software)
   http://www.mysql.com/
   Version: external
