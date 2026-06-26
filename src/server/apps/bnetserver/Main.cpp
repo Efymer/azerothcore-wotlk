@@ -35,6 +35,7 @@
 #include "LoginRESTService.h"
 #include "Memory.h"
 #include "MySQLThreading.h"
+#include "SRP6.h"
 #include "OpenSSLCrypto.h"
 #include "ProcessPriority.h"
 #include "RealmList.h"
@@ -43,6 +44,7 @@
 #include "SharedDefines.h"
 #include "SslContext.h"
 #include "SteadyTimer.h"
+#include "StringFormat.h"
 #include "Util.h"
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
@@ -64,6 +66,7 @@ namespace fs = std::filesystem;
 
 bool StartDB();
 void StopDB();
+int RegisterBnetAccount(std::string email, std::string const& password);
 void SignalHandler(std::weak_ptr<Acore::Asio::IoContext> ioContextRef, boost::system::error_code const& error, int signalNumber);
 void KeepDatabaseAliveHandler(std::weak_ptr<boost::asio::steady_timer> dbPingTimerRef, int32 dbPingInterval, boost::system::error_code const& error);
 void BanExpiryHandler(std::weak_ptr<boost::asio::steady_timer> banExpiryCheckTimerRef, int32 banExpiryCheckInterval, boost::system::error_code const& error);
@@ -137,6 +140,49 @@ int main(int argc, char** argv)
         return 1;
 
     std::shared_ptr<void> dbHandle(nullptr, [](void*) { StopDB(); });
+
+    // CLI account-creation mode: register a battle.net account and exit without
+    // starting the REST/bnet network listeners.
+    if (vm.count("register-bnet"))
+    {
+        std::vector<std::string> const args = vm["register-bnet"].as<std::vector<std::string>>();
+
+        std::string email;
+        std::string password;
+
+        if (args.size() == 1)
+        {
+            // Allow the <email>:<password> single-argument form.
+            std::string const& combined = args[0];
+            std::size_t const sep = combined.find(':');
+            if (sep == std::string::npos)
+            {
+                LOG_ERROR("server.bnetserver", "--register-bnet: expected <email> <password> or <email>:<password>");
+                return 1;
+            }
+
+            email = combined.substr(0, sep);
+            password = combined.substr(sep + 1);
+        }
+        else if (args.size() >= 2)
+        {
+            email = args[0];
+            password = args[1];
+        }
+        else
+        {
+            LOG_ERROR("server.bnetserver", "--register-bnet: expected <email> <password> or <email>:<password>");
+            return 1;
+        }
+
+        if (email.empty() || password.empty())
+        {
+            LOG_ERROR("server.bnetserver", "--register-bnet: email and password must not be empty");
+            return 1;
+        }
+
+        return RegisterBnetAccount(std::move(email), password);
+    }
 
     sSecretMgr->Initialize(SECRET_OWNER_BNETSERVER);
 
@@ -245,6 +291,102 @@ void StopDB()
     MySQL::Library_End();
 }
 
+/// Create a battle.net account (and a linked grunt game account) from the CLI, then exit.
+/// Mirrors TrinityCore's Battlenet::AccountMgr::CreateBattlenetAccount using AzerothCore's API.
+int RegisterBnetAccount(std::string email, std::string const& password)
+{
+    // The battle.net SRP username is the uppercased email.
+    Utf8ToUpperOnlyLatin(email);
+    std::string const& srpUsername = email;
+
+    // Reject duplicates up front.
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_ACCOUNT_ID_BY_EMAIL);
+    stmt->SetData(0, email);
+    if (LoginDatabase.Query(stmt))
+    {
+        LOG_ERROR("server.bnetserver", "Battle.net account '{}' already exists.", email);
+        return 1;
+    }
+
+    // Derive the v2 registration data (salt: 32-byte array, verifier: byte vector).
+    // MakeRegistrationData is a static on the base; the concrete impl is the explicit template arg.
+    using BnetSRP6 = Acore::Crypto::SRP::BnetSRP6v2<Acore::Crypto::SHA256>;
+    auto [salt, verifier] = BnetSRP6::MakeRegistrationData<BnetSRP6>(srpUsername, password);
+
+    // INSERT INTO battlenet_accounts (email, srp_version, salt, verifier).
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_BNET_ACCOUNT);
+    stmt->SetData(0, email);
+    stmt->SetData(1, uint8(2)); // SrpVersion::v2
+    stmt->SetData(2, salt);
+    stmt->SetData(3, verifier);
+    LoginDatabase.DirectExecute(stmt);
+
+    // Fetch the newly created battle.net account id.
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_ACCOUNT_ID_BY_EMAIL);
+    stmt->SetData(0, email);
+    PreparedQueryResult result = LoginDatabase.Query(stmt);
+    if (!result)
+    {
+        LOG_ERROR("server.bnetserver", "Failed to create battle.net account '{}' (could not read back id).", email);
+        return 1;
+    }
+
+    uint32 const bnetAccountId = (*result)[0].Get<uint32>();
+
+    // Create the linked grunt game account named "<bnetId>#1" so the realm list works.
+    std::string gameAccountName = Acore::StringFormat("{}#1", bnetAccountId);
+
+    std::string gruntUsername = gameAccountName;
+    std::string gruntPassword = password;
+    Utf8ToUpperOnlyLatin(gruntUsername);
+    Utf8ToUpperOnlyLatin(gruntPassword);
+
+    // Make sure the game account name is free.
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_ID_BY_NAME);
+    stmt->SetData(0, gruntUsername);
+    if (LoginDatabase.Query(stmt))
+    {
+        LOG_ERROR("server.bnetserver", "Battle.net account '{}' created (id {}), but linked game account '{}' already exists.",
+            email, bnetAccountId, gruntUsername);
+        return 1;
+    }
+
+    // INSERT INTO account(username, salt, verifier, expansion, reg_mail, email) using the legacy grunt SRP6.
+    auto [gruntSalt, gruntVerifier] = Acore::Crypto::SRP6::MakeRegistrationData(gruntUsername, gruntPassword);
+
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_ACCOUNT);
+    stmt->SetData(0, gruntUsername);
+    stmt->SetData(1, gruntSalt);
+    stmt->SetData(2, gruntVerifier);
+    stmt->SetData(3, uint8(2)); // expansion (WotLK)
+    stmt->SetData(4, ""); // reg_mail
+    stmt->SetData(5, ""); // email
+    LoginDatabase.DirectExecute(stmt);
+
+    // Resolve the new game account id and link it to the battle.net account at index 1.
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_ID_BY_NAME);
+    stmt->SetData(0, gruntUsername);
+    result = LoginDatabase.Query(stmt);
+    if (!result)
+    {
+        LOG_ERROR("server.bnetserver", "Battle.net account '{}' created (id {}), but failed to read back game account '{}'.",
+            email, bnetAccountId, gruntUsername);
+        return 1;
+    }
+
+    uint32 const gameAccountId = (*result)[0].Get<uint32>();
+
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_LINK);
+    stmt->SetData(0, bnetAccountId);
+    stmt->SetData(1, uint8(1)); // battlenet_index
+    stmt->SetData(2, gameAccountId);
+    LoginDatabase.DirectExecute(stmt);
+
+    LOG_INFO("server.bnetserver", "Created battle.net account '{}' (id {}) with linked game account '{}' (id {}, index 1).",
+        email, bnetAccountId, gruntUsername, gameAccountId);
+    return 0;
+}
+
 void SignalHandler(std::weak_ptr<Acore::Asio::IoContext> ioContextRef, boost::system::error_code const& error, int /*signalNumber*/)
 {
     if (!error)
@@ -295,7 +437,8 @@ variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile)
         ("version,v", "print version build info")
         ("dry-run,d", "Dry run")
         ("config,c", value<fs::path>(&configFile)->default_value(fs::path(sConfigMgr->GetConfigPath() + std::string(_ACORE_BNET_CONFIG))), "use <arg> as configuration file")
-        ("config-policy", value<std::string>()->value_name("policy"), "override config severity policy (e.g. default=skip,critical_option=fatal)");
+        ("config-policy", value<std::string>()->value_name("policy"), "override config severity policy (e.g. default=skip,critical_option=fatal)")
+        ("register-bnet", value<std::vector<std::string>>()->multitoken(), "create a battle.net account: --register-bnet <email> <password> (or <email>:<password>) then exit");
 
     variables_map variablesMap;
 
