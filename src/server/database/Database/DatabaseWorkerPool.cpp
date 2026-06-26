@@ -19,6 +19,7 @@
 #include "AdhocStatement.h"
 #include "CharacterDatabase.h"
 #include "Errors.h"
+#include "HotfixDatabase.h"
 #include "Log.h"
 #include "LoginDatabase.h"
 #include "MySQLPreparedStatement.h"
@@ -571,3 +572,4 @@ void DatabaseWorkerPool<T>::ExecuteOrAppend(SQLTransaction<T>& trans, PreparedSt
 template class AC_DATABASE_API DatabaseWorkerPool<LoginDatabaseConnection>;
 template class AC_DATABASE_API DatabaseWorkerPool<WorldDatabaseConnection>;
 template class AC_DATABASE_API DatabaseWorkerPool<CharacterDatabaseConnection>;
+template class AC_DATABASE_API DatabaseWorkerPool<HotfixDatabaseConnection>;
