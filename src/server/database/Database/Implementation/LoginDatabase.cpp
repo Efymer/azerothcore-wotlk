@@ -193,6 +193,10 @@ void LoginDatabaseConnection::DoPrepareStatements()
     PrepareStatement(LOGIN_INS_BNET_ACCOUNT_AUTO_BANNED, "INSERT INTO battlenet_account_bans(id, bandate, unbandate, bannedby, banreason) VALUES(?, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()+?, 'AzerothCore Auth', 'Failed login autoban')", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_DEL_BNET_EXPIRED_ACCOUNT_BANNED, "DELETE FROM battlenet_account_bans WHERE unbandate<>bandate AND unbandate<=UNIX_TIMESTAMP()", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_UPD_BNET_RESET_FAILED_LOGINS, "UPDATE battlenet_accounts SET failed_logins = 0 WHERE id = ?", CONNECTION_ASYNC);
+    // bnetserver realm-join: persist the negotiated session key and last-login info for a game account.
+    // NOTE: AzerothCore's `account.session_key` is binary(40); the bnet join key is 64 bytes. The trailing
+    // bytes are stored truncated until the auth schema gains a wider/dedicated column (see BnetRealmList::JoinRealm).
+    PrepareStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_LOGIN_INFO, "UPDATE account SET session_key = ?, last_ip = ?, last_login = NOW(), locale = ?, failed_logins = 0, os = ? WHERE username = ?", CONNECTION_SYNCH);
 
 #undef BnetAccountInfo
 #undef BnetGameAccountInfo

@@ -33,6 +33,18 @@ enum Secrets : uint32
     NUM_SECRETS
 };
 
+// Identifies which server process is initializing the secret manager. Mirrors
+// TrinityCore's SECRET_OWNER_* so the bnetserver can call Initialize(owner).
+// AzerothCore's grunt authserver/worldserver keep using the no-argument
+// Initialize(); this only changes which secrets are eagerly loaded vs deferred.
+enum SecretOwner : uint32
+{
+    SECRET_OWNER_NONE        = 0,
+    SECRET_OWNER_AUTHSERVER  = 1,
+    SECRET_OWNER_BNETSERVER  = 2,
+    SECRET_OWNER_WORLDSERVER = 3
+};
+
 class AC_SHARED_API SecretMgr
 {
 private:
@@ -60,6 +72,10 @@ public:
     };
 
     void Initialize();
+    // Owner-aware overload used by the bnetserver. For SECRET_OWNER_BNETSERVER no
+    // secrets are eagerly loaded (the TOTP master key is authserver-owned and is
+    // loaded lazily on demand). For other owners this behaves like Initialize().
+    void Initialize(SecretOwner owner);
     Secret const& GetSecret(Secrets i);
 
 private:

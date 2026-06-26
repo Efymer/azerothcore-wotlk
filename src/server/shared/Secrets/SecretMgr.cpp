@@ -95,6 +95,17 @@ void SecretMgr::Initialize()
     }
 }
 
+void SecretMgr::Initialize(SecretOwner owner)
+{
+    // The bnetserver does not own any secrets (the TOTP master key belongs to the
+    // authserver and is loaded lazily via GetSecret). Skip eager loading so a
+    // missing/foreign secret does not abort bnetserver startup.
+    if (owner == SECRET_OWNER_BNETSERVER)
+        return;
+
+    Initialize();
+}
+
 SecretMgr::Secret const& SecretMgr::GetSecret(Secrets i)
 {
     std::unique_lock<std::mutex> lock(_secrets[i].lock);

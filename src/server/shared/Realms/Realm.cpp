@@ -17,8 +17,19 @@
 
 #include "Realm.h"
 #include "IpNetwork.h"
+#include "StringFormat.h"
 #include <boost/asio/ip/tcp.hpp>
 #include <memory> // NOTE: this import is NEEDED (even though some IDEs report it as unused)
+
+std::string Battlenet::RealmHandle::GetAddressString() const
+{
+    return Acore::StringFormat("{}-{}-{}", uint32(Region), uint32(Site), Realm);
+}
+
+std::string Battlenet::RealmHandle::GetSubRegionAddress() const
+{
+    return Acore::StringFormat("{}-{}-0", uint32(Region), uint32(Site));
+}
 
 boost::asio::ip::tcp_endpoint Realm::GetAddressForClient(boost::asio::ip::address const& clientAddr) const
 {

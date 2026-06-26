@@ -21,6 +21,7 @@
 #include "AsioHacksFwd.h"
 #include "Common.h"
 #include <memory> // NOTE: this import is NEEDED (even though some IDEs report it as unused)
+#include <string>
 
 enum RealmFlags
 {
@@ -47,6 +48,32 @@ struct AC_SHARED_API RealmHandle
         return Realm < r.Realm;
     }
 };
+
+// Battlenet realm address: Region/Site/Realm triplet. Used by the bnetserver
+// realm-list RPC layer (BnetRealmList). AzerothCore's grunt path keeps using the
+// plain `RealmHandle` above; this is an additive extension and does not replace it.
+namespace Battlenet
+{
+    struct AC_SHARED_API RealmHandle
+    {
+        RealmHandle() = default;
+        RealmHandle(uint8 region, uint8 battlegroup, uint32 index)
+            : Region(region), Site(battlegroup), Realm(index) { }
+        RealmHandle(uint32 realmAddress)
+            : Region((realmAddress >> 24) & 0xFF), Site((realmAddress >> 16) & 0xFF), Realm(realmAddress & 0xFFFF) { }
+
+        uint8 Region{0};
+        uint8 Site{0};
+        uint32 Realm{0};   // primary key in `realmlist` table
+
+        bool operator==(RealmHandle const& r) const { return Realm == r.Realm; }
+        bool operator<(RealmHandle const& r) const { return Realm < r.Realm; }
+
+        [[nodiscard]] uint32 GetAddress() const { return (uint32(Region) << 24) | (uint32(Site) << 16) | uint16(Realm); }
+        [[nodiscard]] std::string GetAddressString() const;
+        [[nodiscard]] std::string GetSubRegionAddress() const;
+    };
+}
 
 /// Type of server, this is values from second column of Cfg_Configs.dbc
 enum RealmType

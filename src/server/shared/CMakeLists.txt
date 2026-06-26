@@ -34,9 +34,11 @@ target_link_libraries(shared
   PRIVATE
     acore-core-interface
     rapidjson
+    zlib
   PUBLIC
     database
-    protobuf)
+    protobuf
+    proto)
 
 if (MSVC)
   # protobuf 2.6.1 headers (pulled in by ProtobufJSON) use CRT/STL APIs that
