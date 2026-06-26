@@ -2,6 +2,10 @@
 
 AzerothCore is a C++ MMORPG server emulator for World of Warcraft 3.3.5a (WotLK), built with CMake, backed by MySQL.
 
+> **Bug-fixing workflow:** see [`CLAUDE.bugfixing.md`](CLAUDE.bugfixing.md) for the cross-emulator comparison setup (TrinityCore source + live MySQL DBs, Wowhead, planned cMaNGOS) used when fixing AzerothCore bugs.
+>
+> **SmartAI / `smart_scripts`:** see [`CLAUDE.smartai.md`](CLAUDE.smartai.md) for the data-driven creature/GO scripting reference (event/action/target enums, phases, flags, waypoints, timed action lists, table layout) — use it when a bugfix needs SmartAI, waypoints, or escorts.
+
 ## Agent rules
 
 - **Do not configure or build unless explicitly asked.** Builds are slow (CMake + compile of a large C++ codebase) and rarely needed to make code changes.

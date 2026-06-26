@@ -125,6 +125,58 @@ foreach(TOOL_NAME ${TOOLS_BUILD_LIST})
     continue()
   endif()
 
+  # map_extractor reads the CASC-based 3.4.x client (CascLib + the DB2 reader),
+  # not the legacy MPQ archives, so it must NOT link the mpq/Recast/g3dlib stack
+  # used by the other tools. Build it as a standalone executable wired against the
+  # CASC extraction toolchain (casc + extractor_common + common) and skip the
+  # generic executable generation below.
+  if (${TOOL_NAME} STREQUAL "map_extractor")
+    GetProjectNameOfToolName(${TOOL_NAME} TOOL_PROJECT_NAME)
+
+    unset(MAP_EXTRACTOR_SOURCES)
+    CollectSourceFiles(
+      ${SOURCE_TOOL_PATH}
+      MAP_EXTRACTOR_SOURCES)
+
+    if (WIN32)
+      list(APPEND MAP_EXTRACTOR_SOURCES ${winDebugging})
+    endif()
+
+    add_executable(${TOOL_PROJECT_NAME}
+      ${MAP_EXTRACTOR_SOURCES})
+
+    add_dependencies(${TOOL_PROJECT_NAME} revision.h)
+
+    target_link_libraries(${TOOL_PROJECT_NAME}
+      PRIVATE
+        acore-dependency-interface
+      PUBLIC
+        casc
+        extractor_common
+        common
+        zlib)
+
+    target_include_directories(${TOOL_PROJECT_NAME}
+      PUBLIC
+        ${SOURCE_TOOL_PATH}
+        ${SOURCE_TOOL_PATH}/loadlib
+      PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/${TOOL_NAME})
+
+    set_target_properties(${TOOL_PROJECT_NAME}
+      PROPERTIES
+        FOLDER
+          "tools")
+
+    if (UNIX)
+      install(TARGETS ${TOOL_PROJECT_NAME} DESTINATION bin)
+    elseif (WIN32)
+      install(TARGETS ${TOOL_PROJECT_NAME} DESTINATION "${CMAKE_INSTALL_PREFIX}")
+    endif()
+
+    continue()
+  endif()
+
   unset(TOOL_PRIVATE_SOURCES)
   CollectSourceFiles(
     ${SOURCE_TOOL_PATH}
