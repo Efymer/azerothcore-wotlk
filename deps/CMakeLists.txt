@@ -32,6 +32,7 @@ endif()
 
 if (APPS_BUILD AND (NOT APPS_BUILD STREQUAL "none"))
   add_subdirectory(protobuf)
+  add_subdirectory(rapidjson)
 endif()
 
 if (BUILD_APPLICATION_WORLDSERVER OR BUILD_TOOLS_MAPS)

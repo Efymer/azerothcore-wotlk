@@ -167,6 +167,11 @@ int32 BigNumber::GetNumBytes() const
     return BN_num_bytes(_bn);
 }
 
+int32 BigNumber::GetNumBits() const
+{
+    return BN_num_bits(_bn);
+}
+
 uint32 BigNumber::AsDword() const
 {
     return (uint32)BN_get_word(_bn);

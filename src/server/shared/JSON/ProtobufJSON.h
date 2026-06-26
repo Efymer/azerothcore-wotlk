@@ -15,18 +15,24 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_CRYPTO_CONSTANTS_H
-#define AZEROTHCORE_CRYPTO_CONSTANTS_H
+#ifndef ProtobufJSON_h__
+#define ProtobufJSON_h__
 
-namespace Acore::Crypto
+#include "Define.h"
+#include <string>
+
+namespace google
 {
-    struct Constants
+    namespace protobuf
     {
-        static constexpr std::size_t MD5_DIGEST_LENGTH_BYTES = 16;
-        static constexpr std::size_t SHA1_DIGEST_LENGTH_BYTES = 20;
-        static constexpr std::size_t SHA256_DIGEST_LENGTH_BYTES = 32;
-        static constexpr std::size_t SHA512_DIGEST_LENGTH_BYTES = 64;
-    };
+        class Message;
+    }
 }
 
-#endif
+namespace JSON
+{
+    AC_SHARED_API std::string Serialize(google::protobuf::Message const& message);
+    AC_SHARED_API bool Deserialize(std::string const& json, google::protobuf::Message* message);
+}
+
+#endif // ProtobufJSON_h__

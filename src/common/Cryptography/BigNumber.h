@@ -110,6 +110,7 @@ public:
     [[nodiscard]] BigNumber Exp(BigNumber const&) const;
 
     [[nodiscard]] int32 GetNumBytes() const;
+    [[nodiscard]] int32 GetNumBits() const;
 
     struct bignum_st* BN() { return _bn; }
     [[nodiscard]] struct bignum_st const* BN() const { return _bn; }
