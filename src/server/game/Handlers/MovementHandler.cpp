@@ -343,7 +343,7 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
 
 void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
 {
-    uint16 opcode = recvData.GetOpcode();
+    uint32 opcode = recvData.GetOpcode();
 
     Unit* mover = _player->m_mover;
 

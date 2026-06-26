@@ -173,7 +173,8 @@ bool WorldSocket::Update()
         do
         {
             queued->CompressIfNeeded();
-            ServerPktHeader header(queued->size() + 2, queued->GetOpcode());
+            // legacy 3.3.5 wire path: ServerPktHeader cmd is uint16; brick B replaces the wire header
+            ServerPktHeader header(queued->size() + 2, uint16(queued->GetOpcode()));
             if (queued->NeedsEncryption())
                 _authCrypt.EncryptSend(header.header, header.getHeaderLength());
 

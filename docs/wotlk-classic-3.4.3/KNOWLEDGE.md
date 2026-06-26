@@ -262,10 +262,23 @@ It must be built in this order (each is large; the opcode/WorldPacket bricks rip
 game and require the enormous `game` build):
 
 - ✅ **Brick 1 (done):** `WorldPacketCrypt` (AES-256) + `HMAC_SHA512`.
-- **A — modern `WorldPacket`/`Packet` framework**: uint32 opcodes + `ConnectionType` (AC's is uint16);
-  bit-stream read/write. Foundational; touches a lot.
-- **B — modern opcode table + 3.4.3 opcode enum** (`IsValid`, `ClientOpcodeHandler`). Touches every
-  handler. The handshake opcodes (AUTH_SESSION, ENTER_ENCRYPTED_MODE, …) land here.
+- ✅ **A — modern `WorldPacket`/`Packet` framework (done):** ported TC `wotlk_classic`'s bit-stream
+  into AC's `ByteBuffer` (`WriteBit`/`ReadBit`/`WriteBits`/`ReadBits`/`FlushBits`/`ResetBitPos`/
+  `PutBits`/`bitwpos`, MSB-first, verbatim — AC had none); `WorldPacket` opcode `uint16`→`uint32`
+  (default `UNKNOWN_OPCODE = 0xBBAADD`) + new `ConnectionType _connection` + `GetConnection()`;
+  `ConnectionType` enum (`REALM=0`/`INSTANCE=1`/`MAX`/`DEFAULT=-1`) added to `Opcodes.h`; `Packet`
+  base gained `GetConnection()`, `ServerPacket` a `connection` param, plus `WorldPackets::Null`.
+  Verified: `shared` + `game` both compile. **Seam with brick B:** opcode *values* and `OpcodeTable`
+  are deliberately UNTOUCHED — only storage/types widened so B's sparse 32-bit values won't truncate.
+  ⚠ **Brick-B landmine (commented in-code):** 3 legacy `uint16(...)` opcode truncations remain at
+  the 3.3.5 wire/DoS boundaries — `WorldSession.cpp` AntiDos+throttle (`:1363`/`:1372`) and
+  `WorldSocket.cpp` `ServerPktHeader` (`:176`); brick B (modern wire header + opcode table) must
+  widen these. AntiDos/throttle maps are keyed by `uint16` and will need widening too.
+- **B — modern opcode table + 3.4.3 opcode enum** (`IsValid`, `ClientOpcodeHandler`): now the next
+  brick — replace `enum Opcodes : uint16` with sparse `OpcodeClient`/`OpcodeServer : uint32`
+  (packed `0xGGGGIIII`), the `GetOpcodeArrayIndex` switch, split `ClientOpcodeHandler` (free-fn
+  `Call`) / `ServerOpcodeHandler` (`ConnectionType`), and the two `unique_ptr` handler arrays.
+  Touches every handler; the handshake opcodes (AUTH_SESSION, ENTER_ENCRYPTED_MODE, …) land here.
 - **C — `AuthenticationPackets.{h,cpp}`** (AuthChallenge/AuthSession/EnterEncryptedMode/AuthResponse/…),
   depends on A. (`HMAC_SHA512` already done.)
 - **D — modern `WorldSession`** ctor/fields + `SendConnectToInstance`/`AbortLogin`/`ConnectToKey`/

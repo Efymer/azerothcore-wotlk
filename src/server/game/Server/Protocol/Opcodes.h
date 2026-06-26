@@ -25,6 +25,17 @@
 #include "Define.h"
 #include <string>
 
+enum ConnectionType : int8
+{
+    CONNECTION_TYPE_REALM       = 0,
+    CONNECTION_TYPE_INSTANCE    = 1,
+    MAX_CONNECTION_TYPES,
+
+    CONNECTION_TYPE_DEFAULT     = -1
+};
+
+constexpr uint32 UNKNOWN_OPCODE = 0xBBAADD;
+
 /// List of Opcodes
 enum Opcodes : uint16
 {

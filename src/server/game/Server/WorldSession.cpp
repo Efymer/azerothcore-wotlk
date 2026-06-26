@@ -1360,7 +1360,8 @@ Warden* WorldSession::GetWarden()
 
 WorldSession::DosProtection::Policy WorldSession::DosProtection::EvaluateOpcode(WorldPacket const& p, time_t const time) const
 {
-    AntiDosOpcodePolicy const* policy = sWorldGlobals->GetAntiDosPolicyForOpcode(p.GetOpcode());
+    // legacy 3.3.5 DoS path: opcode is uint16 here; brick B widens the wire/DoS layer to uint32
+    AntiDosOpcodePolicy const* policy = sWorldGlobals->GetAntiDosPolicyForOpcode(uint16(p.GetOpcode()));
     if (!policy)
         return WorldSession::DosProtection::Policy::Process; // Return true if there is no policy for the opcode
 
@@ -1369,7 +1370,8 @@ WorldSession::DosProtection::Policy WorldSession::DosProtection::EvaluateOpcode(
         return WorldSession::DosProtection::Policy::Process; // Return true if there no limit for the opcode
 
     // packetCounter is opcodes handled in the same world second, so MaxAllowedCount is per second
-    PacketCounter& packetCounter = _PacketThrottlingMap[p.GetOpcode()];
+    // legacy 3.3.5 DoS path: opcode is uint16 here; brick B widens the wire/DoS layer to uint32
+    PacketCounter& packetCounter = _PacketThrottlingMap[uint16(p.GetOpcode())];
     if (packetCounter.lastReceiveTime != time)
     {
         packetCounter.lastReceiveTime = time;

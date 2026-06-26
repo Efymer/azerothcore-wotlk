@@ -28,23 +28,24 @@ public:
     // just container for later use
     WorldPacket() : ByteBuffer(0) { }
 
-    explicit WorldPacket(uint16 opcode, std::size_t res = 200) :
-        ByteBuffer(res), m_opcode(opcode) { }
+    explicit WorldPacket(uint32 opcode, std::size_t res = 200, ConnectionType connection = CONNECTION_TYPE_DEFAULT) :
+        ByteBuffer(res), m_opcode(opcode), _connection(connection) { }
 
     WorldPacket(WorldPacket&& packet) noexcept :
-        ByteBuffer(std::move(packet)), m_opcode(packet.m_opcode) { }
+        ByteBuffer(std::move(packet)), m_opcode(packet.m_opcode), _connection(packet._connection) { }
 
     WorldPacket(WorldPacket&& packet, TimePoint receivedTime) :
-        ByteBuffer(std::move(packet)), m_opcode(packet.m_opcode), m_receivedTime(receivedTime) { }
+        ByteBuffer(std::move(packet)), m_opcode(packet.m_opcode), _connection(packet._connection), m_receivedTime(receivedTime) { }
 
     WorldPacket(WorldPacket const& right) :
-        ByteBuffer(right), m_opcode(right.m_opcode) { }
+        ByteBuffer(right), m_opcode(right.m_opcode), _connection(right._connection) { }
 
     WorldPacket& operator=(WorldPacket const& right)
     {
         if (this != &right)
         {
             m_opcode = right.m_opcode;
+            _connection = right._connection;
             ByteBuffer::operator=(right);
         }
 
@@ -56,29 +57,34 @@ public:
         if (this != &right)
         {
             m_opcode = right.m_opcode;
+            _connection = right._connection;
             ByteBuffer::operator=(std::move(right));
         }
 
         return *this;
     }
 
-    WorldPacket(uint16 opcode, MessageBuffer&& buffer) :
-        ByteBuffer(std::move(buffer)), m_opcode(opcode) { }
+    WorldPacket(uint32 opcode, MessageBuffer&& buffer, ConnectionType connection = CONNECTION_TYPE_DEFAULT) :
+        ByteBuffer(std::move(buffer)), m_opcode(opcode), _connection(connection) { }
 
-    void Initialize(uint16 opcode, std::size_t newres = 200)
+    void Initialize(uint32 opcode, std::size_t newres = 200, ConnectionType connection = CONNECTION_TYPE_DEFAULT)
     {
         clear();
         _storage.reserve(newres);
         m_opcode = opcode;
+        _connection = connection;
     }
 
-    [[nodiscard]] uint16 GetOpcode() const { return m_opcode; }
-    void SetOpcode(uint16 opcode) { m_opcode = opcode; }
+    [[nodiscard]] uint32 GetOpcode() const { return m_opcode; }
+    void SetOpcode(uint32 opcode) { m_opcode = opcode; }
+
+    [[nodiscard]] ConnectionType GetConnection() const { return _connection; }
 
     [[nodiscard]] TimePoint GetReceivedTime() const { return m_receivedTime; }
 
 protected:
-    uint16 m_opcode{NULL_OPCODE};
+    uint32 m_opcode{UNKNOWN_OPCODE};
+    ConnectionType _connection{CONNECTION_TYPE_DEFAULT};
     TimePoint m_receivedTime; // only set for a specific set of opcodes, for performance reasons.
 };
 
