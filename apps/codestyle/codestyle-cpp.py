@@ -28,7 +28,9 @@ def parsing_file(directory: str) -> None:
     print(" ")
     for root, _, files in os.walk(directory):
         for file in files:
-            if not file.endswith('.ico'):                                   # Skip .ico files that cannot be read
+            # Skip .ico files that cannot be read, and machine-generated / non-C++
+            # protobuf files (.pb.cc/.pb.h are generated; .proto is not C++).
+            if not file.endswith(('.ico', '.pb.cc', '.pb.h', '.proto')):
                 file_path = os.path.join(root, file)
                 file_name = file
                 try:
