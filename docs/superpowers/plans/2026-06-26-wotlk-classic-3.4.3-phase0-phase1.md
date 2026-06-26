@@ -80,6 +80,14 @@ cmake --build build --target <target> --config RelWithDebInfo
 
 ### Task 0.4: Port the DB2 extractor (`map_extractor` → CASC + DB2)
 
+> **SEQUENCING UPDATE (discovered during 0.3):** the DB2 extractor depends on
+> `extractor_common`'s `DB2CascFileSource`, which needs the **DB2 file-format reader**
+> (`src/common/DataStores/{DB2FileLoader,DB2FileSystemSource,DB2Meta}` — Task **1c.1**).
+> So **Task 1c.1 was moved up to run before 0.4.** 0.3 shipped `extractor_common` with
+> only `CascHandles`; once 1c.1 lands, re-add `DB2CascFileSource` + `ExtractorDB2LoadInfo`
+> to `extractor_common`, then do 0.4. (TC's DB2 reader lives in `src/common/DataStores`,
+> not `src/server/shared/DataStores` as the original §6/§7 implied.)
+
 **Files:**
 - Modify/replace: `src/tools/map_extractor/` (CASC + DB2 dump)
 - Reference: TC `src/tools/map_extractor` @ wotlk_classic
