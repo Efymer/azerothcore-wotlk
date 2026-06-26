@@ -131,6 +131,27 @@ foreach(APPLICATION_NAME ${APPLICATIONS_BUILD_LIST})
     target_link_libraries(${APP_PROJECT_NAME}
       PUBLIC
         shared)
+  elseif(${APP_PROJECT_NAME} MATCHES "bnetserver")
+    target_link_libraries(${APP_PROJECT_NAME}
+      PUBLIC
+        shared
+        proto
+        protobuf
+        rapidjson
+        zlib)
+
+    # The bnetserver is built on the modern Acore::Net networking stack
+    # (src/common/network). Those headers share bare file names
+    # (Socket.h, SslStream.h, SocketMgr.h, NetworkThread.h, AsyncAcceptor.h)
+    # with the legacy global-namespace stack in src/server/shared/Network that
+    # is pulled in transitively via the `shared` target. Prepend the modern
+    # include roots so the Acore::Net versions win the include resolution.
+    target_include_directories(${APP_PROJECT_NAME}
+      BEFORE
+      PUBLIC
+        ${CMAKE_SOURCE_DIR}/src/common/network
+        ${CMAKE_SOURCE_DIR}/src/common/network/Http
+        ${CMAKE_SOURCE_DIR}/src/common/network/ConnectionInitializers)
   elseif(${APP_PROJECT_NAME} MATCHES "worldserver")
     target_link_libraries(${APP_PROJECT_NAME}
       PUBLIC

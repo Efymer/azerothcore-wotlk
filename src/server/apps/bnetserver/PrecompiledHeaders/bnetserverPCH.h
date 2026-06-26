@@ -15,25 +15,11 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __SSL_CONTEXT_H__
-#define __SSL_CONTEXT_H__
-
-#include <boost/asio/ssl/context.hpp>
-
-namespace Battlenet
-{
-    class SslContext
-    {
-    public:
-        static bool Initialize();
-
-        static boost::asio::ssl::context& instance();
-
-        // AzerothCore always serves the bnetserver over real TLS (no dev wildcard
-        // certificate support), so this is always false. Kept for API parity with
-        // the bnetserver login/session code paths that branch on it.
-        static bool UsesDevWildcardCertificate() { return false; }
-    };
-}
-
-#endif // __SSL_CONTEXT_H__
+#include "Common.h"
+#include "Config.h"
+#include "DatabaseEnv.h"
+#include "Log.h"
+#include "LoginRESTService.h"
+#include "ServiceDispatcher.h"
+#include "SessionManager.h"
+#include "SslContext.h"

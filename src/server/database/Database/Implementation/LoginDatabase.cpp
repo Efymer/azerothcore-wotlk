@@ -197,6 +197,14 @@ void LoginDatabaseConnection::DoPrepareStatements()
     // NOTE: AzerothCore's `account.session_key` is binary(40); the bnet join key is 64 bytes. The trailing
     // bytes are stored truncated until the auth schema gains a wider/dedicated column (see BnetRealmList::JoinRealm).
     PrepareStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_LOGIN_INFO, "UPDATE account SET session_key = ?, last_ip = ?, last_login = NOW(), locale = ?, failed_logins = 0, os = ? WHERE username = ?", CONNECTION_SYNCH);
+    // Battle.net per-realm character counts keyed by the bnet account.
+    // Columns (matching bnetserver Session): gameAccountId, numChars, realmId, region, battlegroup(site).
+    // AzerothCore realms use a single integer realm id, so region/battlegroup are reported as 1.
+    PrepareStatement(LOGIN_SEL_BNET_CHARACTER_COUNTS_BY_BNET_ID, "SELECT rc.acctid, rc.numchars, rc.realmid, 1, 1 FROM realmcharacters rc INNER JOIN account a ON rc.acctid = a.id WHERE a.battlenet_account = ?", CONNECTION_ASYNC);
+    // Battle.net last-played character per realm keyed by the bnet account.
+    // Columns: gameAccountId, region, battlegroup(site), realmId, characterName, characterGuid, lastPlayedTime.
+    // STUB: AzerothCore has no per-bnet last-played-character store, so this intentionally returns no rows.
+    PrepareStatement(LOGIN_SEL_BNET_LAST_PLAYER_CHARACTERS, "SELECT a.id, 1, 1, 0, '', 0, 0 FROM account a WHERE a.battlenet_account = ? AND 0", CONNECTION_ASYNC);
 
 #undef BnetAccountInfo
 #undef BnetGameAccountInfo
