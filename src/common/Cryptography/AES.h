@@ -20,6 +20,7 @@
 
 #include "Define.h"
 #include <array>
+#include <span>
 #include <openssl/evp.h>
 
 namespace Acore::Crypto
@@ -35,12 +36,18 @@ namespace Acore::Crypto
         using Key = std::array<uint8, KEY_SIZE_BYTES>;
         using Tag = uint8[TAG_SIZE_BYTES];
 
-        explicit AES(bool encrypting);
+        explicit AES(bool encrypting, std::size_t keySizeBits = 128);
+        AES(AES const&) = delete;
+        AES(AES&&) = delete;
+        AES& operator=(AES const&) = delete;
+        AES& operator=(AES&&) = delete;
         ~AES();
 
         void Init(Key const& key);
+        void Init(std::span<uint8 const> key);
 
         bool Process(IV const& iv, uint8* data, std::size_t length, Tag& tag);
+        bool ProcessNoIntegrityCheck(IV const& iv, uint8* data, std::size_t partialLength);
 
     private:
         EVP_CIPHER_CTX* _ctx;
