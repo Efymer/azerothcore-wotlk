@@ -31,6 +31,7 @@ namespace
     std::string const LOGIN_DATABASE_INFO_DEFAULT = "127.0.0.1;3306;acore;acore;acore_auth";
     std::string const WORLD_DATABASE_INFO_DEFAULT = "127.0.0.1;3306;acore;acore;acore_world";
     std::string const CHARACTER_DATABASE_INFO_DEFAULT = "127.0.0.1;3306;acore;acore;acore_characters";
+    std::string const HOTFIX_DATABASE_INFO_DEFAULT = "127.0.0.1;3306;acore;acore;acore_hotfixes";
     std::string const& GetDefaultDatabaseInfo(std::string_view name)
     {
         if (name == "Login")
@@ -39,6 +40,8 @@ namespace
             return WORLD_DATABASE_INFO_DEFAULT;
         if (name == "Character")
             return CHARACTER_DATABASE_INFO_DEFAULT;
+        if (name == "Hotfix")
+            return HOTFIX_DATABASE_INFO_DEFAULT;
         return EMPTY_DATABASE_INFO;
     }
 }
@@ -238,3 +241,5 @@ template AC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<CharacterDatabaseConnection>(DatabaseWorkerPool<CharacterDatabaseConnection>&, std::string const&);
 template AC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<WorldDatabaseConnection>(DatabaseWorkerPool<WorldDatabaseConnection>&, std::string const&);
+template AC_DATABASE_API
+DatabaseLoader& DatabaseLoader::AddDatabase<HotfixDatabaseConnection>(DatabaseWorkerPool<HotfixDatabaseConnection>&, std::string const&);
