@@ -70,6 +70,7 @@ class AC_SHARED_API ByteBuffer
 {
 public:
     constexpr static std::size_t DEFAULT_SIZE = 0x1000;
+    constexpr static uint8 InitialBitPos = 8;
 
     // constructor
     ByteBuffer()
@@ -83,10 +84,12 @@ public:
     }
 
     ByteBuffer(ByteBuffer&& buf) noexcept :
-        _rpos(buf._rpos), _wpos(buf._wpos), _storage(std::move(buf._storage))
+        _rpos(buf._rpos), _wpos(buf._wpos), _bitpos(buf._bitpos), _curbitval(buf._curbitval), _storage(std::move(buf._storage))
     {
         buf._rpos = 0;
         buf._wpos = 0;
+        buf._bitpos = InitialBitPos;
+        buf._curbitval = 0;
     }
 
     ByteBuffer(ByteBuffer const& right) = default;
@@ -99,6 +102,8 @@ public:
         {
             _rpos = right._rpos;
             _wpos = right._wpos;
+            _bitpos = right._bitpos;
+            _curbitval = right._curbitval;
             _storage = right._storage;
         }
 
@@ -113,6 +118,10 @@ public:
             right._rpos = 0;
             _wpos = right._wpos;
             right._wpos = 0;
+            _bitpos = right._bitpos;
+            right._bitpos = InitialBitPos;
+            _curbitval = right._curbitval;
+            right._curbitval = 0;
             _storage = std::move(right._storage);
         }
 
@@ -123,7 +132,135 @@ public:
     {
         _storage.clear();
         _rpos = _wpos = 0;
+        _bitpos = InitialBitPos;
+        _curbitval = 0;
     }
+
+    [[nodiscard]] bool HasUnfinishedBitPack() const
+    {
+        return _bitpos != 8;
+    }
+
+    void FlushBits()
+    {
+        if (_bitpos == 8)
+        {
+            return;
+        }
+
+        _bitpos = 8;
+
+        append(&_curbitval, sizeof(uint8));
+        _curbitval = 0;
+    }
+
+    void ResetBitPos()
+    {
+        if (_bitpos > 7)
+        {
+            return;
+        }
+
+        _bitpos = 8;
+        _curbitval = 0;
+    }
+
+    bool WriteBit(bool bit)
+    {
+        --_bitpos;
+
+        if (bit)
+        {
+            _curbitval |= (1 << (_bitpos));
+        }
+
+        if (_bitpos == 0)
+        {
+            _bitpos = 8;
+            append(&_curbitval, sizeof(_curbitval));
+            _curbitval = 0;
+        }
+
+        return bit;
+    }
+
+    bool ReadBit()
+    {
+        ++_bitpos;
+
+        if (_bitpos > 7)
+        {
+            _curbitval = read<uint8>();
+            _bitpos = 0;
+        }
+
+        return ((_curbitval >> (7 - _bitpos)) & 1) != 0;
+    }
+
+    void WriteBits(uint64 value, int32 bits)
+    {
+        // remove bits that don't fit
+        value &= (UI64LIT(1) << bits) - 1;
+
+        if (bits > int32(_bitpos))
+        {
+            // first write to fill bit buffer
+            _curbitval |= value >> (bits - _bitpos);
+            bits -= _bitpos;
+            _bitpos = 8; // required "unneccessary" write to avoid double flushing
+            append(&_curbitval, sizeof(_curbitval));
+
+            // then append as many full bytes as possible
+            while (bits >= 8)
+            {
+                bits -= 8;
+                append<uint8>(value >> bits);
+            }
+
+            // store remaining bits in the bit buffer
+            _bitpos = 8 - bits;
+            _curbitval = (value & ((UI64LIT(1) << bits) - 1)) << _bitpos;
+        }
+        else
+        {
+            // entire value fits in the bit buffer
+            _bitpos -= bits;
+            _curbitval |= value << _bitpos;
+
+            if (_bitpos == 0)
+            {
+                _bitpos = 8;
+                append(&_curbitval, sizeof(_curbitval));
+                _curbitval = 0;
+            }
+        }
+    }
+
+    uint32 ReadBits(int32 bits)
+    {
+        uint32 value = 0;
+
+        for (int32 i = bits - 1; i >= 0; --i)
+        {
+            value |= uint32(ReadBit()) << i;
+        }
+
+        return value;
+    }
+
+    /**
+      * @name   PutBits
+      * @brief  Places specified amount of bits of value at specified position in packet.
+      *         To ensure all bits are correctly written, only call this method after
+      *         bit flush has been performed
+
+      * @param  pos Position to place the value at, in bits. The entire value must fit in the packet
+      *             It is advised to obtain the position using bitwpos() function.
+
+      * @param  value Data to write.
+      * @param  bitCount Number of bits to store the value on.
+    */
+    void PutBits(std::size_t pos, std::size_t value, uint32 bitCount);
 
     template <typename T>
     void append(T value)
@@ -335,6 +472,16 @@ public:
         return _wpos;
     }
 
+    /// Returns position of last written bit
+    [[nodiscard]] std::size_t bitwpos() const { return _wpos * 8 + 8 - _bitpos; }
+
+    std::size_t bitwpos(std::size_t newPos)
+    {
+        _wpos = newPos / 8;
+        _bitpos = 8 - (newPos % 8);
+        return _wpos * 8 + 8 - _bitpos;
+    }
+
     template<typename T>
     void read_skip() { read_skip(sizeof(T)); }
 
@@ -345,11 +492,13 @@ public:
             throw ByteBufferPositionException(false, _rpos, skip, size());
         }
 
+        ResetBitPos();
         _rpos += skip;
     }
 
     template <typename T> T read()
     {
+        ResetBitPos();
         T r = read<T>(_rpos);
         _rpos += sizeof(T);
         return r;
@@ -374,6 +523,7 @@ public:
             throw ByteBufferPositionException(false, _rpos, len, size());
         }
 
+        ResetBitPos();
         std::memcpy(dest, &_storage[_rpos], len);
         _rpos += len;
     }
@@ -529,6 +679,8 @@ public:
 
 protected:
     std::size_t _rpos{0}, _wpos{0};
+    uint8 _bitpos{InitialBitPos};
+    uint8 _curbitval{0};
     std::vector<uint8> _storage;
 };
 

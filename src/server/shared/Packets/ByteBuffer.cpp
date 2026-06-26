@@ -25,7 +25,7 @@
 #include <utf8.h>
 
 ByteBuffer::ByteBuffer(MessageBuffer&& buffer) :
-    _rpos(0), _wpos(0), _storage(buffer.Move()) { }
+    _rpos(0), _wpos(0), _bitpos(InitialBitPos), _curbitval(0), _storage(buffer.Move()) { }
 
 ByteBufferPositionException::ByteBufferPositionException(bool add, std::size_t pos, std::size_t size, std::size_t valueSize)
 {
@@ -113,6 +113,8 @@ void ByteBuffer::append(uint8 const* src, std::size_t cnt)
     ASSERT(cnt, "Attempted to put a zero-sized value in ByteBuffer (pos: {} size: {})", _wpos, size());
     ASSERT(size() < 10000000);
 
+    FlushBits();
+
     std::size_t const newSize = _wpos + cnt;
 
     if (_storage.capacity() < newSize) // custom memory allocation rules
@@ -147,6 +149,27 @@ void ByteBuffer::put(std::size_t pos, uint8 const* src, std::size_t cnt)
     ASSERT(cnt, "Attempted to put a zero-sized value in ByteBuffer (pos: {} size: {})", pos, size());
 
     std::memcpy(&_storage[pos], src, cnt);
+}
+
+void ByteBuffer::PutBits(std::size_t pos, std::size_t value, uint32 bitCount)
+{
+    ASSERT(pos + bitCount <= size() * 8, "Attempted to put {} bits in ByteBuffer (bitpos: {} size: {})", bitCount, pos, size());
+    ASSERT(bitCount, "Attempted to put a zero bits in ByteBuffer");
+
+    for (uint32 i = 0; i < bitCount; ++i)
+    {
+        std::size_t wp = (pos + i) / 8;
+        std::size_t bit = (pos + i) % 8;
+
+        if ((value >> (bitCount - i - 1)) & 1)
+        {
+            _storage[wp] |= 1 << (7 - bit);
+        }
+        else
+        {
+            _storage[wp] &= ~(1 << (7 - bit));
+        }
+    }
 }
 
 void ByteBuffer::print_storage() const
