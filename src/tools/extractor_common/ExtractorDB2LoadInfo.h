@@ -38,7 +38,7 @@ struct CinematicCameraLoadInfo
         .ParentIndexField   = -1,
         .FieldCount         = 4,
         .FileFieldCount     = 4,
-        .LayoutHash         = 0xF96842A0,
+        .LayoutHash         = 0x744B99BC,
         .Fields             = MetaFields
     };
 
@@ -58,7 +58,9 @@ struct CinematicCameraLoadInfo
 
 struct GameobjectDisplayInfoLoadInfo
 {
-    static constexpr DB2MetaField MetaFields[7] =
+    // Build 3.4.3.54261 layout (WoWDBDefs LAYOUT B59CF0B2): 6 logical fields,
+    // i.e. the 3.4.4.61581 definition minus the trailing Unknown1154 field.
+    static constexpr DB2MetaField MetaFields[6] =
     {
         { .Type = FT_STRING_NOT_LOCALIZED, .ArraySize =  1, .IsSigned =  true },
         { .Type = FT_FLOAT,                .ArraySize =  6, .IsSigned =  true },
@@ -66,7 +68,6 @@ struct GameobjectDisplayInfoLoadInfo
         { .Type = FT_SHORT,                .ArraySize =  1, .IsSigned =  true },
         { .Type = FT_FLOAT,                .ArraySize =  1, .IsSigned =  true },
         { .Type = FT_FLOAT,                .ArraySize =  1, .IsSigned =  true },
-        { .Type = FT_SHORT,                .ArraySize =  1, .IsSigned = false },
     };
 
     static constexpr DB2Meta MetaInstance =
@@ -74,13 +75,13 @@ struct GameobjectDisplayInfoLoadInfo
         .FileDataId         = 1266277,
         .IndexField         = -1,
         .ParentIndexField   = -1,
-        .FieldCount         = 7,
-        .FileFieldCount     = 7,
-        .LayoutHash         = 0x7C5F0B90,
+        .FieldCount         = 6,
+        .FileFieldCount     = 6,
+        .LayoutHash         = 0xB59CF0B2,
         .Fields             = MetaFields
     };
 
-    static constexpr DB2FieldMeta Fields[13] =
+    static constexpr DB2FieldMeta Fields[12] =
     {
         { false, FT_INT, "ID" },
         { false, FT_STRING_NOT_LOCALIZED, "ModelName" },
@@ -94,17 +95,17 @@ struct GameobjectDisplayInfoLoadInfo
         { true, FT_SHORT, "ObjectEffectPackageID" },
         { false, FT_FLOAT, "OverrideLootEffectScale" },
         { false, FT_FLOAT, "OverrideNameScale" },
-        { false, FT_SHORT, "Unknown1154" },
     };
 
-    static constexpr DB2FileLoadInfo Instance{ Fields, 13, &MetaInstance };
+    static constexpr DB2FileLoadInfo Instance{ Fields, 12, &MetaInstance };
 };
 
 struct LiquidMaterialLoadInfo
 {
+    // Build 3.4.3.54261 layout (WoWDBDefs LAYOUT 2CFFEA40): Flags is FT_BYTE (<8>), not FT_INT.
     static constexpr DB2MetaField MetaFields[2] =
     {
-        { .Type = FT_INT,                  .ArraySize =  1, .IsSigned =  true },
+        { .Type = FT_BYTE,                 .ArraySize =  1, .IsSigned =  true },
         { .Type = FT_BYTE,                 .ArraySize =  1, .IsSigned =  true },
     };
 
@@ -115,14 +116,14 @@ struct LiquidMaterialLoadInfo
         .ParentIndexField   = -1,
         .FieldCount         = 2,
         .FileFieldCount     = 2,
-        .LayoutHash         = 0x98E5D7AA,
+        .LayoutHash         = 0x2CFFEA40,
         .Fields             = MetaFields
     };
 
     static constexpr DB2FieldMeta Fields[3] =
     {
         { false, FT_INT, "ID" },
-        { true, FT_INT, "Flags" },
+        { true, FT_BYTE, "Flags" },
         { true, FT_BYTE, "LVF" },
     };
 
@@ -147,7 +148,7 @@ struct LiquidObjectLoadInfo
         .ParentIndexField   = -1,
         .FieldCount         = 5,
         .FileFieldCount     = 5,
-        .LayoutHash         = 0xCB0D39E8,
+        .LayoutHash         = 0x6CAEB8A1,
         .Fields             = MetaFields
     };
 
@@ -170,7 +171,7 @@ struct LiquidTypeLoadInfo
     {
         { .Type = FT_STRING_NOT_LOCALIZED, .ArraySize =  1, .IsSigned =  true },
         { .Type = FT_STRING_NOT_LOCALIZED, .ArraySize =  6, .IsSigned =  true },
-        { .Type = FT_INT,                  .ArraySize =  1, .IsSigned =  true },
+        { .Type = FT_SHORT,                .ArraySize =  1, .IsSigned = false },
         { .Type = FT_BYTE,                 .ArraySize =  1, .IsSigned = false },
         { .Type = FT_INT,                  .ArraySize =  1, .IsSigned = false },
         { .Type = FT_INT,                  .ArraySize =  1, .IsSigned = false },
@@ -198,7 +199,7 @@ struct LiquidTypeLoadInfo
         .ParentIndexField   = -1,
         .FieldCount         = 21,
         .FileFieldCount     = 21,
-        .LayoutHash         = 0x4397CEE6,
+        .LayoutHash         = 0xAFFFC9E0,
         .Fields             = MetaFields
     };
 
@@ -212,7 +213,7 @@ struct LiquidTypeLoadInfo
         { false, FT_STRING_NOT_LOCALIZED, "Texture4" },
         { false, FT_STRING_NOT_LOCALIZED, "Texture5" },
         { false, FT_STRING_NOT_LOCALIZED, "Texture6" },
-        { true, FT_INT, "Flags" },
+        { false, FT_SHORT, "Flags" },
         { false, FT_BYTE, "SoundBank" },
         { false, FT_INT, "SoundID" },
         { false, FT_INT, "SpellID" },
@@ -267,7 +268,9 @@ struct LiquidTypeLoadInfo
 
 struct MapLoadInfo
 {
-    static constexpr DB2MetaField MetaFields[23] =
+    // Build 3.4.3.54261 layout (WoWDBDefs LAYOUT BFC078A9): the 3.4.4.61581
+    // definition minus the PreloadFileDataID field.
+    static constexpr DB2MetaField MetaFields[22] =
     {
         { .Type = FT_STRING_NOT_LOCALIZED, .ArraySize =  1, .IsSigned =  true },
         { .Type = FT_STRING,               .ArraySize =  1, .IsSigned =  true },
@@ -290,7 +293,6 @@ struct MapLoadInfo
         { .Type = FT_BYTE,                 .ArraySize =  1, .IsSigned = false },
         { .Type = FT_SHORT,                .ArraySize =  1, .IsSigned =  true },
         { .Type = FT_INT,                  .ArraySize =  1, .IsSigned =  true },
-        { .Type = FT_INT,                  .ArraySize =  1, .IsSigned =  true },
         { .Type = FT_INT,                  .ArraySize =  3, .IsSigned =  true },
     };
 
@@ -299,13 +301,13 @@ struct MapLoadInfo
         .FileDataId         = 1349477,
         .IndexField         = -1,
         .ParentIndexField   = -1,
-        .FieldCount         = 23,
-        .FileFieldCount     = 23,
-        .LayoutHash         = 0x32401DC5,
+        .FieldCount         = 22,
+        .FileFieldCount     = 22,
+        .LayoutHash         = 0xBFC078A9,
         .Fields             = MetaFields
     };
 
-    static constexpr DB2FieldMeta Fields[26] =
+    static constexpr DB2FieldMeta Fields[25] =
     {
         { false, FT_INT, "ID" },
         { false, FT_STRING_NOT_LOCALIZED, "Directory" },
@@ -329,13 +331,12 @@ struct MapLoadInfo
         { false, FT_BYTE, "MaxPlayers" },
         { true, FT_SHORT, "WindSettingsID" },
         { true, FT_INT, "ZmpFileDataID" },
-        { true, FT_INT, "PreloadFileDataID" },
         { true, FT_INT, "Flags1" },
         { true, FT_INT, "Flags2" },
         { true, FT_INT, "Flags3" },
     };
 
-    static constexpr DB2FileLoadInfo Instance{ Fields, 26, &MetaInstance };
+    static constexpr DB2FileLoadInfo Instance{ Fields, 25, &MetaInstance };
 };
 
 #endif // TRINITYCORE_EXTRACTOR_DB2_LOAD_INFO_H
