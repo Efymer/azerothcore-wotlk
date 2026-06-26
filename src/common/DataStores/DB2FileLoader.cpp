@@ -1727,11 +1727,42 @@ void DB2FileLoader::LoadHeaders(DB2FileSource* source, DB2FileLoadInfo const* lo
     if (!source->IsOpen())
         throw std::system_error(std::make_error_code(std::errc::no_such_file_or_directory));
 
-    if (!source->Read(&_header, sizeof(DB2Header)))
+    // Read the signature first so we can branch on the WDC version. WDC5 inserts
+    // a Version field (uint32) + a 128-byte schema string after the magic that
+    // WDC4 does not have; everything from RecordCount onward is byte-identical
+    // between the two formats. The 3.4.3.54261 client ships WDC4; 3.4.4+/WDC5 is
+    // what current TrinityCore targets. We support both.
+    if (!source->Read(&_header.Signature, sizeof(_header.Signature)))
         throw DB2FileLoadException("Failed to read header");
 
     EndianConvert(_header.Signature);
-    EndianConvert(_header.Version);
+
+    if (_header.Signature == 0x35434457)                        //'WDC5'
+    {
+        if (!source->Read(&_header.Version, sizeof(_header.Version) + sizeof(_header.Schema)))
+            throw DB2FileLoadException("Failed to read header");
+
+        EndianConvert(_header.Version);
+
+        if (_header.Version != 5)
+            throw DB2FileLoadException(Acore::StringFormat("Incorrect version in {}, expected 5, got {} (possibly wrong client version)",
+                source->GetFileName(), _header.Version));
+    }
+    else if (_header.Signature == 0x34434457)                   //'WDC4'
+    {
+        // WDC4 has no Version/Schema preamble; synthesize them for downstream code.
+        _header.Version = 4;
+        _header.Schema.fill('\0');
+    }
+    else
+        throw DB2FileLoadException(Acore::StringFormat("Incorrect file signature in {}, expected 'WDC4' or 'WDC5', got {}{}{}{}", source->GetFileName(),
+            char(_header.Signature & 0xFF), char((_header.Signature >> 8) & 0xFF), char((_header.Signature >> 16) & 0xFF), char((_header.Signature >> 24) & 0xFF)));
+
+    // The common header block (RecordCount .. SectionCount) is identical for WDC4/WDC5.
+    std::size_t const commonHeaderSize = sizeof(DB2Header) - offsetof(DB2Header, RecordCount);
+    if (!source->Read(&_header.RecordCount, commonHeaderSize))
+        throw DB2FileLoadException("Failed to read header");
+
     EndianConvert(_header.RecordCount);
     EndianConvert(_header.FieldCount);
     EndianConvert(_header.RecordSize);
@@ -1750,14 +1781,6 @@ void DB2FileLoader::LoadHeaders(DB2FileSource* source, DB2FileLoadInfo const* lo
     EndianConvert(_header.CommonDataSize);
     EndianConvert(_header.PalletDataSize);
     EndianConvert(_header.SectionCount);
-
-    if (_header.Signature != 0x35434457)                        //'WDC5'
-        throw DB2FileLoadException(Acore::StringFormat("Incorrect file signature in {}, expected 'WDC5', got {}{}{}{}", source->GetFileName(),
-            char(_header.Signature & 0xFF), char((_header.Signature >> 8) & 0xFF), char((_header.Signature >> 16) & 0xFF), char((_header.Signature >> 24) & 0xFF)));
-
-    if (_header.Version != 5)
-        throw DB2FileLoadException(Acore::StringFormat("Incorrect version in {}, expected 5, got {} (possibly wrong client version)",
-            source->GetFileName(), _header.Version));
 
     if (loadInfo && _header.LayoutHash != loadInfo->Meta->LayoutHash)
         throw DB2FileLoadException(Acore::StringFormat("Incorrect layout hash in {}, expected 0x{:08X}, got 0x{:08X} (possibly wrong client version)",
