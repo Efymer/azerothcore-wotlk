@@ -16,6 +16,7 @@
  */
 
 #include "CinematicMgr.h"
+#include "DB2Stores.h"
 #include "M2Stores.h"
 #include "Player.h"
 
@@ -32,7 +33,7 @@ void CinematicMgr::StartCinematic(uint32 const cinematicSequenceId)
 {
     _player.SendCinematicStart(cinematicSequenceId);
     if (CinematicSequencesEntry const* sequence = sCinematicSequencesStore.LookupEntry(cinematicSequenceId))
-        SetActiveCinematicCamera(sequence->cinematicCamera);
+        SetActiveCinematicCamera(sequence->Camera[0]);          // 54261: Camera[] array replaced single cinematicCamera field
 }
 
 void CinematicMgr::StartCinematicCamera()

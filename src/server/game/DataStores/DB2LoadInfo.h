@@ -354,6 +354,70 @@ struct PowerTypeLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 13, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct CinematicCameraLoadInfo
+{
+    // Build 3.4.3.54261 (xian55 CinematicCameraMeta, LayoutHash 0x744B99BC). IndexField -1 =
+    // ID is the implicit (non-inline) record id: in the flattened Fields list but NOT in MetaFields.
+    static constexpr DB2MetaField MetaFields[4] =
+    {
+        { FT_FLOAT, 3, true },
+        { FT_INT, 1, false },
+        { FT_FLOAT, 1, true },
+        { FT_INT, 1, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1294214, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 4, .FileFieldCount = 4, .LayoutHash = 0x744B99BC, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[7] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_FLOAT, "OriginX" },
+        { false, FT_FLOAT, "OriginY" },
+        { false, FT_FLOAT, "OriginZ" },
+        { false, FT_INT, "SoundID" },
+        { false, FT_FLOAT, "OriginFacing" },
+        { false, FT_INT, "FileDataID" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 7, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct CinematicSequencesLoadInfo
+{
+    // Build 3.4.3.54261 (xian55 CinematicSequencesMeta, LayoutHash 0x32B8FB41).
+    static constexpr DB2MetaField MetaFields[2] =
+    {
+        { FT_INT, 1, false },
+        { FT_SHORT, 8, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1134583, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 2, .FileFieldCount = 2, .LayoutHash = 0x32B8FB41, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[10] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_INT, "SoundID" },
+        { false, FT_SHORT, "Camera1" },
+        { false, FT_SHORT, "Camera2" },
+        { false, FT_SHORT, "Camera3" },
+        { false, FT_SHORT, "Camera4" },
+        { false, FT_SHORT, "Camera5" },
+        { false, FT_SHORT, "Camera6" },
+        { false, FT_SHORT, "Camera7" },
+        { false, FT_SHORT, "Camera8" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 10, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct ItemLoadInfo
 {
     // Build 3.4.3.54261 (xian55 ItemMeta, LayoutHash 0x72A6F1C2). IndexField -1 = ID is the

@@ -198,6 +198,22 @@ struct PowerTypeEntry
     int16 Flags;
 };
 
+struct CinematicCameraEntry
+{
+    uint32 ID;
+    DBCPosition3D Origin;                                   // Position in map used for basis for M2 co-ordinates
+    uint32 SoundID;                                         // Sound ID (voiceover for cinematic)
+    float OriginFacing;                                     // Orientation in map used for basis for M2 co-ordinates
+    uint32 FileDataID;                                      // 54261: was Model path string in 3.3.5a DBC; now the camera M2 FileDataID
+};
+
+struct CinematicSequencesEntry
+{
+    uint32 ID;
+    uint32 SoundID;
+    std::array<uint16, 8> Camera;                          // 54261: links to CinematicCamera IDs (was single cinematicCamera in DBC)
+};
+
 struct ItemEntry
 {
     uint32 ID;

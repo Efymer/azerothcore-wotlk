@@ -91,8 +91,7 @@ extern DBCStorage <CharStartOutfitEntry>         sCharStartOutfitStore;
 // sCharTitlesStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 // sChrClassesStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 // sChrRacesStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
-extern DBCStorage <CinematicCameraEntry>         sCinematicCameraStore;
-extern DBCStorage <CinematicSequencesEntry>      sCinematicSequencesStore;
+// sCinematicCameraStore / sCinematicSequencesStore migrated to DB2 (3.4.3.54261) — see DataStores/DB2Stores.h
 extern DBCStorage <CreatureDisplayInfoEntry>     sCreatureDisplayInfoStore;
 extern DBCStorage <CreatureDisplayInfoExtraEntry> sCreatureDisplayInfoExtraStore;
 extern DBCStorage <CreatureFamilyEntry>          sCreatureFamilyStore;

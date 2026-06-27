@@ -17,7 +17,9 @@
 
 #include "M2Stores.h"
 #include "Containers.h"
+#include "DB2Stores.h"
 #include "DBCStores.h"
+#include "StringFormat.h"
 #include "Log.h"
 #include "M2Structure.h"
 #include "World.h"
@@ -175,22 +177,18 @@ void LoadM2Cameras(std::string const& dataPath)
     sFlyByCameraStore.clear();
     LOG_INFO("server.loading", ">> Loading Cinematic Camera files");
 
+    // 54261: camera M2s are now extracted by FileDataID into <dataPath>/cameras/FILE<id>.xxx
+    // (CinematicCameraEntry lost its Model path string; it now carries a numeric FileDataID).
+    boost::filesystem::path camerasPath = boost::filesystem::path(dataPath) / "cameras";
+
     uint32 oldMSTime = getMSTime();
     for (CinematicCameraEntry const* dbcentry : sCinematicCameraStore)
     {
-        std::string filenameWork = dataPath;
-        filenameWork.append(dbcentry->Model);
-
-        // Replace slashes (always to forward slash, because boost!)
-        std::replace(filenameWork.begin(), filenameWork.end(), '\\', '/');
-
-        boost::filesystem::path filename = filenameWork;
+        // 54261: resolve the camera file by FileDataID instead of a model path string
+        boost::filesystem::path filename = camerasPath / Acore::StringFormat("FILE{:08X}.xxx", dbcentry->FileDataID);
 
         // Convert to native format
         filename.make_preferred();
-
-        // Replace mdx to .m2
-        filename.replace_extension("m2");
 
         std::ifstream m2file(filename.string().c_str(), std::ios::in | std::ios::binary);
         if (!m2file.is_open())
@@ -201,7 +199,7 @@ void LoadM2Cameras(std::string const& dataPath)
         std::streamoff fileSize = m2file.tellg();
 
         // Reject if not at least the size of the header
-        if (static_cast<uint32>(fileSize) < sizeof(M2Header))
+        if (static_cast<uint32>(fileSize) < sizeof(M2Header) + 4)
         {
             LOG_ERROR("server.loading", "Camera file {} is damaged. File is smaller than header size", filename.string());
             m2file.close();
@@ -214,8 +212,8 @@ void LoadM2Cameras(std::string const& dataPath)
         m2file.read(fileCheck, 4);
         fileCheck[4] = 0;
 
-        // Check file has correct magic (MD20)
-        if (strcmp(fileCheck, "MD20"))
+        // 54261: outer container chunk magic is MD21 (the legacy MD20 M2 lives inside it)
+        if (strcmp(fileCheck, "MD21"))
         {
             LOG_ERROR("server.loading", "Camera file {} is damaged. File identifier not found", filename.string());
             m2file.close();
@@ -232,18 +230,39 @@ void LoadM2Cameras(std::string const& dataPath)
         }
         m2file.close();
 
-        // Read header
-        M2Header const* header = reinterpret_cast<M2Header const*>(buffer.data());
+        // 54261: scan for the inner MD20 sub-chunk that holds the actual M2 header
+        bool fileValid = true;
+        uint32 m2start = 0;
+        char const* ptr = buffer.data();
+        while (m2start + 4 < buffer.size() && memcmp(ptr, "MD20", 4) != 0)
+        {
+            ++m2start;
+            ++ptr;
+            if (m2start + sizeof(M2Header) > buffer.size())
+            {
+                fileValid = false;
+                break;
+            }
+        }
 
-        if (header->ofsCameras + sizeof(M2Camera) > static_cast<uint32>(fileSize))
+        if (!fileValid)
+        {
+            LOG_ERROR("server.loading", "Camera file {} is damaged. File is smaller than header size", filename.string());
+            continue;
+        }
+
+        // Read header
+        M2Header const* header = reinterpret_cast<M2Header const*>(buffer.data() + m2start);
+
+        if (m2start + header->ofsCameras + sizeof(M2Camera) > static_cast<uint32>(fileSize))
         {
             LOG_ERROR("server.loading", "Camera file {} is damaged. Camera references position beyond file end", filename.string());
             continue;
         }
 
         // Get camera(s) - Main header, then dump them.
-        M2Camera const* cam = reinterpret_cast<M2Camera const*>(buffer.data() + header->ofsCameras);
-        if (!readCamera(cam, fileSize, header, dbcentry))
+        M2Camera const* cam = reinterpret_cast<M2Camera const*>(buffer.data() + m2start + header->ofsCameras);
+        if (!readCamera(cam, fileSize - m2start, header, dbcentry))
             LOG_ERROR("server.loading", "Camera file {} is damaged. Camera references position beyond file end", filename.string());
     }
 

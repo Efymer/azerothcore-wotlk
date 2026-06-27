@@ -626,22 +626,7 @@ enum ChrRacesFlags
 
 // ChrRacesEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
-struct CinematicCameraEntry
-{
-    uint32 ID;                                              // 0
-    char const* Model;                                      // 1    Model filename (translate .mdx to .m2)
-    uint32 SoundID;                                         // 2    Sound ID       (voiceover for cinematic)
-    DBCPosition3D Origin;                                   // 3-5  Position in map used for basis for M2 co-ordinates
-    float OriginFacing;                                     // 6    Orientation in map used for basis for M2 co-ordinates
-};
-
-struct CinematicSequencesEntry
-{
-    uint32      Id;                                         // 0 index
-    //uint32    soundID;                                    // 1 always 0
-    uint32      cinematicCamera;                            // 2 id in CinematicCamera.dbc
-    //uint32     cinematicCamera                            // 3-9 always 0
-};
+// CinematicCameraEntry / CinematicSequencesEntry migrated to DB2 (3.4.3.54261) — see src/server/game/DataStores/DB2Structure.h
 
 struct CreatureDisplayInfoEntry
 {
