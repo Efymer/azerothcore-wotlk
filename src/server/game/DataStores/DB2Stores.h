@@ -28,6 +28,10 @@ extern DB2Storage<ChrClassesEntry> sChrClassesStore;            // migrated from
 extern DB2Storage<ChrRacesEntry> sChrRacesStore;                // migrated from DBC (1c.3)
 extern DB2Storage<SkillLineEntry> sSkillLineStore;             // migrated from DBC (1c.3)
 extern DB2Storage<SkillLineAbilityEntry> sSkillLineAbilityStore; // migrated from DBC (1c.3)
+extern DB2Storage<LightEntry> sLightStore;                     // migrated from DBC (1c.3)
+extern DB2Storage<WorldMapOverlayEntry> sWorldMapOverlayStore; // migrated from DBC (1c.3)
+extern DB2Storage<SkillRaceClassInfoEntry> sSkillRaceClassInfoStore; // migrated from DBC (1c.3)
+extern DB2Storage<CharTitlesEntry> sCharTitlesStore;           // migrated from DBC (1c.3)
 extern DB2Storage<LiquidMaterialEntry> sLiquidMaterialStore;
 extern DB2Storage<SpellNameEntry> sSpellNameStore;
 extern DB2Storage<CharacterLoadoutEntry> sCharacterLoadoutStore;

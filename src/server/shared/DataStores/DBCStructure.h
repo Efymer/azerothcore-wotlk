@@ -628,16 +628,7 @@ struct CharStartOutfitEntry
     //int32 ItemInventorySlot[MAX_OUTFIT_ITEMS];            // 53-76 not required at server side
 };
 
-struct CharTitlesEntry
-{
-    uint32  ID;                                             // 0, title ids, for example in Quest::GetCharTitleId()
-    //uint32      conditionID;                              // 1  Never used by the client. Should be used serverside?
-    char const*   nameMale[16];                             // 2-17
-    //uint32 nameLangMask                                   // 18 string flag, unused
-    char const*   nameFemale[16];                           // 19-34
-    //uint32 nameLang1Mask                                  // 35 string flag, unused
-    uint32  bit_index;                                      // 36 used in PLAYER_CHOSEN_TITLE and 1<<index in PLAYER__FIELD_KNOWN_TITLES
-};
+// CharTitlesEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
 struct ChatChannelsEntry
 {
@@ -1227,17 +1218,7 @@ struct LFGDungeonEntry
     [[nodiscard]] uint32 Entry() const { return ID + (TypeID << 24); }
 };
 
-struct LightEntry
-{
-    uint32 Id;
-    uint32 MapId;
-    float X;
-    float Y;
-    float Z;
-    //float FalloffStart;
-    //float FalloffEnd;
-    //uint32 LightParamsID[8]       // Reference to LightParams.dbc
-};
+// LightEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
 struct LiquidTypeEntry
 {
@@ -1517,17 +1498,7 @@ struct ScalingStatValuesEntry
 //    uint32    displayOrder;                               // 19     m_sortIndex
 //};
 
-struct SkillRaceClassInfoEntry
-{
-    //uint32 ID;                                            // 0
-    uint32 SkillID;                                         // 1
-    uint32 RaceMask;                                        // 2
-    uint32 ClassMask;                                       // 3
-    uint32 Flags;                                           // 4
-    //uint32 MinLevel;                                      // 5
-    uint32 SkillTierID;                                     // 6
-    //uint32 SkillCostIndex;                                // 7
-};
+// SkillRaceClassInfoEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
 #define MAX_SKILL_STEP 16
 
@@ -2085,15 +2056,7 @@ struct WorldMapAreaEntry
 
 #define MAX_WORLD_MAP_OVERLAY_AREA_IDX 4
 
-struct WorldMapOverlayEntry
-{
-    uint32    ID;                                           // 0
-    //uint32    worldMapAreaId;                             // 1 idx in WorldMapArea.dbc
-    uint32    areatableID[MAX_WORLD_MAP_OVERLAY_AREA_IDX];  // 2-5
-    // 6-7 always 0, possible part of areatableID[]
-    //char const* internal_name                                   // 8
-    // 9-16 some ints
-};
+// WorldMapOverlayEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
 /*
 struct WorldStateZoneSounds

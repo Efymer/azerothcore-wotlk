@@ -707,6 +707,7 @@ enum SkillRangeType
     SKILL_RANGE_NONE,                                       // 0..0 always
 };
 
+struct SkillRaceClassInfoEntry;                   // migrated to DB2 (Task 1c.3); used here by pointer only
 SkillRangeType GetSkillRangeType(SkillRaceClassInfoEntry const* rcEntry);
 
 #define MAX_PLAYER_NAME          12                         // max allowed by client name length

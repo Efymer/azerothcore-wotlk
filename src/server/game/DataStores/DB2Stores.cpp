@@ -27,6 +27,10 @@ DB2Storage<ChrClassesEntry>             sChrClassesStore("ChrClasses.db2", &ChrC
 DB2Storage<ChrRacesEntry>               sChrRacesStore("ChrRaces.db2", &ChrRacesLoadInfo::Instance);
 DB2Storage<SkillLineEntry>              sSkillLineStore("SkillLine.db2", &SkillLineLoadInfo::Instance);
 DB2Storage<SkillLineAbilityEntry>       sSkillLineAbilityStore("SkillLineAbility.db2", &SkillLineAbilityLoadInfo::Instance);
+DB2Storage<LightEntry>                  sLightStore("Light.db2", &LightLoadInfo::Instance);
+DB2Storage<WorldMapOverlayEntry>        sWorldMapOverlayStore("WorldMapOverlay.db2", &WorldMapOverlayLoadInfo::Instance);
+DB2Storage<SkillRaceClassInfoEntry>     sSkillRaceClassInfoStore("SkillRaceClassInfo.db2", &SkillRaceClassInfoLoadInfo::Instance);
+DB2Storage<CharTitlesEntry>             sCharTitlesStore("CharTitles.db2", &CharTitlesLoadInfo::Instance);
 DB2Storage<LiquidMaterialEntry>         sLiquidMaterialStore("LiquidMaterial.db2", &LiquidMaterialLoadInfo::Instance);
 DB2Storage<SpellNameEntry>              sSpellNameStore("SpellName.db2", &SpellNameLoadInfo::Instance);
 DB2Storage<CharacterLoadoutEntry>       sCharacterLoadoutStore("CharacterLoadout.db2", &CharacterLoadoutLoadInfo::Instance);
@@ -81,6 +85,10 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     LOAD_DB2(sChrRacesStore);
     LOAD_DB2(sSkillLineStore);
     LOAD_DB2(sSkillLineAbilityStore);
+    LOAD_DB2(sLightStore);
+    LOAD_DB2(sWorldMapOverlayStore);
+    LOAD_DB2(sSkillRaceClassInfoStore);
+    LOAD_DB2(sCharTitlesStore);
     LOAD_DB2(sLiquidMaterialStore);
     LOAD_DB2(sSpellNameStore);
     LOAD_DB2(sCharacterLoadoutStore);

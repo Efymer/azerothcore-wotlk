@@ -23,6 +23,7 @@
 #include "CharmInfo.h"
 #include "CharacterCache.h"
 #include "CinematicMgr.h"
+#include "DB2Structure.h"
 #include "DBCStores.h"
 #include "DatabaseEnvFwd.h"
 #include "EnumFlag.h"
@@ -2580,9 +2581,9 @@ public:
     [[nodiscard]] Seconds GetCreationTime() const { return m_creationTime; }
 
     [[nodiscard]] bool HasTitle(uint32 bitIndex) const;
-    bool HasTitle(CharTitlesEntry const* title) const { return HasTitle(title->bit_index); }
+    bool HasTitle(CharTitlesEntry const* title) const { return HasTitle(title->MaskID); }
     void SetTitle(CharTitlesEntry const* title, bool lost = false);
-    void SetCurrentTitle(CharTitlesEntry const* title, bool clear = false) { SetUInt32Value(PLAYER_CHOSEN_TITLE, clear ? 0 : title->bit_index); };
+    void SetCurrentTitle(CharTitlesEntry const* title, bool clear = false) { SetUInt32Value(PLAYER_CHOSEN_TITLE, clear ? 0 : title->MaskID); };
 
     //bool isActiveObject() const { return true; }
     bool CanSeeSpellClickOn(Creature const* creature) const;

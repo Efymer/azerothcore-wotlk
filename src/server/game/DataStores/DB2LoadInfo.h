@@ -1133,6 +1133,155 @@ struct SkillLineAbilityLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 17, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct WorldMapOverlayLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[13] =
+    {
+        { FT_INT, 1, false },
+        { FT_INT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, false },
+        { FT_INT, 1, false },
+        { FT_INT, 4, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1134579, .IndexField = 0, .ParentIndexField = 1,
+        .FieldCount = 13, .FileFieldCount = 13, .LayoutHash = 0xD73DE991, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[16] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_INT, "UiMapArtID" },                          // ParentIndexField -> unsigned
+        { false, FT_SHORT, "TextureWidth" },
+        { false, FT_SHORT, "TextureHeight" },
+        { true, FT_INT, "OffsetX" },
+        { true, FT_INT, "OffsetY" },
+        { true, FT_INT, "HitRectTop" },
+        { true, FT_INT, "HitRectBottom" },
+        { true, FT_INT, "HitRectLeft" },
+        { true, FT_INT, "HitRectRight" },
+        { false, FT_INT, "PlayerConditionID" },
+        { false, FT_INT, "Flags" },
+        { false, FT_INT, "AreaID1" },
+        { false, FT_INT, "AreaID2" },
+        { false, FT_INT, "AreaID3" },
+        { false, FT_INT, "AreaID4" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 16, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct SkillRaceClassInfoLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[7] =
+    {
+        { FT_LONG, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_BYTE, 1, true },
+        { FT_SHORT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1240406, .IndexField = -1, .ParentIndexField = 1,
+        .FieldCount = 7, .FileFieldCount = 7, .LayoutHash = 0x0271228C, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[8] =
+    {
+        { false, FT_INT, "ID" },
+        { true, FT_LONG, "RaceMask" },
+        { false, FT_SHORT, "SkillID" },                           // ParentIndexField -> unsigned
+        { true, FT_INT, "ClassMask" },
+        { false, FT_SHORT, "Flags" },
+        { true, FT_BYTE, "Availability" },
+        { true, FT_BYTE, "MinLevel" },
+        { true, FT_SHORT, "SkillTierID" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 8, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct CharTitlesLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[4] =
+    {
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_BYTE, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1349054, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 4, .FileFieldCount = 4, .LayoutHash = 0xD7398A05, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[5] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING, "Name" },
+        { false, FT_STRING, "Name1" },
+        { true, FT_SHORT, "MaskID" },
+        { true, FT_BYTE, "Flags" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 5, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct LightLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[5] =
+    {
+        { FT_FLOAT, 3, true },
+        { FT_FLOAT, 1, true },
+        { FT_FLOAT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_SHORT, 8, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1375579, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 5, .FileFieldCount = 5, .LayoutHash = 0xAD1B2253, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[15] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_FLOAT, "GameCoordsX" },
+        { false, FT_FLOAT, "GameCoordsY" },
+        { false, FT_FLOAT, "GameCoordsZ" },
+        { false, FT_FLOAT, "GameFalloffStart" },
+        { false, FT_FLOAT, "GameFalloffEnd" },
+        { true, FT_SHORT, "ContinentID" },
+        { false, FT_SHORT, "LightParamsID1" },
+        { false, FT_SHORT, "LightParamsID2" },
+        { false, FT_SHORT, "LightParamsID3" },
+        { false, FT_SHORT, "LightParamsID4" },
+        { false, FT_SHORT, "LightParamsID5" },
+        { false, FT_SHORT, "LightParamsID6" },
+        { false, FT_SHORT, "LightParamsID7" },
+        { false, FT_SHORT, "LightParamsID8" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 15, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct PowerDisplayLoadInfo
 {
     static constexpr DB2MetaField MetaFields[5] =

@@ -68,6 +68,7 @@ LFGDungeonEntry const* GetZoneLFGDungeonEntry(std::string const& zoneName, Local
 
 uint32 GetDefaultMapLight(uint32 mapId);
 
+struct SkillRaceClassInfoEntry;                   // migrated to DB2 (Task 1c.3); used here by pointer only
 typedef std::unordered_multimap<uint32, SkillRaceClassInfoEntry const*> SkillRaceClassInfoMap;
 typedef std::pair<SkillRaceClassInfoMap::iterator, SkillRaceClassInfoMap::iterator> SkillRaceClassInfoBounds;
 SkillRaceClassInfoEntry const* GetSkillRaceClassInfo(uint32 skill, uint8 race, uint8 class_);
@@ -88,7 +89,7 @@ extern DBCStorage <BarberShopStyleEntry>         sBarberShopStyleStore;
 extern DBCStorage <BattlemasterListEntry>        sBattlemasterListStore;
 extern DBCStorage <ChatChannelsEntry>            sChatChannelsStore;
 extern DBCStorage <CharStartOutfitEntry>         sCharStartOutfitStore;
-extern DBCStorage <CharTitlesEntry>              sCharTitlesStore;
+// sCharTitlesStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 // sChrClassesStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 // sChrRacesStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 extern DBCStorage <CinematicCameraEntry>         sCinematicCameraStore;
@@ -193,7 +194,7 @@ extern DBCStorage <VehicleEntry>                 sVehicleStore;
 extern DBCStorage <VehicleSeatEntry>             sVehicleSeatStore;
 extern DBCStorage <WMOAreaTableEntry>            sWMOAreaTableStore;
 //extern DBCStorage <WorldMapAreaEntry>           sWorldMapAreaStore; -- use Zone2MapCoordinates and Map2ZoneCoordinates
-extern DBCStorage <WorldMapOverlayEntry>         sWorldMapOverlayStore;
+// sWorldMapOverlayStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 
 void LoadDBCStores(const std::string& dataPath);
 

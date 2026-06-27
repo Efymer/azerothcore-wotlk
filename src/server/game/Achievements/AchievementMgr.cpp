@@ -439,7 +439,7 @@ bool AchievementCriteriaData::Meets(uint32 criteria_id, Player const* source, Un
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_KNOWN_TITLE:
         {
             if (CharTitlesEntry const* titleInfo = sCharTitlesStore.LookupEntry(known_title.title_id))
-                return source && source->HasTitle(titleInfo->bit_index);
+                return source && source->HasTitle(titleInfo->MaskID);
 
             return false;
         }
@@ -1386,7 +1386,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                     bool matchFound = false;
                     for (int j = 0; j < MAX_WORLD_MAP_OVERLAY_AREA_IDX; ++j)
                     {
-                        AreaTableEntry const* area = sAreaTableStore.LookupEntry(worldOverlayEntry->areatableID[j]);
+                        AreaTableEntry const* area = sAreaTableStore.LookupEntry(worldOverlayEntry->AreaID[j]);
                         if (!area)
                             break;
 
@@ -2724,14 +2724,14 @@ void AchievementGlobalMgr::LoadAchievementCriteriaList()
                         break;
 
                     for (uint8 j = 0; j < MAX_WORLD_MAP_OVERLAY_AREA_IDX; ++j)
-                        if (worldOverlayEntry->areatableID[j])
+                        if (worldOverlayEntry->AreaID[j])
                         {
                             bool valid = true;
                             for (uint8 i = 0; i < j; ++i)
-                                if (worldOverlayEntry->areatableID[j] == worldOverlayEntry->areatableID[i])
+                                if (worldOverlayEntry->AreaID[j] == worldOverlayEntry->AreaID[i])
                                     valid = false;
                             if (valid)
-                                _specialList[criteria->requiredType][worldOverlayEntry->areatableID[j]].push_back(criteria);
+                                _specialList[criteria->requiredType][worldOverlayEntry->AreaID[j]].push_back(criteria);
                         }
                 }
                 break;

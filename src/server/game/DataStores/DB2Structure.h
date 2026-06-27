@@ -20,6 +20,7 @@
 
 #include "Common.h"
 #include "DB2FileLoader.h"
+#include "DBCEnums.h"
 #include <array>
 
 // Runtime DB2 record structures for build 3.4.3.54261. The whole block is
@@ -447,6 +448,61 @@ struct SkillLineAbilityEntry
     int16 TradeSkillCategoryID;
     int16 SkillupSkillLineID;
     std::array<int32, 2> CharacterPoints;
+};
+
+// Migrated from DBC (Task 1c.3). DBC areatableID[] -> DB2 AreaID[].
+struct WorldMapOverlayEntry
+{
+    uint32 ID;
+    uint32 UiMapArtID;
+    uint16 TextureWidth;
+    uint16 TextureHeight;
+    int32 OffsetX;
+    int32 OffsetY;
+    int32 HitRectTop;
+    int32 HitRectBottom;
+    int32 HitRectLeft;
+    int32 HitRectRight;
+    uint32 PlayerConditionID;
+    uint32 Flags;
+    std::array<uint32, 4> AreaID;
+};
+
+// Migrated from DBC (Task 1c.3). Field names match (SkillID, RaceMask, ClassMask, Flags,
+// SkillTierID); RaceMask is int64 now.
+struct SkillRaceClassInfoEntry
+{
+    uint32 ID;
+    int64 RaceMask;
+    int16 SkillID;
+    int32 ClassMask;
+    uint16 Flags;
+    int8 Availability;
+    int8 MinLevel;
+    int16 SkillTierID;
+};
+
+// Migrated from DBC (Task 1c.3). DBC {ID, nameMale[16], nameFemale[16], bit_index} -> DB2:
+// nameMale->Name.Str, nameFemale->Name1.Str, bit_index->MaskID.
+struct CharTitlesEntry
+{
+    uint32 ID;
+    LocalizedString Name;
+    LocalizedString Name1;
+    int16 MaskID;
+    int8 Flags;
+};
+
+// Migrated from DBC (Task 1c.3). DBC {Id, MapId, X, Y, Z} -> DB2: MapId->ContinentID,
+// X/Y/Z->GameCoords.{X,Y,Z}.
+struct LightEntry
+{
+    uint32 ID;
+    DBCPosition3D GameCoords;
+    float GameFalloffStart;
+    float GameFalloffEnd;
+    int16 ContinentID;
+    std::array<uint16, 8> LightParamsID;
 };
 
 // Migrated from DBC (Task 1c.3): the DBC PowerDisplayEntry {Id, PowerType} maps to the
