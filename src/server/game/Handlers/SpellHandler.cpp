@@ -755,7 +755,7 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
     if (!creator)
         return;
 
-    WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
+    WorldPacket data(SMSG_MIRROR_IMAGE_COMPONENTED_DATA, 68);
     data << guid;
     data << uint32(creator->GetDisplayId());
     data << uint8(creator->getRace());
@@ -860,7 +860,8 @@ void WorldSession::HandleUpdateProjectilePosition(WorldPacket& recvPacket)
     // we changed dest, recalculate flight time
     spell->RecalculateDelayMomentForDst();
 
-    WorldPacket data(SMSG_SET_PROJECTILE_POSITION, 21);
+    // TODO(3.4.3 brick-B): SMSG_SET_PROJECTILE_POSITION removed in 3.4.3 (no projectile-position opcode)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 21);
     data << casterGuid;
     data << uint8(castCount);
     data << float(x);

@@ -114,7 +114,7 @@ void EncryptableAndCompressiblePacket::CompressIfNeeded()
     buf.resize(destsize + sizeof(uint32));
 
     ByteBuffer::operator=(std::move(buf));
-    SetOpcode(SMSG_COMPRESSED_UPDATE_OBJECT);
+    SetOpcode(SMSG_UPDATE_OBJECT);
 }
 
 WorldSocket::WorldSocket(IoContextTcpSocket&& socket)

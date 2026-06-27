@@ -2198,7 +2198,7 @@ void Unit::DealDamageShieldDamage(Unit* victim)
         Unit::DealDamageMods(this, damage, &absorb);
 
         /// @todo: Move this to a packet handler
-        WorldPacket data(SMSG_SPELLDAMAGESHIELD, (8 + 8 + 4 + 4 + 4 + 4));
+        WorldPacket data(SMSG_SPELL_DAMAGE_SHIELD, (8 + 8 + 4 + 4 + 4 + 4));
         data << victim->GetGUID();
         data << GetGUID();
         data << uint32(i_spellProto->Id);
@@ -3251,18 +3251,18 @@ float Unit::CalculateLevelPenalty(SpellInfo const* spellProto) const
 
 void Unit::SendMeleeAttackStart(Unit* victim, Player* sendTo)
 {
-    WorldPacket data(SMSG_ATTACKSTART, 8 + 8);
+    WorldPacket data(SMSG_ATTACK_START, 8 + 8);
     data << GetGUID();
     data << victim->GetGUID();
     if (sendTo)
         sendTo->SendDirectMessage(&data);
     else
         SendMessageToSet(&data, true);
-    LOG_DEBUG("entities.unit", "WORLD: Sent SMSG_ATTACKSTART");
+    LOG_DEBUG("entities.unit", "WORLD: Sent SMSG_ATTACK_START");
 }
 
 /**
- * @brief Send to the client SMSG_ATTACKSTOP but doesn't clear UNIT_STATE_MELEE_ATTACKING on server side
+ * @brief Send to the client SMSG_ATTACK_STOP but doesn't clear UNIT_STATE_MELEE_ATTACKING on server side
  * or interrupt spells. Unless you know exactly what you're doing, use AttackStop() or RemoveAllAttackers() instead
  */
 void Unit::SendMeleeAttackStop(Unit* victim)
@@ -3271,7 +3271,7 @@ void Unit::SendMeleeAttackStop(Unit* victim)
     // pussywizard: this happens in some boss scripts, just add clearing here
     // ClearUnitState(UNIT_STATE_MELEE_ATTACKING); // commented out for now
 
-    WorldPacket data(SMSG_ATTACKSTOP, (8 + 8 + 4));
+    WorldPacket data(SMSG_ATTACK_STOP, (8 + 8 + 4));
     data << GetPackGUID();
 
     if (victim)
@@ -3280,7 +3280,7 @@ void Unit::SendMeleeAttackStop(Unit* victim)
         data << (uint32)victim->isDead();
     }
     SendMessageToSet(&data, true);
-    LOG_DEBUG("entities.unit", "WORLD: Sent SMSG_ATTACKSTOP");
+    LOG_DEBUG("entities.unit", "WORLD: Sent SMSG_ATTACK_STOP");
 
     if (victim)
         LOG_DEBUG("entities.unit", "{} {} stopped attacking {} {}", (IsPlayer() ? "Player" : "Creature"), GetGUID().ToString(), (victim->IsPlayer() ? "player" : "creature"), victim->GetGUID().ToString());
@@ -6685,7 +6685,7 @@ void Unit::SendSpellNonMeleeReflectLog(SpellNonMeleeDamage* log, Unit* attacker)
     if (!IsPlayer())
         return;
 
-    WorldPacket data(SMSG_SPELLNONMELEEDAMAGELOG, (16 + 4 + 4 + 4 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 1)); // we guess size
+    WorldPacket data(SMSG_SPELL_NON_MELEE_DAMAGE_LOG, (16 + 4 + 4 + 4 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 1)); // we guess size
     // If we are in cheat mode we swap absorb with damage and set damage to 0, this way we can still debug damage but our HP bar will not drop
     uint32 damage = log->damage;
     uint32 absorb = log->absorb;
@@ -6713,7 +6713,7 @@ void Unit::SendSpellNonMeleeReflectLog(SpellNonMeleeDamage* log, Unit* attacker)
 
 void Unit::SendSpellNonMeleeDamageLog(SpellNonMeleeDamage* log)
 {
-    WorldPacket data(SMSG_SPELLNONMELEEDAMAGELOG, (16 + 4 + 4 + 4 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 1)); // we guess size
+    WorldPacket data(SMSG_SPELL_NON_MELEE_DAMAGE_LOG, (16 + 4 + 4 + 4 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 1)); // we guess size
     //IF we are in cheat mode we swap absorb with damage and set damage to 0, this way we can still debug damage but our hp bar will not drop
     uint32 damage = log->damage;
     uint32 absorb = log->absorb;
@@ -6815,7 +6815,7 @@ void Unit::ProcSkillsAndAuras(Unit* actor, Unit* victim, uint32 procAttacker, ui
 void Unit::SendPeriodicAuraLog(SpellPeriodicAuraLogInfo* pInfo)
 {
     AuraEffect const* aura = pInfo->auraEff;
-    WorldPacket data(SMSG_PERIODICAURALOG, 30);
+    WorldPacket data(SMSG_SPELL_PERIODIC_AURA_LOG, 30);
     data << GetPackGUID();
     data << aura->GetCasterGUID().WriteAsPacked();
     data << uint32(aura->GetId());                          // spellId
@@ -6870,7 +6870,7 @@ void Unit::SendPeriodicAuraLog(SpellPeriodicAuraLogInfo* pInfo)
 
 void Unit::SendSpellMiss(Unit* target, uint32 spellID, SpellMissInfo missInfo)
 {
-    WorldPacket data(SMSG_SPELLLOGMISS, (4 + 8 + 1 + 4 + 8 + 1));
+    WorldPacket data(SMSG_SPELL_MISS_LOG, (4 + 8 + 1 + 4 + 8 + 1));
     data << uint32(spellID);
     data << GetGUID();
     data << uint8(0);                                       // can be 0 or 1
@@ -6884,7 +6884,7 @@ void Unit::SendSpellMiss(Unit* target, uint32 spellID, SpellMissInfo missInfo)
 
 void Unit::SendSpellDamageResist(Unit* target, uint32 spellId)
 {
-    WorldPacket data(SMSG_PROCRESIST, 8 + 8 + 4 + 1);
+    WorldPacket data(SMSG_PROC_RESIST, 8 + 8 + 4 + 1);
     data << GetGUID();
     data << target->GetGUID();
     data << uint32(spellId);
@@ -6894,7 +6894,7 @@ void Unit::SendSpellDamageResist(Unit* target, uint32 spellId)
 
 void Unit::SendSpellDamageImmune(Unit* target, uint32 spellId)
 {
-    WorldPacket data(SMSG_SPELLORDAMAGE_IMMUNE, 8 + 8 + 4 + 1);
+    WorldPacket data(SMSG_SPELL_OR_DAMAGE_IMMUNE, 8 + 8 + 4 + 1);
     data << GetGUID();
     data << target->GetGUID();
     data << uint32(spellId);
@@ -6904,7 +6904,7 @@ void Unit::SendSpellDamageImmune(Unit* target, uint32 spellId)
 
 void Unit::SendAttackStateUpdate(CalcDamageInfo* damageInfo)
 {
-    LOG_DEBUG("entities.unit", "WORLD: Sending SMSG_ATTACKERSTATEUPDATE");
+    LOG_DEBUG("entities.unit", "WORLD: Sending SMSG_ATTACKER_STATE_UPDATE");
 
     uint32 tmpDamage[MAX_ITEM_PROTO_DAMAGES] = { };
     uint32 tmpAbsorb[MAX_ITEM_PROTO_DAMAGES] = { };
@@ -6927,7 +6927,7 @@ void Unit::SendAttackStateUpdate(CalcDamageInfo* damageInfo)
     }
 
     std::size_t const maxsize = 4 + 5 + 5 + 4 + 4 + 1 + count * (4 + 4 + 4 + 4 + 4) + 1 + 4 + 4 + 4 + 4 + 4 * 12;
-    WorldPacket data(SMSG_ATTACKERSTATEUPDATE, maxsize);            // we guess size
+    WorldPacket data(SMSG_ATTACKER_STATE_UPDATE, maxsize);            // we guess size
     data << uint32(damageInfo->HitInfo);
     data << damageInfo->attacker->GetPackGUID();
     data << damageInfo->target->GetPackGUID();
@@ -8356,7 +8356,7 @@ void Unit::SendHealSpellLog(HealInfo const& healInfo, bool critical)
     uint32 overheal = healInfo.GetHeal() - healInfo.GetEffectiveHeal();
 
     // we guess size
-    WorldPacket data(SMSG_SPELLHEALLOG, (8 + 8 + 4 + 4 + 4 + 4 + 1 + 1));
+    WorldPacket data(SMSG_SPELL_HEAL_LOG, (8 + 8 + 4 + 4 + 4 + 4 + 1 + 1));
     data << healInfo.GetTarget()->GetPackGUID();
     data << GetPackGUID();
     data << uint32(healInfo.GetSpellInfo()->Id);
@@ -8386,7 +8386,7 @@ int32 Unit::HealBySpell(HealInfo& healInfo, bool critical)
 
 void Unit::SendEnergizeSpellLog(Unit* victim, uint32 spellID, uint32 damage, Powers powerType)
 {
-    WorldPacket data(SMSG_SPELLENERGIZELOG, (8 + 8 + 4 + 4 + 4 + 1));
+    WorldPacket data(SMSG_SPELL_ENERGIZE_LOG, (8 + 8 + 4 + 4 + 4 + 1));
     data << victim->GetPackGUID();
     data << GetPackGUID();
     data << uint32(spellID);
@@ -10549,7 +10549,8 @@ void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
                 GetVehicleKit()->Reset();
 
                 // Send others that we now have a vehicle
-                WorldPacket data(SMSG_PLAYER_VEHICLE_DATA, GetPackGUID().size() + 4);
+                // TODO(3.4.3 brick-B): SMSG_PLAYER_VEHICLE_DATA removed in 3.4.3 (vehicle data carried in object update fields)
+                WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), GetPackGUID().size() + 4);
                 data << GetPackGUID();
                 data << uint32(VehicleId);
                 SendMessageToSet(&data, true);
@@ -10616,7 +10617,8 @@ void Unit::Dismount()
     if (IsPlayer() && GetVehicleKit())
     {
         // Send other players that we are no longer a vehicle
-        data.Initialize(SMSG_PLAYER_VEHICLE_DATA, 8 + 4);
+        // TODO(3.4.3 brick-B): SMSG_PLAYER_VEHICLE_DATA removed in 3.4.3 (vehicle data carried in object update fields)
+        data.Initialize(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 8 + 4);
         data << GetPackGUID();
         data << uint32(0);
         ToPlayer()->SendMessageToSet(&data, true);
@@ -13154,7 +13156,7 @@ void Unit::SetStandState(uint8 state)
 
     if (IsPlayer())
     {
-        WorldPacket data(SMSG_STANDSTATE_UPDATE, 1);
+        WorldPacket data(SMSG_STAND_STATE_UPDATE, 1);
         data << (uint8)state;
         ToPlayer()->SendDirectMessage(&data);
     }
@@ -13310,7 +13312,7 @@ void Unit::SendComboPoints()
     PackedGuid const packGUID = m_comboTarget ? m_comboTarget->GetPackGUID() : PackedGuid();
     if (Player* playerMe = ToPlayer())
     {
-        WorldPacket data(SMSG_UPDATE_COMBO_POINTS, packGUID.size() + 1);
+        WorldPacket data(SMSG_AURA_UPDATE, packGUID.size() + 1);
         data << packGUID;
         data << uint8(m_comboPoints);
         playerMe->SendDirectMessage(&data);
@@ -13325,7 +13327,7 @@ void Unit::SendComboPoints()
 
     if (m_movedByPlayer || owner)
     {
-        WorldPacket data(SMSG_PET_UPDATE_COMBO_POINTS, GetPackGUID().size() + packGUID.size() + 1);
+        WorldPacket data(SMSG_AURA_UPDATE, GetPackGUID().size() + packGUID.size() + 1);
         data << GetPackGUID();
         data << packGUID;
         data << uint8(m_comboPoints);
@@ -14039,7 +14041,7 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     // call kill spell proc event (before real die and combat stop to triggering auras removed at death/combat stop)
     if (isRewardAllowed && player && player != victim)
     {
-        WorldPacket data(SMSG_PARTYKILLLOG, (8 + 8)); // send event PARTY_KILL
+        WorldPacket data(SMSG_PARTY_KILL_LOG, (8 + 8)); // send event PARTY_KILL
         data << player->GetGUID(); // player with killing blow
         data << victim->GetGUID(); // victim
 
@@ -15214,7 +15216,7 @@ void Unit::SendPlaySpellVisual(uint32 id)
 
 void Unit::SendPlaySpellImpact(ObjectGuid guid, uint32 id)
 {
-    WorldPacket data(SMSG_PLAY_SPELL_IMPACT, 8 + 4);
+    WorldPacket data(SMSG_PLAY_SPELL_VISUAL_KIT, 8 + 4);
     data << guid;       // target
     data << uint32(id); // SpellVisualKit.dbc index
     SendMessageToSet(&data, true);

@@ -285,7 +285,7 @@ namespace lfg
         LfgLockPartyMap lockmap;
     };
 
-    // Data needed by SMSG_LFG_UPDATE_PARTY and SMSG_LFG_UPDATE_PLAYER
+    // Data needed by SMSG_LFG_UPDATE_STATUS and SMSG_LFG_UPDATE_STATUS
     struct LfgUpdateData
     {
         LfgUpdateData(LfgUpdateType _type = LFG_UPDATETYPE_DEFAULT): updateType(_type),  comment("") { }

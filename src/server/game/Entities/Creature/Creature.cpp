@@ -174,7 +174,7 @@ CreatureModel const* CreatureTemplate::GetFirstVisibleModel() const
 
 void CreatureTemplate::InitializeQueryData()
 {
-    queryData.Initialize(SMSG_CREATURE_QUERY_RESPONSE, 1);
+    queryData.Initialize(SMSG_QUERY_CREATURE_RESPONSE, 1);
 
     queryData << uint32(Entry);                                   // creature entry
     queryData << Name;

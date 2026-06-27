@@ -410,7 +410,7 @@ void WorldSession::HandleItemQuerySingleOpcode(WorldPacket& recvData)
             }
         }
         // guess size
-        WorldPacket queryData(SMSG_ITEM_QUERY_SINGLE_RESPONSE, 600);
+        WorldPacket queryData(SMSG_DB_REPLY, 600);
         queryData << pProto->ItemId;
         queryData << pProto->Class;
         queryData << pProto->SubClass;
@@ -539,7 +539,7 @@ void WorldSession::HandleItemQuerySingleOpcode(WorldPacket& recvData)
     else
     {
         LOG_DEBUG("network", "WORLD: CMSG_ITEM_QUERY_SINGLE - NO item INFO! (ENTRY: {})", item);
-        WorldPacket queryData(SMSG_ITEM_QUERY_SINGLE_RESPONSE, 4);
+        WorldPacket queryData(SMSG_DB_REPLY, 4);
         queryData << uint32(item | 0x80000000);
         SendPacket(&queryData);
     }
@@ -559,12 +559,12 @@ void WorldSession::HandleReadItem(WorldPackets::Item::ReadItem& packet)
         InventoryResult msg = _player->CanUseItem(pItem);
         if (msg == EQUIP_ERR_OK)
         {
-            data.Initialize (SMSG_READ_ITEM_OK, 8);
+            data.Initialize (SMSG_READ_ITEM_RESULT_OK, 8);
             LOG_DEBUG("network.opcode", "STORAGE: Item page sent");
         }
         else
         {
-            data.Initialize(SMSG_READ_ITEM_FAILED, 8);
+            data.Initialize(SMSG_READ_ITEM_RESULT_FAILED, 8);
             LOG_DEBUG("network.opcode", "STORAGE: Unable to read item");
             _player->SendEquipError(msg, pItem, nullptr);
         }
@@ -853,7 +853,7 @@ void WorldSession::HandleListInventoryOpcode(WorldPackets::Item::ListInventory& 
 
 void WorldSession::SendListInventory(ObjectGuid vendorGuid, uint32 vendorEntry)
 {
-    LOG_DEBUG("network", "WORLD: Sent SMSG_LIST_INVENTORY");
+    LOG_DEBUG("network", "WORLD: Sent SMSG_VENDOR_INVENTORY");
 
     sScriptMgr->OnPlayerSendListInventory(GetPlayer(), vendorGuid, vendorEntry);
 
@@ -883,7 +883,7 @@ void WorldSession::SendListInventory(ObjectGuid vendorGuid, uint32 vendorEntry)
     VendorItemData const* items = vendorEntry ? sObjectMgr->GetNpcVendorItemList(vendorEntry) : vendor->GetVendorItems();
     if (!items)
     {
-        WorldPacket data(SMSG_LIST_INVENTORY, 8 + 1 + 1);
+        WorldPacket data(SMSG_VENDOR_INVENTORY, 8 + 1 + 1);
         data << vendorGuid;
         data << uint8(0);                                   // count == 0, next will be error code
         data << uint8(0);                                   // "Vendor has no inventory"
@@ -894,7 +894,7 @@ void WorldSession::SendListInventory(ObjectGuid vendorGuid, uint32 vendorEntry)
     uint8 itemCount = items->GetItemCount();
     uint8 count = 0;
 
-    WorldPacket data(SMSG_LIST_INVENTORY, 8 + 1 + itemCount * 8 * 4);
+    WorldPacket data(SMSG_VENDOR_INVENTORY, 8 + 1 + itemCount * 8 * 4);
     data << vendorGuid;
 
     std::size_t countPos = data.wpos();
@@ -1074,7 +1074,7 @@ void WorldSession::HandleItemNameQueryOpcode(WorldPacket& recvData)
             if (ItemSetNameLocale const* isnl = sObjectMgr->GetItemSetNameLocale(itemid))
                 ObjectMgr::GetLocaleString(isnl->Name, loc_idx, Name);
 
-        WorldPacket data(SMSG_ITEM_NAME_QUERY_RESPONSE, (4 + Name.size() + 1 + 4));
+        WorldPacket data(SMSG_QUERY_ITEM_TEXT_RESPONSE, (4 + Name.size() + 1 + 4));
         data << uint32(itemid);
         data << Name;
         data << uint32(pName->InventoryType);
@@ -1465,7 +1465,7 @@ void WorldSession::HandleItemTextQuery(WorldPacket& recvData )
 
     LOG_DEBUG("network", "CMSG_ITEM_TEXT_QUERY item: {}", itemGuid.ToString());
 
-    WorldPacket data(SMSG_ITEM_TEXT_QUERY_RESPONSE, 50);        // guess size
+    WorldPacket data(SMSG_QUERY_ITEM_TEXT_RESPONSE, 50);        // guess size
 
     if (Item* item = _player->GetItemByGuid(itemGuid))
     {

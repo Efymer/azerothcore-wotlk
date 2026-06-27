@@ -2170,7 +2170,7 @@ void Guild::MassInviteToEvent(WorldSession* session, uint32 minLevel, uint32 max
 {
     uint32 count = 0;
 
-    WorldPacket data(SMSG_CALENDAR_FILTER_GUILD);
+    WorldPacket data(SMSG_CALENDAR_COMMUNITY_INVITE);
     data << uint32(count); // count placeholder
 
     for (auto const& [guid, member] : m_members)

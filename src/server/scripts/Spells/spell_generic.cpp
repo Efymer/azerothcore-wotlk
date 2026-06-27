@@ -2056,7 +2056,7 @@ class spell_pvp_trinket_wotf_shared_cd : public SpellScript
             }
             else
             {
-                WorldPacket data(SMSG_INITIAL_SPELLS, (1 + 2 + 2 + 4 + 2 + 2 + 4 + 4));
+                WorldPacket data(SMSG_SEND_KNOWN_SPELLS, (1 + 2 + 2 + 4 + 2 + 2 + 4 + 4));
                 data << uint8(0);
                 data << uint16(0);
                 data << uint16(1);

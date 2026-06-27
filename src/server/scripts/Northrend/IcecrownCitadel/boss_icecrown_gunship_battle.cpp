@@ -2269,7 +2269,7 @@ class spell_igb_overheat_aura : public AuraScript
             {
                 if (Player* player = passenger->ToPlayer())
                 {
-                    WorldPacket data(SMSG_CLIENT_CONTROL_UPDATE, GetUnitOwner()->GetPackGUID().size() + 1);
+                    WorldPacket data(SMSG_CONTROL_UPDATE, GetUnitOwner()->GetPackGUID().size() + 1);
                     data << GetUnitOwner()->GetPackGUID();
                     data << uint8(value);
                     player->SendDirectMessage(&data);

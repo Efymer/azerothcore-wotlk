@@ -821,7 +821,7 @@ void WorldSession::HandleUpdateAccountData(WorldPacket& recv_data)
     {
         SetAccountData(AccountDataType(type), 0, "");
 
-        WorldPacket data(SMSG_UPDATE_ACCOUNT_DATA_COMPLETE, 4 + 4);
+        WorldPacket data(SMSG_UPDATE_ACCOUNT_DATA, 4 + 4);
         data << uint32(type);
         data << uint32(0);
         SendPacket(&data);
@@ -854,7 +854,7 @@ void WorldSession::HandleUpdateAccountData(WorldPacket& recv_data)
 
     SetAccountData(AccountDataType(type), timestamp, adata);
 
-    WorldPacket data(SMSG_UPDATE_ACCOUNT_DATA_COMPLETE, 4 + 4);
+    WorldPacket data(SMSG_UPDATE_ACCOUNT_DATA, 4 + 4);
     data << uint32(type);
     data << uint32(0);
     SendPacket(&data);
@@ -998,7 +998,7 @@ void WorldSession::HandleInspectOpcode(WorldPacket& recv_data)
 
     uint32 talent_points = 0x47;
     uint32 guid_size = player->GetPackGUID().size();
-    WorldPacket data(SMSG_INSPECT_TALENT, guid_size + 4 + talent_points);
+    WorldPacket data(SMSG_INSPECT_RESULT, guid_size + 4 + talent_points);
     data << player->GetPackGUID();
 
     if (sWorld->getBoolConfig(CONFIG_TALENTS_INSPECTING) || _player->CanBeGameMaster())
@@ -1024,7 +1024,7 @@ void WorldSession::HandleInspectHonorStatsOpcode(WorldPacket& recv_data)
     Player* player = ObjectAccessor::GetPlayer(*_player, guid);
     if (!player)
     {
-        LOG_DEBUG("network", "MSG_INSPECT_HONOR_STATS: No player found from {}", guid.ToString());
+        LOG_DEBUG("network", "SMSG_INSPECT_HONOR_STATS: No player found from {}", guid.ToString());
         return;
     }
 
@@ -1038,7 +1038,7 @@ void WorldSession::HandleInspectHonorStatsOpcode(WorldPacket& recv_data)
         return;
     }
 
-    WorldPacket data(MSG_INSPECT_HONOR_STATS, 8 + 1 + 4 * 4);
+    WorldPacket data(SMSG_INSPECT_HONOR_STATS, 8 + 1 + 4 * 4);
     data << player->GetGUID();
     data << uint8(player->GetHonorPoints());
     data << uint32(player->GetUInt32Value(PLAYER_FIELD_KILLS));
@@ -1131,7 +1131,7 @@ void WorldSession::HandleWhoisOpcode(WorldPacket& recv_data)
 
     std::string msg = charname + "'s " + "account is " + acc + ", e-mail: " + email + ", last ip: " + lastip;
 
-    WorldPacket data(SMSG_WHOIS, msg.size() + 1);
+    WorldPacket data(SMSG_WHO_IS, msg.size() + 1);
     data << msg;
     SendPacket(&data);
 
@@ -1173,7 +1173,7 @@ void WorldSession::HandleRealmSplitOpcode(WorldPacket& recv_data)
     std::string split_date = "01/01/01";
     recv_data >> unk;
 
-    WorldPacket data(SMSG_REALM_SPLIT, 4 + 4 + split_date.size() + 1);
+    WorldPacket data(SMSG_REALM_QUERY_RESPONSE, 4 + 4 + split_date.size() + 1);
     data << unk;
     data << uint32(0x00000000);                             // realm split state
     // split states:
@@ -1633,7 +1633,7 @@ void WorldSession::HandleReadyForAccountDataTimes(WorldPacket& /*recv_data*/)
 
 void WorldSession::SendSetPhaseShift(uint32 PhaseShift)
 {
-    WorldPacket data(SMSG_SET_PHASE_SHIFT, 4);
+    WorldPacket data(SMSG_PHASE_SHIFT_CHANGE, 4);
     data << uint32(PhaseShift);
     SendPacket(&data);
 }

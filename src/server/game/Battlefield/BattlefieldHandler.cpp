@@ -30,7 +30,8 @@
 // Param3:(time) Time in seconds that the player has to accept
 void WorldSession::SendBfInvitePlayerToWar(uint32 battleId, uint32 zoneId, uint32 time)
 {
-    WorldPacket data(SMSG_BATTLEFIELD_MGR_ENTRY_INVITE, 12);
+    // TODO(3.4.3 brick-B): SMSG_BATTLEFIELD_MGR_ENTRY_INVITE removed in 3.4.3 (Battlefield mgr opcodes redesigned)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 12);
     data << uint32(battleId);
     data << uint32(zoneId);
     data << uint32(GameTime::GetGameTime().count() + time);
@@ -41,7 +42,8 @@ void WorldSession::SendBfInvitePlayerToWar(uint32 battleId, uint32 zoneId, uint3
 // Param1:(battleId) the BattleId of Bf
 void WorldSession::SendBfInvitePlayerToQueue(uint32 battleId)
 {
-    WorldPacket data(SMSG_BATTLEFIELD_MGR_QUEUE_INVITE, 5);
+    // TODO(3.4.3 brick-B): SMSG_BATTLEFIELD_MGR_QUEUE_INVITE removed in 3.4.3 (Battlefield mgr opcodes redesigned)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 5);
     data << uint32(battleId);
     data << uint8(1);                                       // warmup ? used ?
     SendPacket(&data);
@@ -54,7 +56,8 @@ void WorldSession::SendBfInvitePlayerToQueue(uint32 battleId)
 // Param4:(full) on log in is full
 void WorldSession::SendBfQueueInviteResponse(uint32 battleId, uint32 zoneId, bool canQueue, bool full)
 {
-    WorldPacket data(SMSG_BATTLEFIELD_MGR_QUEUE_REQUEST_RESPONSE, 11);
+    // TODO(3.4.3 brick-B): SMSG_BATTLEFIELD_MGR_QUEUE_REQUEST_RESPONSE removed in 3.4.3 (Battlefield mgr opcodes redesigned)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 11);
     data << uint32(battleId);
     data << uint32(zoneId);
     data << uint8((canQueue ? 1 : 0));  //Accepted          //0 you cannot queue wg     //1 you are queued
@@ -67,7 +70,8 @@ void WorldSession::SendBfQueueInviteResponse(uint32 battleId, uint32 zoneId, boo
 // Param1:(battleId) the BattleId of Bf
 void WorldSession::SendBfEntered(uint32 battleId)
 {
-    WorldPacket data(SMSG_BATTLEFIELD_MGR_ENTERED, 7);
+    // TODO(3.4.3 brick-B): SMSG_BATTLEFIELD_MGR_ENTERED removed in 3.4.3 (Battlefield mgr opcodes redesigned)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 7);
     data << uint32(battleId);
     data << uint8(1);                                       // unk
     data << uint8(1);                                       // unk
@@ -77,7 +81,8 @@ void WorldSession::SendBfEntered(uint32 battleId)
 
 void WorldSession::SendBfLeaveMessage(uint32 battleId, BFLeaveReason reason)
 {
-    WorldPacket data(SMSG_BATTLEFIELD_MGR_EJECTED, 7);
+    // TODO(3.4.3 brick-B): SMSG_BATTLEFIELD_MGR_EJECTED removed in 3.4.3 (Battlefield mgr opcodes redesigned)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 7);
     data << uint32(battleId);
     data << uint8(reason);  // byte Reason
     data << uint8(2);       // byte BattleStatus

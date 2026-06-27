@@ -317,9 +317,9 @@ void WorldSession::SendLfgUpdatePlayer(lfg::LfgUpdateData const& updateData)
             break;
     }
 
-    LOG_DEBUG("lfg", "SMSG_LFG_UPDATE_PLAYER {} updatetype: {}",
+    LOG_DEBUG("lfg", "SMSG_LFG_UPDATE_STATUS {} updatetype: {}",
                    GetPlayerInfo(), updateData.updateType);
-    WorldPacket data(SMSG_LFG_UPDATE_PLAYER, 1 + 1 + (size > 0 ? 1 : 0) * (1 + 1 + 1 + 1 + size * 4 + updateData.comment.length()));
+    WorldPacket data(SMSG_LFG_UPDATE_STATUS, 1 + 1 + (size > 0 ? 1 : 0) * (1 + 1 + 1 + 1 + size * 4 + updateData.comment.length()));
     data << uint8(updateData.updateType);                  // Lfg Update type
     data << uint8(size > 0);                               // Extra info
     if (size)
@@ -358,9 +358,9 @@ void WorldSession::SendLfgUpdateParty(lfg::LfgUpdateData const& updateData)
             break;
     }
 
-    LOG_DEBUG("lfg", "SMSG_LFG_UPDATE_PARTY {} updatetype: {}",
+    LOG_DEBUG("lfg", "SMSG_LFG_UPDATE_STATUS {} updatetype: {}",
                    GetPlayerInfo(), updateData.updateType);
-    WorldPacket data(SMSG_LFG_UPDATE_PARTY, 1 + 1 + (size > 0 ? 1 : 0) * (1 + 1 + 1 + 1 + 1 + size * 4 + updateData.comment.length()));
+    WorldPacket data(SMSG_LFG_UPDATE_STATUS, 1 + 1 + (size > 0 ? 1 : 0) * (1 + 1 + 1 + 1 + 1 + size * 4 + updateData.comment.length()));
     data << uint8(updateData.updateType);                  // Lfg Update type
     data << uint8(size > 0);                               // Extra info
     if (size)
@@ -382,9 +382,9 @@ void WorldSession::SendLfgUpdateParty(lfg::LfgUpdateData const& updateData)
 
 void WorldSession::SendLfgRoleChosen(ObjectGuid guid, uint8 roles)
 {
-    LOG_DEBUG("network", "SMSG_LFG_ROLE_CHOSEN [{}] guid: [{}] roles: {}", GetPlayer()->GetGUID().ToString(), guid.ToString(), roles);
+    LOG_DEBUG("network", "SMSG_ROLE_CHOSEN [{}] guid: [{}] roles: {}", GetPlayer()->GetGUID().ToString(), guid.ToString(), roles);
 
-    WorldPacket data(SMSG_LFG_ROLE_CHOSEN, 8 + 1 + 4);
+    WorldPacket data(SMSG_ROLE_CHOSEN, 8 + 1 + 4);
     data << guid;                                          // Guid
     data << uint8(roles > 0);                              // Ready
     data << uint32(roles);                                 // Roles
@@ -526,10 +526,10 @@ void WorldSession::SendLfgBootProposalUpdate(lfg::LfgPlayerBoot const& boot)
                 ++agreeNum;
         }
     }
-    LOG_DEBUG("network", "SMSG_LFG_BOOT_PROPOSAL_UPDATE [{}] inProgress: {} - didVote: {} - agree: {} - victim: [{}] votes: {} - agrees: {} - left: {} - needed: {} - reason {}",
+    LOG_DEBUG("network", "SMSG_LFG_BOOT_PLAYER [{}] inProgress: {} - didVote: {} - agree: {} - victim: [{}] votes: {} - agrees: {} - left: {} - needed: {} - reason {}",
                    guid.ToString(), uint8(boot.inProgress), uint8(playerVote != lfg::LFG_ANSWER_PENDING), uint8(playerVote == lfg::LFG_ANSWER_AGREE),
                    boot.victim.ToString(), votesNum, agreeNum, secsleft, lfg::LFG_GROUP_KICK_VOTES_NEEDED, boot.reason);
-    WorldPacket data(SMSG_LFG_BOOT_PROPOSAL_UPDATE, 1 + 1 + 1 + 8 + 4 + 4 + 4 + 4 + boot.reason.length());
+    WorldPacket data(SMSG_LFG_BOOT_PLAYER, 1 + 1 + 1 + 8 + 4 + 4 + 4 + 4 + boot.reason.length());
     data << uint8(boot.inProgress);                        // Vote in progress
     data << uint8(playerVote != lfg::LFG_ANSWER_PENDING);  // Did Vote
     data << uint8(playerVote == lfg::LFG_ANSWER_AGREE);    // Agree
@@ -613,7 +613,7 @@ void WorldSession::SendLfgUpdateProposal(lfg::LfgProposal const& proposal)
 void WorldSession::SendLfgLfrList(bool update)
 {
     LOG_DEBUG("network", "SMSG_LFG_LFR_LIST [{}] update: {}", GetPlayer()->GetGUID().ToString(), update ? 1 : 0);
-    WorldPacket data(SMSG_LFG_UPDATE_SEARCH, 1);
+    WorldPacket data(SMSG_LFG_UPDATE_STATUS, 1);
     data << uint8(update);                                 // In Lfg Queue?
     SendPacket(&data);
 }

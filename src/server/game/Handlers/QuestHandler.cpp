@@ -626,7 +626,7 @@ void WorldSession::HandleQueryQuestsCompleted(WorldPacket& /*recvData*/)
 {
     std::size_t rew_count = _player->GetRewardedQuestCount();
 
-    WorldPacket data(SMSG_QUERY_QUESTS_COMPLETED_RESPONSE, 4 + 4 * rew_count);
+    WorldPacket data(SMSG_ALL_ACHIEVEMENT_DATA, 4 + 4 * rew_count);
     data << uint32(rew_count);
 
     const RewardedQuestSet& rewQuests = _player->getRewardedQuests();

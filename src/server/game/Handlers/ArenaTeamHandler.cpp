@@ -28,7 +28,7 @@
 
 void WorldSession::HandleInspectArenaTeamsOpcode(WorldPacket& recvData)
 {
-    LOG_DEBUG("network", "MSG_INSPECT_ARENA_TEAMS");
+    LOG_DEBUG("network", "SMSG_INSPECT_RESULT");
 
     ObjectGuid guid;
     recvData >> guid;
@@ -415,7 +415,7 @@ void WorldSession::SendArenaTeamCommandResult(uint32 teamAction, const std::stri
 
 void WorldSession::SendNotInArenaTeamPacket(uint8 type)
 {
-    WorldPacket data(SMSG_ARENA_ERROR, 4 + 1);              // 886 - You are not in a %uv%u arena team
+    WorldPacket data(SMSG_ARENA_TEAM_COMMAND_RESULT, 4 + 1);              // 886 - You are not in a %uv%u arena team
     uint32 unk = 0;
     data << uint32(unk);                                    // unk(0)
     if (!unk)

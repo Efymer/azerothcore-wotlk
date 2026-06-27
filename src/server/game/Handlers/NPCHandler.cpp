@@ -67,14 +67,14 @@ void WorldSession::HandleTabardVendorActivateOpcode(WorldPacket& recvData)
 
 void WorldSession::SendTabardVendorActivate(ObjectGuid guid)
 {
-    WorldPacket data(MSG_TABARDVENDOR_ACTIVATE, 8);
+    WorldPacket data(SMSG_NPC_INTERACTION_OPEN_RESULT, 8);
     data << guid;
     SendPacket(&data);
 }
 
 void WorldSession::SendShowMailBox(ObjectGuid guid)
 {
-    WorldPacket data(SMSG_SHOW_MAILBOX, 8);
+    WorldPacket data(SMSG_NPC_INTERACTION_OPEN_RESULT, 8);
     data << guid;
     SendPacket(&data);
 }
@@ -324,7 +324,8 @@ void WorldSession::SendBindPoint(Creature* npc)
     // send spell for homebinding (3286)
     npc->CastSpell(_player, bindspell, true);
 
-    WorldPacket data(SMSG_TRAINER_BUY_SUCCEEDED, (8 + 4));
+    // TODO(3.4.3 brick-B): SMSG_TRAINER_BUY_SUCCEEDED removed in 3.4.3 (only SMSG_TRAINER_BUY_FAILED survives)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), (8 + 4));
     data << npc->GetGUID();
     data << uint32(bindspell);
     SendPacket(&data);
@@ -357,7 +358,8 @@ void WorldSession::SendStablePet(ObjectGuid guid)
 {
     LOG_DEBUG("network", "WORLD: Recv MSG_LIST_STABLED_PETS Send.");
 
-    WorldPacket data(MSG_LIST_STABLED_PETS, 200);           // guess size
+    // TODO(3.4.3 brick-B): MSG_LIST_STABLED_PETS removed in 3.4.3 (stable list redesigned; pets sent via SMSG_PET_STABLE_RESULT)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 200);           // guess size
     data << guid;
     std::size_t wpos = data.wpos();
     data << uint8(0);                                       // place holder for slot show number
@@ -418,7 +420,7 @@ void WorldSession::SendStablePet(ObjectGuid guid)
 
 void WorldSession::SendStableResult(uint8 res)
 {
-    WorldPacket data(SMSG_STABLE_RESULT, 1);
+    WorldPacket data(SMSG_PET_STABLE_RESULT, 1);
     data << uint8(res);
     SendPacket(&data);
 }

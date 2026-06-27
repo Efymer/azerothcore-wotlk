@@ -76,7 +76,7 @@ void WorldSession::HandleChannelList(WorldPacket& recvPacket)
     recvPacket >> channelName;
 
     LOG_DEBUG("chat.system", "{} {} Channel: {}",
-                   recvPacket.GetOpcode() == CMSG_CHANNEL_DISPLAY_LIST ? "CMSG_CHANNEL_DISPLAY_LIST" : "CMSG_CHANNEL_LIST",
+                   recvPacket.GetOpcode() == CMSG_CHAT_CHANNEL_DISPLAY_LIST ? "CMSG_CHAT_CHANNEL_DISPLAY_LIST" : "CMSG_CHANNEL_LIST",
                    GetPlayerInfo(), channelName);
     if (ChannelMgr* cMgr = ChannelMgr::forTeam(GetPlayer()->GetTeamId()))
         if (Channel* channel = cMgr->GetChannel(channelName, GetPlayer()))
@@ -290,7 +290,8 @@ void WorldSession::HandleGetChannelMemberCount(WorldPacket& recvPacket)
             LOG_DEBUG("chat.system", "SMSG_CHANNEL_MEMBER_COUNT {} Channel: {} Count: {}",
                            GetPlayerInfo(), channelName, channel->GetNumPlayers());
 
-            WorldPacket data(SMSG_CHANNEL_MEMBER_COUNT, channel->GetName().size() + 1 + 4);
+            // TODO(3.4.3 brick-B): SMSG_CHANNEL_MEMBER_COUNT removed in 3.4.3 (no channel member-count opcode)
+            WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), channel->GetName().size() + 1 + 4);
             data << channel->GetName();
             data << uint8(channel->GetFlags());
             data << uint32(channel->GetNumPlayers());

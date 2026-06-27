@@ -295,7 +295,7 @@ void WorldSession::SendPetitionQueryOpcode(ObjectGuid petitionguid)
     }
 
     uint8 type = petition->petitionType;
-    WorldPacket data(SMSG_PETITION_QUERY_RESPONSE, (4 + 8 + petition->petitionName.size() + 1 + 1 + 4 * 12 + 2 + 10));
+    WorldPacket data(SMSG_QUERY_PETITION_RESPONSE, (4 + 8 + petition->petitionName.size() + 1 + 1 + 4 * 12 + 2 + 10));
     data << uint32(petition->petitionId);                   // guild/team id (was item low guid)
     data << petition->ownerGuid;                            // charter owner guid
     data << petition->petitionName;                         // name (guild/arena team)
@@ -334,7 +334,7 @@ void WorldSession::SendPetitionQueryOpcode(ObjectGuid petitionguid)
 
 void WorldSession::HandlePetitionRenameOpcode(WorldPacket& recvData)
 {
-    LOG_DEBUG("network", "Received opcode MSG_PETITION_RENAME");   // ok
+    LOG_DEBUG("network", "Received opcode SMSG_PETITION_RENAME_GUILD_RESPONSE");   // ok
 
     ObjectGuid petitionGuid;
     std::string newName;
@@ -391,7 +391,7 @@ void WorldSession::HandlePetitionRenameOpcode(WorldPacket& recvData)
     const_cast<Petition*>(petition)->petitionName = newName;
 
     LOG_DEBUG("network", "Petition ({}) renamed to {}", petitionGuid.ToString(), newName);
-    WorldPacket data(MSG_PETITION_RENAME, (8 + newName.size() + 1));
+    WorldPacket data(SMSG_PETITION_RENAME_GUILD_RESPONSE, (8 + newName.size() + 1));
     data << petitionGuid;
     data << newName;
     SendPacket(&data);
@@ -557,7 +557,8 @@ void WorldSession::HandlePetitionDeclineOpcode(WorldPacket& recvData)
 
     if (Player* owner = ObjectAccessor::FindConnectedPlayer(ownerguid))                 // petition owner online
     {
-        WorldPacket data(MSG_PETITION_DECLINE, 8);
+        // TODO(3.4.3 brick-B): MSG_PETITION_DECLINE removed in 3.4.3 (no petition-decline notification opcode)
+        WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 8);
         data << _player->GetGUID();
         owner->SendDirectMessage(&data);
     }
@@ -699,7 +700,7 @@ void WorldSession::HandleTurnInPetitionOpcode(WorldPacket& recvData)
         // Check if player is already in a guild
         if (_player->GetGuildId())
         {
-            data.Initialize(SMSG_TURN_IN_PETITION_RESULTS, 4);
+            data.Initialize(SMSG_TURN_IN_PETITION_RESULT, 4);
             data << (uint32)PETITION_TURN_ALREADY_IN_GUILD;
             SendPacket(&data);
             return;
@@ -750,7 +751,7 @@ void WorldSession::HandleTurnInPetitionOpcode(WorldPacket& recvData)
     // Notify player if signatures are missing
     if (signs < requiredSignatures)
     {
-        data.Initialize(SMSG_TURN_IN_PETITION_RESULTS, 4);
+        data.Initialize(SMSG_TURN_IN_PETITION_RESULT, 4);
         data << (uint32)PETITION_TURN_NEED_MORE_SIGNATURES;
         SendPacket(&data);
         return;
@@ -828,7 +829,7 @@ void WorldSession::HandleTurnInPetitionOpcode(WorldPacket& recvData)
     // created
     LOG_DEBUG("network", "TURN IN PETITION {}", petitionGuid.ToString());
 
-    data.Initialize(SMSG_TURN_IN_PETITION_RESULTS, 4);
+    data.Initialize(SMSG_TURN_IN_PETITION_RESULT, 4);
     data << (uint32)PETITION_TURN_OK;
     SendPacket(&data);
 }
@@ -852,7 +853,7 @@ void WorldSession::SendPetitionShowList(ObjectGuid guid)
         return;
     }
 
-    WorldPacket data(SMSG_PETITION_SHOWLIST, 8 + 1 + 4 * 6);
+    WorldPacket data(SMSG_PETITION_SHOW_LIST, 8 + 1 + 4 * 6);
     data << guid;                                           // npc guid
 
     // For guild default
@@ -919,5 +920,5 @@ void WorldSession::SendPetitionShowList(ObjectGuid guid)
     }
 
     SendPacket(&data);
-    LOG_DEBUG("network", "Sent SMSG_PETITION_SHOWLIST");
+    LOG_DEBUG("network", "Sent SMSG_PETITION_SHOW_LIST");
 }

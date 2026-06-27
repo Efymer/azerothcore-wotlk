@@ -481,7 +481,7 @@ void ArenaTeam::Roster(WorldSession* session)
 
 void ArenaTeam::Query(WorldSession* session)
 {
-    WorldPacket data(SMSG_ARENA_TEAM_QUERY_RESPONSE, 4 * 7 + GetName().size() + 1);
+    WorldPacket data(SMSG_QUERY_ARENA_TEAM_RESPONSE, 4 * 7 + GetName().size() + 1);
     data << uint32(GetId());                                // team id
     data << GetName();                                      // team name
     data << uint32(GetType());                              // arena team type (2=2x2, 3=3x3 or 5=5x5)
@@ -491,7 +491,7 @@ void ArenaTeam::Query(WorldSession* session)
     data << uint32(BorderStyle);                            // border style
     data << uint32(BorderColor);                            // border color
     session->SendPacket(&data);
-    LOG_DEBUG("network", "WORLD: Sent SMSG_ARENA_TEAM_QUERY_RESPONSE");
+    LOG_DEBUG("network", "WORLD: Sent SMSG_QUERY_ARENA_TEAM_RESPONSE");
 }
 
 void ArenaTeam::SendStats(WorldSession* session)
@@ -522,7 +522,7 @@ void ArenaTeam::Inspect(WorldSession* session, ObjectGuid guid)
     if (!member || GetSlot() >= MAX_ARENA_SLOT)
         return;
 
-    WorldPacket data(MSG_INSPECT_ARENA_TEAMS, 8 + 1 + 4 * 6);
+    WorldPacket data(SMSG_INSPECT_RESULT, 8 + 1 + 4 * 6);
     data << guid;                                           // player guid
     data << uint8(GetSlot());                               // slot (0...2)
     data << uint32(GetId());                                // arena team id
@@ -606,7 +606,8 @@ void ArenaTeam::BroadcastEvent(ArenaTeamEvents event, ObjectGuid guid, uint8 str
 
 void ArenaTeam::MassInviteToEvent(WorldSession* session)
 {
-    WorldPacket data(SMSG_CALENDAR_ARENA_TEAM, (Members.size() - 1) * (4 + 8 + 1));
+    // TODO(3.4.3 brick-B): SMSG_CALENDAR_ARENA_TEAM removed in 3.4.3 (arena-team calendar events gone)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), (Members.size() - 1) * (4 + 8 + 1));
     data << uint32(Members.size() - 1);
 
     for (MemberList::const_iterator itr = Members.begin(); itr != Members.end(); ++itr)

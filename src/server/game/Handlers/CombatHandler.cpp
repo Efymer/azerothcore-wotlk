@@ -83,7 +83,7 @@ void WorldSession::HandleSetSheathedOpcode(WorldPackets::Combat::SetSheathed& pa
 
 void WorldSession::SendAttackStop(Unit const* enemy)
 {
-    WorldPacket data(SMSG_ATTACKSTOP, (8 + 8 + 4)); // we guess size
+    WorldPacket data(SMSG_ATTACK_STOP, (8 + 8 + 4)); // we guess size
     data << GetPlayer()->GetPackGUID();
 
     if (enemy)

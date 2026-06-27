@@ -270,14 +270,15 @@ void Object::DestroyForPlayer(Player* target, bool onDeath) const
         {
             if (bg->isArena())
             {
-                WorldPacket data(SMSG_ARENA_UNIT_DESTROYED, 8);
+                WorldPacket data(SMSG_DESTROY_ARENA_UNIT, 8);
                 data << GetGUID();
                 target->SendDirectMessage(&data);
             }
         }
     }
 
-    WorldPacket data(SMSG_DESTROY_OBJECT, 8 + 1);
+    // TODO(3.4.3 brick-B): SMSG_DESTROY_OBJECT removed in 3.4.3 (object destroy folded into SMSG_UPDATE_OBJECT destroy list)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 8 + 1);
     data << GetGUID();
     //! If the following bool is true, the client will call "void CGUnit_C::OnDeath()" for this object.
     //! OnDeath() does for eg trigger death animation and interrupts certain spells/missiles/auras/sounds...
@@ -2131,7 +2132,7 @@ void WorldObject::SendMessageToSet(WorldPacket const* data, Player const* skippe
 
 void WorldObject::SendObjectDeSpawnAnim(ObjectGuid guid)
 {
-    WorldPacket data(SMSG_GAMEOBJECT_DESPAWN_ANIM, 8);
+    WorldPacket data(SMSG_GAME_OBJECT_DESPAWN, 8);
     data << guid;
     SendMessageToSet(&data, true);
 }

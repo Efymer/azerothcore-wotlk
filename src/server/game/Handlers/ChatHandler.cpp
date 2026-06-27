@@ -802,7 +802,7 @@ void WorldSession::HandleChannelDeclineInvite(WorldPacket& recvPacket)
 
 void WorldSession::SendPlayerNotFoundNotice(std::string const& name)
 {
-    WorldPacket data(SMSG_CHAT_PLAYER_NOT_FOUND, name.size() + 1);
+    WorldPacket data(SMSG_CHAT_PLAYER_NOTFOUND, name.size() + 1);
     data << name;
     SendPacket(&data);
 }
@@ -816,7 +816,7 @@ void WorldSession::SendPlayerAmbiguousNotice(std::string const& name)
 
 void WorldSession::SendWrongFactionNotice()
 {
-    WorldPacket data(SMSG_CHAT_WRONG_FACTION, 0);
+    WorldPacket data(SMSG_CHAT_RESTRICTED, 0);
     SendPacket(&data);
 }
 

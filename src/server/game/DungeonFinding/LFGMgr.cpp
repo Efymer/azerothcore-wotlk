@@ -1067,7 +1067,7 @@ namespace lfg
             return;
         }
         // send empty packet if cache not found
-        WorldPacket data(SMSG_UPDATE_LFG_LIST, 1000);
+        WorldPacket data(SMSG_LFG_QUEUE_STATUS, 1000);
         data << (uint32)LFG_TYPE_RAID;
         data << (uint32)dungeonId;
         data << (uint8)0;
@@ -1306,9 +1306,9 @@ namespace lfg
                     }
                 }
 
-                WorldPacket differencePacket(SMSG_UPDATE_LFG_LIST, 1000);
+                WorldPacket differencePacket(SMSG_LFG_QUEUE_STATUS, 1000);
                 RBPacketBuildDifference(differencePacket, dungeonId, deletedCounter, buffer_deleted, groupCounter, buffer_groups, playerCounter, buffer_players);
-                WorldPacket fullPacket(SMSG_UPDATE_LFG_LIST, 1000);
+                WorldPacket fullPacket(SMSG_LFG_QUEUE_STATUS, 1000);
                 RBPacketBuildFull(fullPacket, dungeonId, copy);
 
                 RBCacheStore[team][dungeonId] = fullPacket;

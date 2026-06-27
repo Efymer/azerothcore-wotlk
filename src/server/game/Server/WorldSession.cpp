@@ -1298,7 +1298,8 @@ void WorldSession::SendAddonsInfo()
         0x0D, 0x36, 0xEA, 0x01, 0xE0, 0xAA, 0x91, 0x20, 0x54, 0xF0, 0x72, 0xD8, 0x1E, 0xC7, 0x89, 0xD2
     };
 
-    WorldPacket data(SMSG_ADDON_INFO, 4);
+    // TODO(3.4.3 brick-B): SMSG_ADDON_INFO removed in 3.4.3 (addon info merged into SMSG_AUTH_RESPONSE)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 4);
 
     for (AddonsList::iterator itr = m_addonsList.begin(); itr != m_addonsList.end(); ++itr)
     {
@@ -1474,7 +1475,7 @@ void WorldSession::ResetTimeSync()
 
 void WorldSession::SendTimeSync()
 {
-    WorldPacket data(SMSG_TIME_SYNC_REQ, 4);
+    WorldPacket data(SMSG_TIME_SYNC_REQUEST, 4);
     data << uint32(_timeSyncNextCounter);
     SendPacket(&data);
 

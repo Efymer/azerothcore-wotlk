@@ -5914,7 +5914,8 @@ void AuraEffect::HandleAuraSetVehicle(AuraApplication const* aurApp, uint8 mode,
     else if (target->GetVehicleKit())
         target->RemoveVehicleKit();
 
-    WorldPacket data(SMSG_PLAYER_VEHICLE_DATA, target->GetPackGUID().size() + 4);
+    // TODO(3.4.3 brick-B): SMSG_PLAYER_VEHICLE_DATA removed in 3.4.3 (vehicle data carried in object update fields)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), target->GetPackGUID().size() + 4);
     data << target->GetPackGUID();
     data << uint32(apply ? vehicleId : 0);
     target->SendMessageToSet(&data, true);
@@ -6870,7 +6871,7 @@ void AuraEffect::HandlePeriodicPowerBurnAuraTick(Unit* target, Unit* caster) con
     float dmgMultiplier = GetSpellInfo()->Effects[GetEffIndex()].CalcValueMultiplier(caster);
 
     SpellInfo const* spellProto = GetSpellInfo();
-    // maybe has to be sent different to client, but not by SMSG_PERIODICAURALOG
+    // maybe has to be sent different to client, but not by SMSG_SPELL_PERIODIC_AURA_LOG
     SpellNonMeleeDamage damageInfo(caster, target, spellProto, spellProto->SchoolMask);
     // no SpellDamageBonus for burn mana
     caster->CalculateSpellDamageTaken(&damageInfo, int32(gain * dmgMultiplier), spellProto);

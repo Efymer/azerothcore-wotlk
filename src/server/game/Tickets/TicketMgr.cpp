@@ -134,7 +134,8 @@ void GmTicket::WritePacket(WorldPacket& data) const
 
 void GmTicket::SendResponse(WorldSession* session) const
 {
-    WorldPacket data(SMSG_GMRESPONSE_RECEIVED);
+    // TODO(3.4.3 brick-B): SMSG_GMRESPONSE_RECEIVED removed in 3.4.3 (GM ticket system redesigned)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE));
     data << uint32(1);          // responseID
     data << uint32(_id);        // ticketID
     data << _message.c_str();
@@ -435,7 +436,8 @@ void TicketMgr::ShowEscalatedList(ChatHandler& handler) const
 
 void TicketMgr::SendTicket(WorldSession* session, GmTicket* ticket) const
 {
-    WorldPacket data(SMSG_GMTICKET_GETTICKET, (ticket ? (4 + 4 + 1 + 4 + 4 + 4 + 1 + 1) : 4));
+    // TODO(3.4.3 brick-B): SMSG_GMTICKET_GETTICKET removed in 3.4.3 (GM ticket system redesigned)
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), (ticket ? (4 + 4 + 1 + 4 + 4 + 4 + 1 + 1) : 4));
 
     if (ticket)
         ticket->WritePacket(data);

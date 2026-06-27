@@ -204,7 +204,8 @@ Map::EnterState MapMgr::PlayerCannotEnter(uint32 mapid, Player* player, bool log
 
             if (!corpseMap)
             {
-                WorldPacket data(SMSG_CORPSE_NOT_IN_INSTANCE, 0);
+                // TODO(3.4.3 brick-B): SMSG_CORPSE_NOT_IN_INSTANCE removed in 3.4.3 (no corpse-not-in-instance opcode)
+                WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 0);
                 player->SendDirectMessage(&data);
                 LOG_DEBUG("maps", "MAP: Player '{}' does not have a corpse in instance '{}' and cannot enter.", player->GetName(), mapName);
                 return Map::CANNOT_ENTER_CORPSE_IN_DIFFERENT_INSTANCE;

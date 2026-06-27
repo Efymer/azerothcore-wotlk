@@ -618,7 +618,7 @@ bool Group::RemoveMember(ObjectGuid guid, const RemoveMethod& method /*= GROUP_R
             }
 
             // Do we really need to send this opcode?
-            data.Initialize(SMSG_GROUP_LIST, 1 + 1 + 1 + 1 + 8 + 4 + 4 + 8);
+            data.Initialize(SMSG_PARTY_UPDATE, 1 + 1 + 1 + 1 + 8 + 4 + 4 + 8);
             data << uint8(0x10) << uint8(0) << uint8(0) << uint8(0);
             data << m_guid << uint32(m_counter) << uint32(0) << uint64(0);
             player->SendDirectMessage(&data);
@@ -749,7 +749,7 @@ void Group::ChangeLeader(ObjectGuid newLeaderGuid)
     m_leaderName = newLeader->GetName();
     ToggleGroupMemberFlag(slot, MEMBER_FLAG_ASSISTANT, false);
 
-    WorldPacket data(SMSG_GROUP_SET_LEADER, m_leaderName.size() + 1);
+    WorldPacket data(SMSG_GROUP_NEW_LEADER, m_leaderName.size() + 1);
     data << slot->name;
     BroadcastPacket(&data, true);
 
@@ -815,7 +815,7 @@ void Group::Disband(bool hideDestroy /* = false */)
         }
         else
         {
-            data.Initialize(SMSG_GROUP_LIST, 1 + 1 + 1 + 1 + 8 + 4 + 4 + 8);
+            data.Initialize(SMSG_PARTY_UPDATE, 1 + 1 + 1 + 1 + 8 + 4 + 4 + 8);
             data << uint8(0x10) << uint8(0) << uint8(0) << uint8(0);
             data << m_guid << uint32(m_counter) << uint32(0) << uint64(0);
             player->SendDirectMessage(&data);
@@ -858,7 +858,7 @@ void Group::Disband(bool hideDestroy /* = false */)
 
 void Group::SendLootStartRoll(uint32 CountDown, uint32 mapid, const Roll& r)
 {
-    WorldPacket data(SMSG_LOOT_START_ROLL, (8 + 4 + 4 + 4 + 4 + 4 + 4 + 1));
+    WorldPacket data(SMSG_LOOT_ROLL, (8 + 4 + 4 + 4 + 4 + 4 + 4 + 1));
     data << r.itemGUID;                                     // guid of rolled item
     data << uint32(mapid);                                  // 3.3.3 mapid
     data << uint32(r.itemSlot);                             // itemslot
@@ -885,7 +885,7 @@ void Group::SendLootStartRollToPlayer(uint32 countDown, uint32 mapId, Player* p,
     if (!p)
         return;
 
-    WorldPacket data(SMSG_LOOT_START_ROLL, (8 + 4 + 4 + 4 + 4 + 4 + 4 + 1));
+    WorldPacket data(SMSG_LOOT_ROLL, (8 + 4 + 4 + 4 + 4 + 4 + 4 + 1));
     data << r.itemGUID;                                     // guid of rolled item
     data << uint32(mapId);                                  // 3.3.3 mapid
     data << uint32(r.itemSlot);                             // itemslot
@@ -1316,7 +1316,7 @@ void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
 
 void Group::MasterLoot(Loot* loot, WorldObject* pLootedObject)
 {
-    LOG_DEBUG("network", "Group::MasterLoot (SMSG_LOOT_MASTER_LIST, 330)");
+    LOG_DEBUG("network", "Group::MasterLoot (SMSG_MASTER_LOOT_CANDIDATE_LIST, 330)");
 
     for (std::vector<LootItem>::iterator i = loot->items.begin(); i != loot->items.end(); ++i)
     {
@@ -1349,7 +1349,7 @@ void Group::MasterLoot(Loot* loot, WorldObject* pLootedObject)
         }
     }
 
-    WorldPacket data(SMSG_LOOT_MASTER_LIST, 1 + looters.size() * (1 + 8));
+    WorldPacket data(SMSG_MASTER_LOOT_CANDIDATE_LIST, 1 + looters.size() * (1 + 8));
     data << uint8(looters.size());
 
     for (Player* looter : looters)
@@ -1699,7 +1699,7 @@ void Group::SetTargetIcon(uint8 id, ObjectGuid whoGuid, ObjectGuid targetGuid)
 
     m_targetIcons[id] = targetGuid;
 
-    WorldPacket data(MSG_RAID_TARGET_UPDATE, (1 + 8 + 1 + 8));
+    WorldPacket data(SMSG_SEND_RAID_TARGET_UPDATE_SINGLE, (1 + 8 + 1 + 8));
     data << uint8(0);                                       // set targets
     data << whoGuid;
     data << uint8(id);
@@ -1712,7 +1712,7 @@ void Group::SendTargetIconList(WorldSession* session)
     if (!session)
         return;
 
-    WorldPacket data(MSG_RAID_TARGET_UPDATE, (1 + TARGETICONCOUNT * 9));
+    WorldPacket data(SMSG_SEND_RAID_TARGET_UPDATE_ALL, (1 + TARGETICONCOUNT * 9));
     data << uint8(1);                                       // list targets
 
     for (uint8 i = 0; i < TARGETICONCOUNT; ++i)
@@ -1751,7 +1751,7 @@ void Group::SendUpdateToPlayer(ObjectGuid playerGUID, MemberSlot* slot)
         slot = &(*witr);
     }
 
-    WorldPacket data(SMSG_GROUP_LIST, (1 + 1 + 1 + 1 + 1 + 4 + 8 + 4 + 4 + (GetMembersCount() - 1) * (13 + 8 + 1 + 1 + 1 + 1) + 8 + 1 + 8 + 1 + 1 + 1 + 1));
+    WorldPacket data(SMSG_PARTY_UPDATE, (1 + 1 + 1 + 1 + 1 + 4 + 8 + 4 + 4 + (GetMembersCount() - 1) * (13 + 8 + 1 + 1 + 1 + 1) + 8 + 1 + 8 + 1 + 1 + 1 + 1));
     data << uint8(m_groupType);                         // group type (flags in 3.3)
     data << uint8(slot->group);
     data << uint8(slot->flags);
@@ -1850,7 +1850,7 @@ void Group::OfflineReadyCheck()
         Player* player = ObjectAccessor::FindConnectedPlayer(citr->guid);
         if (!player)
         {
-            WorldPacket data(MSG_RAID_READY_CHECK_CONFIRM, 9);
+            WorldPacket data(SMSG_READY_CHECK_RESPONSE, 9);
             data << citr->guid;
             data << uint8(0);
             BroadcastReadyCheck(&data);

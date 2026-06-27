@@ -59,7 +59,8 @@ bool AddonHandler::BuildAddonPacket(WorldPacket* Source, WorldPacket* Target)
 
     if (uncompress(const_cast<uint8*>(AddOnPacked.contents()), &AddonRealSize, const_cast<uint8*>((*Source).contents() + CurrentPosition), (*Source).size() - CurrentPosition) == Z_OK)
     {
-        Target->Initialize(SMSG_ADDON_INFO);
+        // TODO(3.4.3 brick-B): SMSG_ADDON_INFO removed in 3.4.3 (addon info merged into SMSG_AUTH_RESPONSE)
+        Target->Initialize(static_cast<OpcodeServer>(UNKNOWN_OPCODE));
 
         uint32 addonsCount;
         AddOnPacked >> addonsCount;                         // addons count?
