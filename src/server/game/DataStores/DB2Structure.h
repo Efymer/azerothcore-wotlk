@@ -310,6 +310,18 @@ struct PlayerConditionEntry
     std::array<int32, 2> MovementFlags;
 };
 
+// Migrated from DBC (Task 1c.3): the DBC PowerDisplayEntry {Id, PowerType} maps to the
+// 54261 DB2 layout; the legacy `PowerType` field is `ActualType` here.
+struct PowerDisplayEntry
+{
+    uint32 ID;
+    char const* GlobalStringBaseTag;
+    uint8 ActualType;
+    uint8 Red;
+    uint8 Green;
+    uint8 Blue;
+};
+
 #pragma pack(pop)
 
 #endif // AC_DB2STRUCTURE_H

@@ -18,6 +18,7 @@
 #include "Vehicle.h"
 #include "AreaDefines.h"
 #include "BattlefieldWG.h"
+#include "DB2Stores.h"
 #include "Log.h"
 #include "MoveSplineInit.h"
 #include "ObjectMgr.h"
@@ -76,7 +77,7 @@ void Vehicle::Install()
     if (_me->IsCreature())
     {
         if (PowerDisplayEntry const* powerDisplay = sPowerDisplayStore.LookupEntry(_vehicleInfo->m_powerDisplayId))
-            _me->setPowerType(Powers(powerDisplay->PowerType));
+            _me->setPowerType(Powers(powerDisplay->ActualType));
         else if (_me->IsClass(CLASS_ROGUE, CLASS_CONTEXT_ABILITY))
             _me->setPowerType(POWER_ENERGY);
     }

@@ -1417,15 +1417,7 @@ struct OverrideSpellDataEntry
     //uint32    flags;                                      // 11
 };
 
-struct PowerDisplayEntry
-{
-    uint32 Id;                                              // 0
-    uint32 PowerType;                                       // 1
-    //char const*  Name;                                    // 2
-    //uint32 R;                                             // 3
-    //uint32 G;                                             // 4
-    //uint32 B;                                             // 5
-};
+// PowerDisplayEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
 struct PvPDifficultyEntry
 {

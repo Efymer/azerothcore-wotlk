@@ -89,10 +89,18 @@ code + git history:
     `0x2CFFEA40` at offset 24. **Behavioral gate PASSED:** worldserver boot logs `>> DB2 LiquidMaterial.db2 loaded
     3 records` (index-table size; 2 real rows at IDs 1-2), no layout-hash error. 1c.1 store layer + 1c.2 boot
     wiring proven end-to-end.
-  - **1c.3–1c.5** — not started. ⚠️ Note for 1c.2: AC's `DB2Meta` is a 7-member *aggregate*, but TC's
-    `DB2Metadata.h` initializers rely on TC's `DB2Meta(fileDataId, indexField, fieldCount, fileFieldCount,
-    layoutHash, fields, parentIndexField)` **constructor** — AC's `DB2Meta` must be given that same constructor
-    before TC metadata ports verbatim.
+  - **1c.3 (in progress)** — DBC→DB2 repoint **pattern proven end-to-end** on `PowerDisplay` (clean, model-stable,
+    single non-overlapping consumer `Vehicle.cpp`): added the DB2 store, removed the DBC `PowerDisplayEntry` +
+    `sPowerDisplayStore` (DBCStructure.h / DBCStores.{h,cpp} / DBCfmt.h), repointed `Vehicle.cpp` (`->PowerType` →
+    `->ActualType`). Boots loading PowerDisplay.db2 (143 records, 13 DB2 stores), DBC version gone. **Key 1c.3
+    scoping findings:** (1) the high-value world-entry stores are **entangled** — `ChrRaces`/`ChrClasses` consumers
+    include `CharacterHandler.cpp` (the *other agent's* active file); (2) several stores are **model-changed**, not
+    mechanical repoints: `CurrencyTypes` (3.3.5 indexes by ItemId + player bitmask `BitIndex` → 3.4.3 indexes by
+    currency ID, no item link), `ChrRaces` (race display models moved to a separate `ChrRaceXChrModel` store). So
+    the remaining 1c.3 splits into: *clean mechanical* peripheral stores (do solo) vs *model-rework + coordinate*
+    world-entry stores (CurrencyTypes-style reworks + the other agent's char path).
+  - **1c.4–1c.5** — not started. ⚠️ Note: AC's `DB2Meta` stays a designated-init aggregate (do NOT add TC's
+    constructor — it would break the extractor's + runtime's designated-init metadata).
 - **Phase 1d** — not started.
 
 > The separate `2026-06-27-...-phase2-handover.md` plan (nonce verification + char enum/create/world-entry

@@ -88,7 +88,6 @@ char constexpr MovieEntryfmt[] = "nxx";
 char constexpr NamesReservedfmt[] = "xsx";
 char constexpr NamesProfanityfmt[] = "xsx";
 char constexpr OverrideSpellDatafmt[] = "niiiiiiiiiix";
-char constexpr PowerDisplayfmt[] = "nixxxx";
 char constexpr QuestSortEntryfmt[] = "nxxxxxxxxxxxxxxxxx";
 char constexpr QuestXPfmt[] = "niiiiiiiiii";
 char constexpr QuestFactionRewardfmt[] = "niiiiiiiiii";

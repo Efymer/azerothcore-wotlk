@@ -145,7 +145,7 @@ extern DBCStorage <MovieEntry>                   sMovieStore;
 extern DBCStorage <NamesReservedEntry>           sNamesReservedStore;
 extern DBCStorage <NamesProfanityEntry>          sNamesProfanityStore;
 extern DBCStorage <OverrideSpellDataEntry>       sOverrideSpellDataStore;
-extern DBCStorage <PowerDisplayEntry>            sPowerDisplayStore;
+// sPowerDisplayStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 extern DBCStorage <QuestSortEntry>               sQuestSortStore;
 extern DBCStorage <QuestXPEntry>                 sQuestXPStore;
 extern DBCStorage <QuestFactionRewEntry>         sQuestFactionRewardStore;

@@ -823,4 +823,34 @@ struct PlayerConditionLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 147, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct PowerDisplayLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[5] =
+    {
+        { FT_STRING_NOT_LOCALIZED, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1332557, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 5, .FileFieldCount = 5, .LayoutHash = 0xE9B4E78C, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[6] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING_NOT_LOCALIZED, "GlobalStringBaseTag" },
+        { false, FT_BYTE, "ActualType" },
+        { false, FT_BYTE, "Red" },
+        { false, FT_BYTE, "Green" },
+        { false, FT_BYTE, "Blue" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 6, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 #endif // AC_DB2LOADINFO_H
