@@ -33,6 +33,7 @@ DB2Storage<ItemEffectEntry>             sItemEffectStore("ItemEffect.db2", &Item
 DB2Storage<ItemAppearanceEntry>         sItemAppearanceStore("ItemAppearance.db2", &ItemAppearanceLoadInfo::Instance);
 DB2Storage<ItemModifiedAppearanceEntry> sItemModifiedAppearanceStore("ItemModifiedAppearance.db2", &ItemModifiedAppearanceLoadInfo::Instance);
 DB2Storage<PowerTypeEntry>              sPowerTypeStore("PowerType.db2", &PowerTypeLoadInfo::Instance);
+DB2Storage<ItemSparseEntry>             sItemSparseStore("ItemSparse.db2", &ItemSparseLoadInfo::Instance);
 
 // The DB2 loader produces packed records (stride = DB2Meta::GetRecordSize()), so a store's C++ struct must
 // have the identical packed size. Mirrors TrinityCore's GetCppRecordSize() structure check.
@@ -80,6 +81,7 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     LOAD_DB2(sItemAppearanceStore);
     LOAD_DB2(sItemModifiedAppearanceStore);
     LOAD_DB2(sPowerTypeStore);
+    LOAD_DB2(sItemSparseStore);
 
 #undef LOAD_DB2
 

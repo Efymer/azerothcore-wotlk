@@ -147,6 +147,84 @@ struct PowerTypeEntry
     int16 Flags;
 };
 
+struct ItemSparseEntry
+{
+    uint32 ID;
+    int64 AllowableRace;
+    LocalizedString Description;
+    LocalizedString Display3;
+    LocalizedString Display2;
+    LocalizedString Display1;
+    LocalizedString Display;
+    float DmgVariance;
+    uint32 DurationInInventory;
+    float QualityModifier;
+    uint32 BagFamily;
+    int32 StartQuestID;
+    float ItemRange;
+    std::array<float, 10> StatPercentageOfSocket;
+    std::array<int32, 10> StatPercentEditor;
+    int32 Stackable;
+    int32 MaxCount;
+    int32 MinReputation;
+    uint32 RequiredAbility;
+    uint32 SellPrice;
+    uint32 BuyPrice;
+    uint32 VendorStackCount;
+    float PriceVariance;
+    float PriceRandomValue;
+    std::array<int32, 4> Flags;
+    int32 FactionRelated;
+    int32 ModifiedCraftingReagentItemID;
+    int32 ContentTuningID;
+    int32 PlayerLevelToItemLevelCurveID;
+    uint32 MaxDurability;
+    uint16 ItemNameDescriptionID;
+    uint16 RequiredTransmogHoliday;
+    uint16 RequiredHoliday;
+    uint16 LimitCategory;
+    uint16 GemProperties;
+    uint16 SocketMatchEnchantmentId;
+    uint16 TotemCategoryID;
+    uint16 InstanceBound;
+    std::array<uint16, 2> ZoneBound;
+    uint16 ItemSet;
+    uint16 LockID;
+    uint16 PageID;
+    uint16 ItemDelay;
+    uint16 MinFactionID;
+    uint16 RequiredSkillRank;
+    uint16 RequiredSkill;
+    uint16 ItemLevel;
+    int16 AllowableClass;
+    uint16 ItemRandomSuffixGroupID;
+    uint16 RandomSelect;
+    std::array<uint16, 5> MinDamage;
+    std::array<uint16, 5> MaxDamage;
+    std::array<int16, 7> Resistances;
+    uint16 ScalingStatDistributionID;
+    std::array<int16, 10> StatModifierBonusAmount;
+    uint8 ExpansionID;
+    uint8 ArtifactID;
+    uint8 SpellWeight;
+    uint8 SpellWeightCategory;
+    std::array<uint8, 3> SocketType;
+    uint8 SheatheType;
+    uint8 Material;
+    uint8 PageMaterialID;
+    uint8 LanguageID;
+    uint8 Bonding;
+    uint8 DamageDamageType;
+    std::array<int8, 10> StatModifierBonusStat;
+    uint8 ContainerSlots;
+    uint8 RequiredPVPMedal;
+    uint8 RequiredPVPRank;
+    int8 InventoryType;
+    int8 OverallQualityID;
+    uint8 AmmunitionType;
+    int8 RequiredLevel;
+};
+
 #pragma pack(pop)
 
 #endif // AC_DB2STRUCTURE_H

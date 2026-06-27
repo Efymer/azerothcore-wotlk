@@ -62,9 +62,11 @@ code + git history:
     `{DB2Structure.h, DB2LoadInfo.h, DB2Stores.{h,cpp}}`, `LoadDB2Stores()` called after `LoadDBCStores` in
     `World.cpp`. **6 DB2-only stores load live** (boot log, no errors): LiquidMaterial(3), SpellName(446921),
     CharacterLoadout(1828), CharacterLoadoutItem(25516), ChrCustomizationOption(1932), ChrCustomizationReq(599),
-    ItemEffect(181364), ItemAppearance(83055), ItemModifiedAppearance(194434), PowerType(139) — **10 stores live**.
-    Struct-name collisions with DBCStructure.h (SkillRaceClassInfo, Light, TaxiPathNode) and the giant ItemSparse
-    (73 fields) + PlayerCondition are deferred (the former to 1c.3, the latter to a focused follow-up pass).
+    ItemEffect(181364), ItemAppearance(83055), ItemModifiedAppearance(194434), PowerType(139), ItemSparse(211852,
+    73 fields/130 entries) — **11 stores live**. The boot-time `sizeof(T)==GetRecordSize()` + LayoutHash + sign
+    checks make even large transcriptions self-validating. Remaining subset: struct-name collisions with
+    DBCStructure.h (SkillRaceClassInfo, Light, TaxiPathNode) → Task 1c.3; PlayerCondition (huge) + the DBC-colliding
+    stores (Map, ChrRaces, AreaTable, Faction, SkillLine, CurrencyTypes, CharTitles, ...) → 1c.3 repoint.
     Method: xian55 == 54261 for these (LayoutHash in each extracted .db2 @offset 24 matches xian55 metadata
     exactly), so structs/metadata ported verbatim from xian55, hash-validated. Key correctness facts captured:
     DB2 structs MUST be `#pragma pack(push,1)` (loader produces packed records, stride = `GetRecordSize()`);
