@@ -47,10 +47,10 @@ void WorldGlobals::LoadAntiDosOpcodePolicies()
     {
         Field* fields = result->Fetch();
 
-        // brick B: opcodes are uint32 (OpcodeClient) for the 3.4.3 wire protocol; index by the sparse CMSG array slot
+        // brick B: 3.4.3.54261 uses a FLAT uint16 opcode namespace; index the policy array directly by value
         uint32 opcode = fields[0].Get<uint32>();
-        std::ptrdiff_t index = GetOpcodeArrayIndex(static_cast<OpcodeClient>(opcode));
-        if (index < 0 || index >= std::ptrdiff_t(NUM_CMSG_OPCODES))
+        uint32 index = opcode;
+        if (index >= NUM_OPCODE_HANDLERS || opcode == UNKNOWN_OPCODE)
         {
             LOG_ERROR("server.loading", "Unkown opcode {} in table `antidos_opcode_policies`, skipping.", opcode);
             continue;
@@ -71,9 +71,8 @@ void WorldGlobals::LoadAntiDosOpcodePolicies()
 
 AntiDosOpcodePolicy const* WorldGlobals::GetAntiDosPolicyForOpcode(uint32 opcode)
 {
-    std::ptrdiff_t index = GetOpcodeArrayIndex(static_cast<OpcodeClient>(opcode));
-    if (index < 0 || index >= std::ptrdiff_t(NUM_CMSG_OPCODES))
+    if (opcode >= NUM_OPCODE_HANDLERS || opcode == UNKNOWN_OPCODE)
         return nullptr;
 
-    return _antiDosOpcodePolicies[index].get();
+    return _antiDosOpcodePolicies[opcode].get();
 }

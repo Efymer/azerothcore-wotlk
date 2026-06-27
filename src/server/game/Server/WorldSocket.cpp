@@ -217,7 +217,7 @@ bool WorldSocket::Update()
     MessageBuffer buffer(_sendBufferSize);
     while (_bufferQueue.Dequeue(queued))
     {
-        uint32 packetSize = queued->size() + 4 /*opcode*/;
+        uint32 packetSize = queued->size() + 2 /*uint16 opcode*/;
         if (packetSize > MinSizeForCompression && queued->NeedsEncryption())
             packetSize = deflateBound(_compressionStream, packetSize) + sizeof(CompressedWorldPacket);
 
@@ -350,7 +350,7 @@ bool WorldSocket::ReadHeaderHandler()
     ASSERT(_headerBuffer.GetActiveSize() == sizeof(IncomingPacketHeader));
 
     IncomingPacketHeader* header = reinterpret_cast<IncomingPacketHeader*>(_headerBuffer.GetReadPointer());
-    uint32 encryptedOpcode = header->EncryptedOpcode;
+    uint16 encryptedOpcode = header->EncryptedOpcode;
 
     if (!header->IsValidSize())
     {
@@ -434,7 +434,8 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
     }
 
     WorldPacket packet(0, std::move(_packetBuffer), GetConnectionType());
-    OpcodeClient opcode = packet.read<OpcodeClient>();
+    // 3.4.3.54261 wire opcodes are FLAT uint16 values - read 2 bytes then widen to the enum
+    OpcodeClient opcode = static_cast<OpcodeClient>(packet.read<uint16>());
     if (!opcodeTable.IsValid(opcode))
     {
         LOG_ERROR("network", "WorldSocket::ReadDataHandler(): client {} sent wrong opcode (opcode: {})",
@@ -533,6 +534,16 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
             LogOpcodeText(opcode, sessionGuard);
             HandleEnterEncryptedModeAck();
             break;
+        case CMSG_LOG_DISCONNECT:
+        {
+            // The 54261 client sends this first, pre-auth, on disconnect. It is a no-op for us - just
+            // consume the reason code so it is not treated as a "wrong opcode".
+            LogOpcodeText(opcode, sessionGuard);
+            uint32 reason = packet.read<uint32>();
+            LOG_DEBUG("network", "WorldSocket::ReadDataHandler(): client {} sent CMSG_LOG_DISCONNECT (reason {})",
+                GetRemoteIpAddress().to_string(), reason);
+            break;
+        }
         case CMSG_HOTFIX_REQUEST:
             _canRequestHotfixes = false;
             [[fallthrough]];
@@ -608,7 +619,8 @@ void WorldSocket::SendPacket(WorldPacket const& packet)
 
 void WorldSocket::WritePacketToBuffer(EncryptablePacket const& packet, MessageBuffer& buffer)
 {
-    uint32 opcode = packet.GetOpcode();
+    // 3.4.3.54261 wire opcodes are FLAT uint16 values
+    uint16 opcode = uint16(packet.GetOpcode());
     uint32 packetSize = packet.size();
 
     // Reserve space for buffer
@@ -635,7 +647,7 @@ void WorldSocket::WritePacketToBuffer(EncryptablePacket const& packet, MessageBu
         buffer.WriteCompleted(compressedSize);
         packetSize = compressedSize + sizeof(CompressedWorldPacket);
 
-        opcode = SMSG_COMPRESSED_PACKET;
+        opcode = uint16(SMSG_COMPRESSED_PACKET);
     }
     else if (!packet.empty())
         buffer.Write(packet.contents(), packet.size());
@@ -643,7 +655,8 @@ void WorldSocket::WritePacketToBuffer(EncryptablePacket const& packet, MessageBu
     memcpy(dataPos, &opcode, sizeof(opcode));
     packetSize += sizeof(opcode);
 
-    PacketHeader header;
+    // header{} zero-inits the GCM Tag so it matches the client's zero pre-encryption tag
+    PacketHeader header{};
     header.Size = packetSize;
     _authCrypt.EncryptSend(dataPos, header.Size, header.Tag);
 
@@ -652,7 +665,8 @@ void WorldSocket::WritePacketToBuffer(EncryptablePacket const& packet, MessageBu
 
 uint32 WorldSocket::CompressPacket(uint8* buffer, WorldPacket const& packet)
 {
-    uint32 opcode = packet.GetOpcode();
+    // 3.4.3.54261 wire opcodes are FLAT uint16 values
+    uint16 opcode = uint16(packet.GetOpcode());
     uint32 bufferSize = deflateBound(_compressionStream, packet.size() + sizeof(opcode));
 
     _compressionStream->next_out = buffer;

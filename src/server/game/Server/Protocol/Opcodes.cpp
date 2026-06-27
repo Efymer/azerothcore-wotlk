@@ -68,10 +68,10 @@ OpcodeTable::OpcodeTable()
 
 OpcodeTable::~OpcodeTable()
 {
-    for (std::size_t i = 0; i < NUM_CMSG_OPCODES; ++i)
+    for (std::size_t i = 0; i < NUM_OPCODE_HANDLERS; ++i)
         delete _internalTableClient[i];
 
-    for (std::size_t i = 0; i < NUM_SMSG_OPCODES; ++i)
+    for (std::size_t i = 0; i < NUM_OPCODE_HANDLERS; ++i)
         delete _internalTableServer[i];
 }
 
@@ -84,8 +84,8 @@ void OpcodeTable::ValidateAndSetClientOpcode(OpcodeClient opcode, char const* na
         return;
     }
 
-    std::ptrdiff_t index = GetOpcodeArrayIndex(opcode);
-    if (index < 0 || index >= std::ptrdiff_t(NUM_CMSG_OPCODES))
+    uint32 index = uint32(opcode);
+    if (index >= NUM_OPCODE_HANDLERS)
     {
         LOG_ERROR("network", "Tried to set handler for an invalid opcode {}", uint32(opcode));
         return;
@@ -108,8 +108,8 @@ void OpcodeTable::ValidateAndSetServerOpcode(OpcodeServer opcode, char const* na
         return;
     }
 
-    std::ptrdiff_t index = GetOpcodeArrayIndex(opcode);
-    if (index < 0 || index >= std::ptrdiff_t(NUM_SMSG_OPCODES))
+    uint32 index = uint32(opcode);
+    if (index >= NUM_OPCODE_HANDLERS)
     {
         LOG_ERROR("network", "Tried to set handler for an invalid opcode {}", uint32(opcode));
         return;

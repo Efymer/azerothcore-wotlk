@@ -37,8 +37,8 @@ public:
     AntiDosOpcodePolicy const* GetAntiDosPolicyForOpcode(uint32 opcode);
 
 private:
-    // indexed by GetOpcodeArrayIndex(OpcodeClient) - the AntiDos policies only apply to incoming client opcodes
-    std::array<std::unique_ptr<AntiDosOpcodePolicy>, NUM_CMSG_OPCODES> _antiDosOpcodePolicies;
+    // indexed directly by the flat 3.4.3.54261 opcode value - the AntiDos policies only apply to incoming client opcodes
+    std::array<std::unique_ptr<AntiDosOpcodePolicy>, NUM_OPCODE_HANDLERS> _antiDosOpcodePolicies;
 };
 
 #define sWorldGlobals WorldGlobals::instance()

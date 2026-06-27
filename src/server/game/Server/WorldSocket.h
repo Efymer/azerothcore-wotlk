@@ -79,11 +79,12 @@ struct PacketHeader
     bool IsValidSize() const { return Size < 0x10000; }
 };
 
-// 3.4.3 modern wire header (inbound, 20 bytes). EncryptedOpcode is the first 4 bytes of the
-// encrypted payload, peeked forward so the body decrypt stays contiguous.
+// 3.4.3.54261 modern wire header (inbound, 18 bytes). The 54261 client uses FLAT uint16 opcodes,
+// so EncryptedOpcode is the first 2 bytes of the encrypted payload, peeked forward so the body
+// decrypt stays contiguous.
 struct IncomingPacketHeader : PacketHeader
 {
-    uint32 EncryptedOpcode;
+    uint16 EncryptedOpcode;
 };
 
 #pragma pack(pop)
