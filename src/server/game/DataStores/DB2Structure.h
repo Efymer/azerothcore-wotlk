@@ -81,7 +81,11 @@ struct AreaTableEntry
 
     [[nodiscard]] bool IsFlyable() const
     {
-        return (Flags[0] & AREA_FLAG_OUTLAND) != 0;
+        // 3.4.3.54261: flyability is carried by the dedicated MountFlags field
+        // (AreaMountFlags::AllowFlyingMounts = 0x2), NOT the legacy 3.3.5a heuristic
+        // `Flags & AREA_FLAG_OUTLAND` — in WDC4 that 0x400 bit was repurposed
+        // (ForceThisAreaWhenOnDynamicTransport). Mirrors xian55 GetMountFlags().
+        return (MountFlags & 0x2) != 0;
     }
 };
 
