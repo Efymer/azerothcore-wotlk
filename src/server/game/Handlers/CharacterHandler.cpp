@@ -759,7 +759,7 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recvData)
                     if (!plMover)
                         break;
 
-                    WorldPacket pkt(MSG_MOVE_TELEPORT_ACK, 20);
+                    WorldPacket pkt(CMSG_MOVE_TELEPORT_ACK, 20);
                     pkt << plMover->GetPackGUID();
                     pkt << uint32(0); // flags
                     pkt << uint32(0); // time

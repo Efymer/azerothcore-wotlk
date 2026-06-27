@@ -1342,7 +1342,8 @@ uint8 Player::GetChatTag() const
 
 void Player::SendTeleportAckPacket()
 {
-    WorldPacket data(MSG_MOVE_TELEPORT_ACK, 41);
+    // 3.4.3: server prompts the controlling client with SMSG_MOVE_TELEPORT, which it replies to via CMSG_MOVE_TELEPORT_ACK
+    WorldPacket data(SMSG_MOVE_TELEPORT, 41);
     data << GetPackGUID();
     data << GetSession()->GetOrderCounter(); // movement counter
     BuildMovementPacket(&data);
@@ -11666,7 +11667,10 @@ void Player::SendInitialPacketsAfterAddToMap()
     GetZoneAndAreaId(newzone, newarea);
     UpdateZone(newzone, newarea);                            // also call SendInitWorldStates();
 
-    WorldPacket setCompoundState(SMSG_MULTIPLE_MOVES, 100);
+    // TODO(3.4.3 brick-B): compound-moves packet redesigned in 3.4.3 — legacy SMSG_MULTIPLE_MOVES no longer exists;
+    // movement state on map-add is resent via individual SMSG_MOVE_* packets. Opcodes below are directionally
+    // correct (server->controlling-client) but the compound wire format must be reworked in Phase-1d.
+    WorldPacket setCompoundState(SMSG_MOVE_UPDATE, 100);
     setCompoundState << uint32(0); // size placeholder
 
     // manual send package (have code in HandleEffect(this, AURA_EFFECT_HANDLE_SEND_FOR_CLIENT, true); that must not be re-applied.
@@ -11674,7 +11678,7 @@ void Player::SendInitialPacketsAfterAddToMap()
     {
         uint32 const counter = GetSession()->GetOrderCounter();
         setCompoundState << uint8(2 + GetPackGUID().size() + 4);
-        setCompoundState << uint16(SMSG_FORCE_MOVE_ROOT);
+        setCompoundState << uint16(SMSG_MOVE_ROOT);
         setCompoundState << GetPackGUID();
         setCompoundState << uint32(counter);
         GetSession()->IncrementOrderCounter();
@@ -11684,7 +11688,7 @@ void Player::SendInitialPacketsAfterAddToMap()
     {
         uint32 const counter = GetSession()->GetOrderCounter();
         setCompoundState << uint8(2 + GetPackGUID().size() + 4);
-        setCompoundState << uint16(SMSG_MOVE_FEATHER_FALL);
+        setCompoundState << uint16(SMSG_MOVE_SET_FEATHER_FALL);
         setCompoundState << GetPackGUID();
         setCompoundState << uint32(counter);
         GetSession()->IncrementOrderCounter();
@@ -11694,7 +11698,7 @@ void Player::SendInitialPacketsAfterAddToMap()
     {
         uint32 const counter = GetSession()->GetOrderCounter();
         setCompoundState << uint8(2 + GetPackGUID().size() + 4);
-        setCompoundState << uint16(SMSG_MOVE_WATER_WALK);
+        setCompoundState << uint16(SMSG_MOVE_SET_WATER_WALK);
         setCompoundState << GetPackGUID();
         setCompoundState << uint32(counter);
         GetSession()->IncrementOrderCounter();
@@ -11704,7 +11708,7 @@ void Player::SendInitialPacketsAfterAddToMap()
     {
         uint32 const counter = GetSession()->GetOrderCounter();
         setCompoundState << uint8(2 + GetPackGUID().size() + 4);
-        setCompoundState << uint16(SMSG_MOVE_SET_HOVER);
+        setCompoundState << uint16(SMSG_MOVE_SET_HOVERING);
         setCompoundState << GetPackGUID();
         setCompoundState << uint32(counter);
         GetSession()->IncrementOrderCounter();

@@ -386,10 +386,12 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
         return;
     }
 
-    if (opcode == CMSG_MOVE_FALL_RESET || opcode == CMSG_MOVE_CHNG_TRANSPORT)
+    if (opcode == CMSG_MOVE_FALL_RESET || opcode == CMSG_MOVE_CHANGE_TRANSPORT)
         return;
 
     /* process position-change */
+    // TODO(3.4.3 brick-B): movement flow redesigned in 3.4.3 — observers are updated via SMSG_MOVE_UPDATE,
+    // not by rebroadcasting the received CMSG opcode. Verify in Phase-1d.
     WorldPacket data(opcode, recvData.size());
     WriteMovementInfo(&data, &movementInfo);
     mover->SendMessageToSet(&data, _player);
@@ -529,7 +531,7 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo, Player* 
 
     if (!mover->movespline->Finalized())
     {
-        if (!mover->movespline->isBoarding() || (opcode != CMSG_FORCE_MOVE_UNROOT_ACK && opcode != CMSG_FORCE_MOVE_ROOT_ACK))
+        if (!mover->movespline->isBoarding() || (opcode != CMSG_MOVE_FORCE_UNROOT_ACK && opcode != CMSG_MOVE_FORCE_ROOT_ACK))
             return false;
     }
 
@@ -548,7 +550,7 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo, Player* 
     }
 
     bool jumpopcode = false;
-    if (opcode == MSG_MOVE_JUMP)
+    if (opcode == CMSG_MOVE_JUMP)
     {
         jumpopcode = true;
         if (plrMover && !sScriptMgr->AnticheatHandleDoubleJump(plrMover, mover))
@@ -591,7 +593,7 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo, Player* 
     }
 
     // rooted mover sent packet without root or moving AND root - ignore, due to client crash possibility
-    if (opcode != CMSG_FORCE_MOVE_UNROOT_ACK)
+    if (opcode != CMSG_MOVE_FORCE_UNROOT_ACK)
         if (mover->IsRooted() && (!movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT) || movementInfo.HasMovementFlag(MOVEMENTFLAG_MASK_MOVING)))
             return false;
 
@@ -600,7 +602,7 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo, Player* 
 
 bool WorldSession::ProcessMovementInfo(MovementInfo& movementInfo, Unit* mover, Player* plrMover, WorldPacket& recvData)
 {
-    Opcodes opcode = (Opcodes)recvData.GetOpcode();
+    OpcodeClient opcode = static_cast<OpcodeClient>(recvData.GetOpcode());
     if (!VerifyMovementInfo(movementInfo, plrMover, mover, opcode))
         return false;
 
@@ -617,7 +619,7 @@ bool WorldSession::ProcessMovementInfo(MovementInfo& movementInfo, Unit* mover, 
     }
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
-    if (opcode == MSG_MOVE_FALL_LAND && plrMover && !plrMover->IsInFlight())
+    if (opcode == CMSG_MOVE_FALL_LAND && plrMover && !plrMover->IsInFlight())
     {
         plrMover->HandleFall(movementInfo);
 
@@ -625,7 +627,7 @@ bool WorldSession::ProcessMovementInfo(MovementInfo& movementInfo, Unit* mover, 
     }
 
     // interrupt parachutes upon falling or landing in water
-    if (opcode == MSG_MOVE_FALL_LAND || opcode == MSG_MOVE_START_SWIM)
+    if (opcode == CMSG_MOVE_FALL_LAND || opcode == CMSG_MOVE_START_SWIM)
     {
         mover->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_LANDING); // Parachutes
 
@@ -698,9 +700,10 @@ void WorldSession::HandleForceSpeedChangeAck(WorldPacket& recvData)
         return;
     }
 
-    if (opcode == CMSG_MOVE_SET_COLLISION_HGT_ACK)
+    if (opcode == CMSG_MOVE_SET_COLLISION_HEIGHT_ACK)
     {
-        WorldPacket data(MSG_MOVE_SET_COLLISION_HGT, 18);
+        // TODO(3.4.3 brick-B): collision-height broadcast packet redesigned in 3.4.3 — verify in Phase-1d
+        WorldPacket data(SMSG_MOVE_UPDATE_COLLISION_HEIGHT, 18);
         WriteMovementInfo(&data, &movementInfo);
         data << newspeed; // new collision height
         mover->SendMessageToSet(&data, _player);
@@ -716,15 +719,15 @@ void WorldSession::HandleForceSpeedChangeAck(WorldPacket& recvData)
 
     switch (opcode)
     {
-        case CMSG_FORCE_WALK_SPEED_CHANGE_ACK:          move_type = MOVE_WALK;          force_move_type = MOVE_WALK;        break;
-        case CMSG_FORCE_RUN_SPEED_CHANGE_ACK:           move_type = MOVE_RUN;           force_move_type = MOVE_RUN;         break;
-        case CMSG_FORCE_RUN_BACK_SPEED_CHANGE_ACK:      move_type = MOVE_RUN_BACK;      force_move_type = MOVE_RUN_BACK;    break;
-        case CMSG_FORCE_SWIM_SPEED_CHANGE_ACK:          move_type = MOVE_SWIM;          force_move_type = MOVE_SWIM;        break;
-        case CMSG_FORCE_SWIM_BACK_SPEED_CHANGE_ACK:     move_type = MOVE_SWIM_BACK;     force_move_type = MOVE_SWIM_BACK;   break;
-        case CMSG_FORCE_TURN_RATE_CHANGE_ACK:           move_type = MOVE_TURN_RATE;     force_move_type = MOVE_TURN_RATE;   break;
-        case CMSG_FORCE_FLIGHT_SPEED_CHANGE_ACK:        move_type = MOVE_FLIGHT;        force_move_type = MOVE_FLIGHT;      break;
-        case CMSG_FORCE_FLIGHT_BACK_SPEED_CHANGE_ACK:   move_type = MOVE_FLIGHT_BACK;   force_move_type = MOVE_FLIGHT_BACK; break;
-        case CMSG_FORCE_PITCH_RATE_CHANGE_ACK:          move_type = MOVE_PITCH_RATE;    force_move_type = MOVE_PITCH_RATE;  break;
+        case CMSG_MOVE_FORCE_WALK_SPEED_CHANGE_ACK:        move_type = MOVE_WALK;          force_move_type = MOVE_WALK;        break;
+        case CMSG_MOVE_FORCE_RUN_SPEED_CHANGE_ACK:         move_type = MOVE_RUN;           force_move_type = MOVE_RUN;         break;
+        case CMSG_MOVE_FORCE_RUN_BACK_SPEED_CHANGE_ACK:    move_type = MOVE_RUN_BACK;      force_move_type = MOVE_RUN_BACK;    break;
+        case CMSG_MOVE_FORCE_SWIM_SPEED_CHANGE_ACK:        move_type = MOVE_SWIM;          force_move_type = MOVE_SWIM;        break;
+        case CMSG_MOVE_FORCE_SWIM_BACK_SPEED_CHANGE_ACK:   move_type = MOVE_SWIM_BACK;     force_move_type = MOVE_SWIM_BACK;   break;
+        case CMSG_MOVE_FORCE_TURN_RATE_CHANGE_ACK:         move_type = MOVE_TURN_RATE;     force_move_type = MOVE_TURN_RATE;   break;
+        case CMSG_MOVE_FORCE_FLIGHT_SPEED_CHANGE_ACK:      move_type = MOVE_FLIGHT;        force_move_type = MOVE_FLIGHT;      break;
+        case CMSG_MOVE_FORCE_FLIGHT_BACK_SPEED_CHANGE_ACK: move_type = MOVE_FLIGHT_BACK;   force_move_type = MOVE_FLIGHT_BACK; break;
+        case CMSG_MOVE_FORCE_PITCH_RATE_CHANGE_ACK:        move_type = MOVE_PITCH_RATE;    force_move_type = MOVE_PITCH_RATE;  break;
         default:
             LOG_ERROR("network.opcode", "WorldSession::HandleForceSpeedChangeAck: Unknown move type opcode: {}", opcode);
             return;
@@ -802,7 +805,7 @@ void WorldSession::HandleMoveNotActiveMover(WorldPacket& recvData)
 
 void WorldSession::HandleMountSpecialAnimOpcode(WorldPacket& /*recvData*/)
 {
-    WorldPacket data(SMSG_MOUNTSPECIAL_ANIM, 8);
+    WorldPacket data(SMSG_SPECIAL_MOUNT_ANIM, 8);
     data << GetPlayer()->GetGUID();
 
     GetPlayer()->SendMessageToSet(&data, false);
@@ -835,7 +838,8 @@ void WorldSession::HandleMoveKnockBackAck(WorldPacket& recvData)
     if (mover->IsPlayer() && static_cast<Player*>(mover)->IsFreeFlying())
         mover->SetCanFly(true);
 
-    WorldPacket data(MSG_MOVE_KNOCK_BACK, 66);
+    // TODO(3.4.3 brick-B): knock-back broadcast packet redesigned in 3.4.3 — verify in Phase-1d
+    WorldPacket data(SMSG_MOVE_UPDATE_KNOCK_BACK, 66);
     data << guid.WriteAsPacked();
     _player->m_mover->BuildMovementPacket(&data);
     _player->SetCanTeleport(true);
@@ -898,7 +902,8 @@ void WorldSession::HandleMoveTimeSkippedOpcode(WorldPacket& recvData)
 
     mover->m_movementInfo.time += timeSkipped;
 
-    WorldPacket data(MSG_MOVE_TIME_SKIPPED, recvData.size());
+    // TODO(3.4.3 brick-B): time-skip broadcast packet redesigned in 3.4.3 — verify in Phase-1d
+    WorldPacket data(SMSG_MOVE_SKIP_TIME, recvData.size());
     data << guid.WriteAsPacked();
     data << timeSkipped;
     GetPlayer()->SendMessageToSet(&data, false);
@@ -977,7 +982,7 @@ void WorldSession::ComputeNewClockDelta()
 
 void WorldSession::HandleMoveRootAck(WorldPacket& recvData)
 {
-    Opcodes opcode = (Opcodes)recvData.GetOpcode();
+    OpcodeClient opcode = static_cast<OpcodeClient>(recvData.GetOpcode());
     LOG_DEBUG("network", "WORLD: {}", GetOpcodeNameForLogging(opcode));
 
     ObjectGuid guid;
@@ -993,7 +998,7 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recvData)
     if (mover->GetGUID() != guid)
         return;
 
-    if (opcode == CMSG_FORCE_MOVE_UNROOT_ACK) // unroot case
+    if (opcode == CMSG_MOVE_FORCE_UNROOT_ACK) // unroot case
     {
         if (!mover->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT))
             return;
@@ -1014,7 +1019,7 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recvData)
     if (_player->IsExpectingChangeTransport())
         return;
 
-    WorldPacket data(opcode == CMSG_FORCE_MOVE_UNROOT_ACK ? MSG_MOVE_UNROOT : MSG_MOVE_ROOT);
+    WorldPacket data(opcode == CMSG_MOVE_FORCE_UNROOT_ACK ? SMSG_MOVE_UNROOT : SMSG_MOVE_ROOT);
     WriteMovementInfo(&data, &movementInfo);
     mover->SendMessageToSet(&data, _player);
 }

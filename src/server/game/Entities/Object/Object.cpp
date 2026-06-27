@@ -2104,7 +2104,9 @@ void Object::ForceValuesUpdateAtIndex(uint32 i)
 
 void Unit::BuildHeartBeatMsg(WorldPacket* data) const
 {
-    data->Initialize(MSG_MOVE_HEARTBEAT, 32);
+    // TODO(3.4.3 brick-B): heartbeat broadcast redesigned in 3.4.3 — observers receive SMSG_MOVE_UPDATE
+    // (MoveUpdate packet body differs from legacy). Verify in Phase-1d.
+    data->Initialize(SMSG_MOVE_UPDATE, 32);
     *data << GetPackGUID();
     BuildMovementPacket(data);
 }

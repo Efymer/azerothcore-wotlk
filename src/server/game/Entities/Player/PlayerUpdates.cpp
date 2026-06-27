@@ -2181,10 +2181,10 @@ void Player::UpdateAchievementCriteria(AchievementCriteriaTypes type,
 }
 
 void Player::UpdateFallInformationIfNeed(MovementInfo const& minfo,
-                                         uint16              opcode)
+                                         uint32              opcode)
 {
     if (m_lastFallTime >= minfo.fallTime ||
-        m_lastFallZ <= minfo.pos.GetPositionZ() || opcode == MSG_MOVE_FALL_LAND)
+        m_lastFallZ <= minfo.pos.GetPositionZ() || opcode == CMSG_MOVE_FALL_LAND)
         SetFallInformation(minfo.fallTime, minfo.pos.GetPositionZ());
 }
 

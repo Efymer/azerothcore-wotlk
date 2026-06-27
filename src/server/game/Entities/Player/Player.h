@@ -2369,7 +2369,7 @@ public:
     /*********************************************************/
     /***                 VARIOUS SYSTEMS                   ***/
     /*********************************************************/
-    void UpdateFallInformationIfNeed(MovementInfo const& minfo, uint16 opcode);
+    void UpdateFallInformationIfNeed(MovementInfo const& minfo, uint32 opcode);
     SafeUnitPointer m_mover;
     WorldObject* m_seer;
     std::set<Unit*> m_isInSharedVisionOf;

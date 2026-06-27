@@ -656,7 +656,7 @@ void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed)
 
 void Unit::SendMonsterMove(float NewPosX, float NewPosY, float NewPosZ, uint32 TransitTime, SplineFlags sf)
 {
-    WorldPacket data(SMSG_MONSTER_MOVE, 1 + 12 + 4 + 1 + 4 + 4 + 4 + 12 + GetPackGUID().size());
+    WorldPacket data(SMSG_ON_MONSTER_MOVE, 1 + 12 + 4 + 1 + 4 + 4 + 4 + 12 + GetPackGUID().size());
     data << GetPackGUID();
 
     data << uint8(0);                                       // new in 3.1
@@ -10579,7 +10579,7 @@ void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
             if (charm->IsCreature())
                 charm->SetUnitFlag(UNIT_FLAG_STUNNED);
 
-        WorldPacket data(SMSG_MOVE_SET_COLLISION_HGT, GetPackGUID().size() + 4 + 4);
+        WorldPacket data(SMSG_MOVE_SET_COLLISION_HEIGHT, GetPackGUID().size() + 4 + 4);
         data << GetPackGUID();
         data << player->GetSession()->GetOrderCounter(); // movement counter
         data << player->GetCollisionHeight();
@@ -10600,7 +10600,7 @@ void Unit::Dismount()
 
     if (Player* player = ToPlayer())
     {
-        WorldPacket data(SMSG_MOVE_SET_COLLISION_HGT, GetPackGUID().size() + 4 + 4);
+        WorldPacket data(SMSG_MOVE_SET_COLLISION_HEIGHT, GetPackGUID().size() + 4 + 4);
         data << GetPackGUID();
         data << player->GetSession()->GetOrderCounter(); // movement counter
         data << player->GetCollisionHeight();
@@ -14537,7 +14537,7 @@ void Unit::SendMoveRoot(bool apply)
     // Wrath+ spline root: when unit is currently not controlled by a player
     if (!client)
     {
-        WorldPacket data(apply ? SMSG_SPLINE_MOVE_ROOT : SMSG_SPLINE_MOVE_UNROOT, guid.size());
+        WorldPacket data(apply ? SMSG_MOVE_SPLINE_ROOT : SMSG_MOVE_SPLINE_UNROOT, guid.size());
         data << guid;
         SendMessageToSet(&data, true);
     }
@@ -14546,7 +14546,7 @@ void Unit::SendMoveRoot(bool apply)
     {
         uint32 const counter = client->GetSession()->GetOrderCounter();
 
-        WorldPacket data(apply ? SMSG_FORCE_MOVE_ROOT : SMSG_FORCE_MOVE_UNROOT, guid.size() + 4);
+        WorldPacket data(apply ? SMSG_MOVE_ROOT : SMSG_MOVE_UNROOT, guid.size() + 4);
         data << guid;
         data << counter;
         client->GetSession()->SendPacket(&data);
@@ -16013,7 +16013,9 @@ void Unit::SendTeleportPacket(Position& pos)
     {
         ToPlayer()->SetCanTeleport(true);
     }
-    WorldPacket data2(MSG_MOVE_TELEPORT, 38);
+    // TODO(3.4.3 brick-B): teleport flow redesigned in 3.4.3 — observers get SMSG_MOVE_UPDATE_TELEPORT,
+    // self gets SMSG_MOVE_TELEPORT (to trigger CMSG_MOVE_TELEPORT_ACK). Verify split in Phase-1d.
+    WorldPacket data2(SMSG_MOVE_UPDATE_TELEPORT, 38);
     data2 << GetPackGUID();
     BuildMovementPacket(&data2);
     if (IsCreature())
@@ -16545,7 +16547,7 @@ void Unit::SetDisableGravity(bool enable)
         {
             uint32 const counter = player->GetSession()->GetOrderCounter();
 
-            WorldPacket data(enable ? SMSG_MOVE_GRAVITY_DISABLE : SMSG_MOVE_GRAVITY_ENABLE, GetPackGUID().size() + 4);
+            WorldPacket data(enable ? SMSG_MOVE_DISABLE_GRAVITY : SMSG_MOVE_ENABLE_GRAVITY, GetPackGUID().size() + 4);
             data << GetPackGUID();
             data << counter;
             player->GetSession()->SendPacket(&data);
@@ -16554,7 +16556,7 @@ void Unit::SetDisableGravity(bool enable)
         }
     }
 
-    WorldPacket data(enable ? SMSG_SPLINE_MOVE_GRAVITY_DISABLE : SMSG_SPLINE_MOVE_GRAVITY_ENABLE, 9);
+    WorldPacket data(enable ? SMSG_MOVE_SPLINE_DISABLE_GRAVITY : SMSG_MOVE_SPLINE_ENABLE_GRAVITY, 9);
     data << GetPackGUID();
     SendMessageToSet(&data, true);
 }
@@ -16615,7 +16617,7 @@ void Unit::SetCanFly(bool enable)
         }
     }
 
-    WorldPacket data(enable ? SMSG_SPLINE_MOVE_SET_FLYING : SMSG_SPLINE_MOVE_UNSET_FLYING, 9);
+    WorldPacket data(enable ? SMSG_MOVE_SPLINE_SET_FLYING : SMSG_MOVE_SPLINE_UNSET_FLYING, 9);
     data << GetPackGUID();
     SendMessageToSet(&data, true);
 }
@@ -16641,7 +16643,7 @@ void Unit::SetFeatherFall(bool enable)
         {
             uint32 const counter = player->GetSession()->GetOrderCounter();
 
-            WorldPacket data(enable ? SMSG_MOVE_FEATHER_FALL : SMSG_MOVE_NORMAL_FALL, GetPackGUID().size() + 4);
+            WorldPacket data(enable ? SMSG_MOVE_SET_FEATHER_FALL : SMSG_MOVE_SET_NORMAL_FALL, GetPackGUID().size() + 4);
 
             data << GetPackGUID();
             data << counter;
@@ -16656,7 +16658,7 @@ void Unit::SetFeatherFall(bool enable)
         }
     }
 
-    WorldPacket data(enable ? SMSG_SPLINE_MOVE_FEATHER_FALL : SMSG_SPLINE_MOVE_NORMAL_FALL);
+    WorldPacket data(enable ? SMSG_MOVE_SPLINE_SET_FEATHER_FALL : SMSG_MOVE_SPLINE_SET_NORMAL_FALL);
     data << GetPackGUID();
     SendMessageToSet(&data, true);
 }
@@ -16697,7 +16699,7 @@ void Unit::SetHover(bool enable)
     {
         if (Player const* player = GetClientControlling())
         {
-            WorldPacket data(enable ? SMSG_MOVE_SET_HOVER : SMSG_MOVE_UNSET_HOVER, GetPackGUID().size() + 4);
+            WorldPacket data(enable ? SMSG_MOVE_SET_HOVERING : SMSG_MOVE_UNSET_HOVERING, GetPackGUID().size() + 4);
 
             uint32 const counter = player->GetSession()->GetOrderCounter();
 
@@ -16709,7 +16711,7 @@ void Unit::SetHover(bool enable)
         }
     }
 
-    WorldPacket data(enable ? SMSG_SPLINE_MOVE_SET_HOVER : SMSG_SPLINE_MOVE_UNSET_HOVER, 9);
+    WorldPacket data(enable ? SMSG_MOVE_SPLINE_SET_HOVER : SMSG_MOVE_SPLINE_UNSET_HOVER, 9);
     data << GetPackGUID();
     SendMessageToSet(&data, true);
 }
@@ -16735,7 +16737,7 @@ void Unit::SetWaterWalking(bool enable)
         {
             uint32 const counter = player->GetSession()->GetOrderCounter();
 
-            WorldPacket data(enable ? SMSG_MOVE_WATER_WALK : SMSG_MOVE_LAND_WALK, GetPackGUID().size() + 4);
+            WorldPacket data(enable ? SMSG_MOVE_SET_WATER_WALK : SMSG_MOVE_SET_LAND_WALK, GetPackGUID().size() + 4);
             data << GetPackGUID();
             data << counter;
             player->SendDirectMessage(&data);
@@ -16744,7 +16746,7 @@ void Unit::SetWaterWalking(bool enable)
         }
     }
 
-    WorldPacket data(enable ? SMSG_SPLINE_MOVE_WATER_WALK : SMSG_SPLINE_MOVE_LAND_WALK, 9);
+    WorldPacket data(enable ? SMSG_MOVE_SPLINE_SET_WATER_WALK : SMSG_MOVE_SPLINE_SET_LAND_WALK, 9);
     data << GetPackGUID();
     SendMessageToSet(&data, true);
 }
@@ -16753,7 +16755,7 @@ void Unit::SendMovementWaterWalking(Player* sendTo)
 {
     if (!movespline->Initialized())
         return;
-    WorldPacket data(SMSG_SPLINE_MOVE_WATER_WALK, 9);
+    WorldPacket data(SMSG_MOVE_SPLINE_SET_WATER_WALK, 9);
     data << GetPackGUID();
     sendTo->SendDirectMessage(&data);
 }
@@ -16762,7 +16764,7 @@ void Unit::SendMovementFeatherFall(Player* sendTo)
 {
     if (!movespline->Initialized())
         return;
-    WorldPacket data(SMSG_SPLINE_MOVE_FEATHER_FALL, 9);
+    WorldPacket data(SMSG_MOVE_SPLINE_SET_FEATHER_FALL, 9);
     data << GetPackGUID();
     sendTo->SendDirectMessage(&data);
 }
@@ -16771,7 +16773,7 @@ void Unit::SendMovementHover(Player* sendTo)
 {
     if (!movespline->Initialized())
         return;
-    WorldPacket data(SMSG_SPLINE_MOVE_SET_HOVER, 9);
+    WorldPacket data(SMSG_MOVE_SPLINE_SET_HOVER, 9);
     data << GetPackGUID();
     sendTo->SendDirectMessage(&data);
 }

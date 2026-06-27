@@ -263,7 +263,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recvData)
         return;
 
     _player->SetExpectingChangeTransport(false);
-    WorldPacket data(_player->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT) ? MSG_MOVE_ROOT : MSG_MOVE_UNROOT, recvData.size());
+    WorldPacket data(_player->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT) ? SMSG_MOVE_ROOT : SMSG_MOVE_UNROOT, recvData.size());
     WriteMovementInfo(&data, &movementInfo);
     mover->SendMessageToSet(&data, _player);
 }
