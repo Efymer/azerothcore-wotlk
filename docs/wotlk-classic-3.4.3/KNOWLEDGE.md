@@ -327,19 +327,33 @@ game and require the enormous `game` build):
     `WorldSocketMgr` on `Acore::Net::SocketMgr` (custom `WorldSocketThread`). **`worldserver.exe` builds
     + links green.** Also fixed deferred **N2** (legacy vs modern `Socket.h` collision: isolated the RA
     acceptor into `RemoteAccess/RAAcceptor.*` + include ordering). Auth crypto stubbed (`TODO brick-E2`).
-  - 🔜 **E2 (auth handshake + login flow):** real `CMSG_AUTH_SESSION` parse (JSON `RealmJoinTicket`);
-    digest check `HMAC_SHA512(SHA512(KeyData‖authKey))(LocalChallenge‖serverChallenge‖AuthCheckSeed)`;
-    session-key derivation (`SessionKeyGenerator<SHA512>` w/ `SessionKeySeed`, 40B); world-encrypt-key
-    (`EncryptionKeySeed`, 32B); `SMSG_ENTER_ENCRYPTED_MODE` (Ed25519 — KAT-verified) → `_authCrypt.Init`
-    on `CMSG_ENTER_ENCRYPTED_MODE_ACK`; the **login-holder split** (`HandlePlayerLoginOpcode` →
-    `SendConnectToInstance` → 2-socket continued-session → `AddInstanceSocket`/`HandleContinuePlayerLogin`).
-    Copy the 4 seed byte-arrays verbatim from TC. **Open gate:** the digest needs the **per-variant
-    `build_auth_key`** (16B, client-extracted, build-specific) — TC ships none in source (61581 keys live
-    in its auth SQL); whether 54261 needs one (and its value) is a live-verify question — build the path to
-    tolerate an empty key so it can be tested.
-  - 🔜 **E-verify — live test with the real 54261 client** — the decisive gate (TC-61581 opcode VALUES +
-    the RSA/Ed25519 signatures + the auth-key question confirmed here). Session key + crypt live on the
-    **socket**, not the session. Proxy-protocol parity (N3) remains its own deferred task.
+  - ✅ **E2a (realm-socket auth handshake, `fc7cea331`):** `SendAuthSession` → real `AuthChallenge`
+    (`_serverChallenge` 32B); `HandleAuthSession` parses `WorldPackets::Auth::AuthSession` + JSON
+    `RealmJoinTicket`, queries `LOGIN_SEL_ACCOUNT_INFO_FOR_WORLD_AUTH`; `HandleAuthSessionCallback` does
+    the digest `HMAC_SHA512(SHA512(KeyData‖authKey))(LocalChallenge‖serverChallenge‖AuthCheckSeed)`,
+    session-key `SessionKeyGenerator<SHA512>(HMAC_SHA512(SHA512(KeyData))(serverChallenge‖LocalChallenge‖
+    SessionKeySeed))` → 40B, encrypt-key `HMAC_SHA512(_sessionKey)(LocalChallenge‖serverChallenge‖
+    EncryptionKeySeed)`[:32], persists via `LOGIN_UPD_ACCOUNT_INFO_CONTINUED_SESSION`, builds the modern
+    WorldSession, sends `SMSG_ENTER_ENCRYPTED_MODE`; `HandleEnterEncryptedModeAck` → `_authCrypt.Init` +
+    `AddSession`. **4 seeds copied verbatim; crypto reviewed byte-faithful to TC** (incl. the reversed
+    session-key operand order). Also wired `ConnectTo/EnterEncryptedMode::InitializeEncryption()` into
+    `Main.cpp` (RSA/Ed25519 signers). `game`+`worldserver` link green. **This is the first live-testable
+    milestone** (realm-auth → character-select / Phase-1b gate).
+  - 🔜 **E2b (world-entry two-socket flow):** `HandleAuthContinuedSession[Callback]` (uses
+    `ContinuedSessionSeed`, already added), `WorldSessionMgr::AddInstanceSocket` registry, the
+    **login-holder split** (`HandlePlayerLoginOpcode` → `SendConnectToInstance(WorldAttempt1)` → 2nd
+    socket `CMSG_AUTH_CONTINUED_SESSION` → `AddInstanceConnection`/`HandleContinuePlayerLogin` holder load;
+    `m_playerLoading` bool→`ObjectGuid`), Bnet RpcErrorCode mapping. Needed for *entering the world with a
+    character* (Phase-1c), not for char-select. **Do this AFTER the E2a live test confirms auth works.**
+  - 🔜 **E-verify — live test (do NOW after E2a).** Open gates this resolves: **(1)** does 54261 require a
+    non-empty per-variant `build_auth_key`? (we derive with an empty key + WARN log — if the client needs
+    one, the digest mismatches and it disconnects); **(2)** `KeyData` byte-order from the bnet `JoinRealm`
+    handoff (writer `LOGIN_UPD_BNET_GAME_ACCOUNT_WORLD_HANDOFF` vs this reader); **(3)** the TC-61581 opcode
+    VALUES + the RSA/Ed25519 signatures. Digest-mismatch is self-diagnosing (logs authKeyLen + first bytes).
+    ⚠ **worldserver-boot caveat:** the worldserver loads DBC/map data at boot before `StartNetwork`; the
+    3.4.3 server-side DB2 store layer is Phase 1c (unbuilt). It may need the stock 3.3.5a `dbc/`+`maps/`
+    present just to boot far enough to accept the world connection (the handshake itself doesn't use DBC).
+    Proxy-protocol parity (N3) remains its own deferred task. Session key + crypt live on the **socket**.
 - Then (Phase 1c): **server-side DB2 store layer** (~30-40 world-entry tables, WoWDBDefs method),
   regenerated **UpdateFields** for 54261, login-sequence packets, movement, chat, object spawning.
 
