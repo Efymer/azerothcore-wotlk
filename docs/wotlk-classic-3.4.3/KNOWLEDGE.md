@@ -303,11 +303,29 @@ game and require the enormous `game` build):
   re-implemented, not-transcribed crypto path; de-risks the EnterEncryptedMode handshake). ⚠ AuthResponse
   game-data (class/template/virtual-realm arrays) is stubbed empty — populate at brick D / login-sequence.
   ⚠ Ed25519ctx uses OpenSSL 3.2+ EVP params (build is 3.6.3), guarded by `static_assert`.
-- **D — modern `WorldSession`** ctor/fields + `SendConnectToInstance`/`AbortLogin`/`ConnectToKey`/
-  `AddInstanceSocket`, and **account schema** (64-byte `session_key`, `client_build`, `timezone_offset`).
-- **E — the `WorldSocket` + `WorldSocketMgr`/`Main` on `Acore::Net`** (depends on A–D), including the
-  V2 banner + the EnterEncryptedMode exchange, and proxy-protocol parity (modern `NetworkThread` lacks
-  `EnableProxyProtocol`).
+- ✅ **D — modern `WorldSession` + account schema (done; login-holder wiring deferred to E):**
+  - **D1 (schema, `16f213f5c`):** added `account.session_key_bnet binary(64)` + `client_build` +
+    `timezone_offset`; fixed `BnetRealmList::JoinRealm` to store the **full 64-byte** key + build + tz
+    (was truncating to 40 — resolves 🔴 D1/C1); pre-staged the brick-E LoginDatabase statements
+    (`LOGIN_SEL_ACCOUNT_INFO_FOR_WORLD_AUTH`, `LOGIN_SEL/UPD_ACCOUNT_INFO_CONTINUED_SESSION`).
+  - **D2 (WorldSession, `23d048542`):** `m_Socket` → `m_Socket[MAX_CONNECTION_TYPES]` (realm+instance);
+    added `ConnectToKey` union + `_instanceConnectKey` + `SendConnectToInstance` + static
+    `AddInstanceConnection` (faithful) + minimal `HandleContinuePlayerLogin`/`AbortLogin`; union ctor
+    with `battlenetAccountId`/`os`/`timezoneOffset`/`build`/`clientBuildVariant`; reused
+    `ClientBuild::VariantId`. `game` compiles. **Brick-E owes:** split `HandlePlayerLoginOpcode` →
+    `SendConnectToInstance(WorldAttempt1)` + defer the LoginQueryHolder into `HandleContinuePlayerLogin`
+    (and make `m_playerLoading` an `ObjectGuid`); real ctor values from the handshake; `SendPacket`
+    routing by `ConnectionType`; wire `AddInstanceConnection` on the 2nd socket's `CMSG_AUTH_CONTINUED_SESSION`.
+- **E — the `WorldSocket` + `WorldSocketMgr`/`Main` on `Acore::Net`** (depends on A–D; **user chose the
+  full Acore::Net migration** over a handshake-only rewrite on the legacy socket). Sub-phases: (E-prep)
+  `ClientBuild` auth-key system + `SessionKeyGenerator` + the 4 key-derivation seeds + the JSON
+  `RealmList::RealmJoinTicket` message; (E-net) migrate `WorldSocket`/`WorldSocketMgr`/worldserver `Main`
+  onto `Acore::Net` + proxy-protocol parity (deferred N3, `NetworkThread` lacks `EnableProxyProtocol`);
+  (E-handshake) V2 banner → `SMSG_AUTH_CHALLENGE`+DOS → parse `AuthSession`/JSON ticket → digest check
+  (HMAC-SHA512 w/ `AuthCheckSeed`) → session-key derivation (`SessionKeySeed`) → world-encrypt-key
+  (`EncryptionKeySeed`) → `SMSG_ENTER_ENCRYPTED_MODE` (Ed25519 — KAT-verified) → 2-socket continued-session
+  dance; (E-verify) **live test with the real 54261 client** — the decisive gate (TC opcode VALUES +
+  the RSA/Ed25519 signatures confirmed here). Session key + crypt live on the **socket**, not the session.
 - Then (Phase 1c): **server-side DB2 store layer** (~30-40 world-entry tables, WoWDBDefs method),
   regenerated **UpdateFields** for 54261, login-sequence packets, movement, chat, object spawning.
 
