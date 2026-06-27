@@ -54,6 +54,9 @@
 #include "Vehicle.h"
 #include "World.h"
 #include <boost/algorithm/string.hpp>
+#include <algorithm>
+#include <array>
+#include <map>
 #include <numeric>
 
 #include "ItemEnchantmentMgr.h"
@@ -4972,6 +4975,111 @@ void ObjectMgr::LoadPlayerInfo()
         LOG_INFO("server.loading", ">> Loaded {} XP For Level Definitions in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
         LOG_INFO("server.loading", " ");
     }
+}
+
+void ObjectMgr::LoadClassExpansionRequirements()
+{
+    uint32 oldMSTime = getMSTime();
+    _classExpansionRequirementStore.clear();
+
+    //                                                    0        1       2                     3
+    QueryResult result = WorldDatabase.Query("SELECT ClassID, RaceID, ActiveExpansionLevel, AccountExpansionLevel FROM `class_expansion_requirement`");
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 class expansion requirements. DB table `class_expansion_requirement` is empty.");
+        LOG_INFO("server.loading", " ");
+        return;
+    }
+
+    std::map<uint8, std::map<uint8, std::pair<uint8, uint8>>> temp;
+    std::array<uint8, MAX_CLASSES> minRequirementForClass;
+    minRequirementForClass.fill(MAX_EXPANSIONS);
+    uint32 count = 0;
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint8 classID = fields[0].Get<uint8>();
+        uint8 raceID = fields[1].Get<uint8>();
+        uint8 activeExpansionLevel = fields[2].Get<uint8>();
+        uint8 accountExpansionLevel = fields[3].Get<uint8>();
+
+        if (!sChrClassesStore.LookupEntry(classID))
+        {
+            LOG_ERROR("sql.sql", "Class {} (race {}) defined in `class_expansion_requirement` does not exist, skipped.", uint32(classID), uint32(raceID));
+            continue;
+        }
+
+        if (!sChrRacesStore.LookupEntry(raceID))
+        {
+            LOG_ERROR("sql.sql", "Race {} (class {}) defined in `class_expansion_requirement` does not exist, skipped.", uint32(raceID), uint32(classID));
+            continue;
+        }
+
+        if (activeExpansionLevel >= MAX_EXPANSIONS)
+        {
+            LOG_ERROR("sql.sql", "Class {} Race {} defined in `class_expansion_requirement` has incorrect ActiveExpansionLevel {}, skipped.", uint32(classID), uint32(raceID), uint32(activeExpansionLevel));
+            continue;
+        }
+
+        if (accountExpansionLevel >= MAX_EXPANSIONS)
+        {
+            LOG_ERROR("sql.sql", "Class {} Race {} defined in `class_expansion_requirement` has incorrect AccountExpansionLevel {}, skipped.", uint32(classID), uint32(raceID), uint32(accountExpansionLevel));
+            continue;
+        }
+
+        temp[raceID][classID] = { activeExpansionLevel, accountExpansionLevel };
+        minRequirementForClass[classID] = std::min(minRequirementForClass[classID], activeExpansionLevel);
+        ++count;
+    } while (result->NextRow());
+
+    for (auto const& [raceId, classes] : temp)
+    {
+        RaceClassAvailability& raceClassAvailability = _classExpansionRequirementStore.emplace_back();
+        raceClassAvailability.RaceID = raceId;
+
+        for (auto const& [classId, expansions] : classes)
+        {
+            ClassAvailability& classAvailability = raceClassAvailability.Classes.emplace_back();
+            classAvailability.ClassID = classId;
+            classAvailability.ActiveExpansionLevel = expansions.first;
+            classAvailability.AccountExpansionLevel = expansions.second;
+            classAvailability.MinActiveExpansionLevel = minRequirementForClass[classId];
+        }
+    }
+
+    LOG_INFO("server.loading", ">> Loaded {} class expansion requirements in {} ms.", count, GetMSTimeDiffToNow(oldMSTime));
+    LOG_INFO("server.loading", " ");
+}
+
+ClassAvailability const* ObjectMgr::GetClassExpansionRequirement(uint8 raceId, uint8 classId) const
+{
+    auto raceItr = std::find_if(_classExpansionRequirementStore.begin(), _classExpansionRequirementStore.end(), [raceId](RaceClassAvailability const& raceClass)
+    {
+        return raceClass.RaceID == raceId;
+    });
+    if (raceItr == _classExpansionRequirementStore.end())
+        return nullptr;
+
+    auto classItr = std::find_if(raceItr->Classes.begin(), raceItr->Classes.end(), [classId](ClassAvailability const& classAvailability)
+    {
+        return classAvailability.ClassID == classId;
+    });
+    if (classItr == raceItr->Classes.end())
+        return nullptr;
+
+    return &(*classItr);
+}
+
+ClassAvailability const* ObjectMgr::GetClassExpansionRequirementFallback(uint8 classId) const
+{
+    for (RaceClassAvailability const& raceClassAvailability : _classExpansionRequirementStore)
+        for (ClassAvailability const& classAvailability : raceClassAvailability.Classes)
+            if (classAvailability.ClassID == classId)
+                return &classAvailability;
+
+    return nullptr;
 }
 
 void ObjectMgr::GetPlayerClassLevelInfo(uint32 class_, uint8 level, PlayerClassLevelInfo* info) const

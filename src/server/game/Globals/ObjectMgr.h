@@ -144,6 +144,23 @@ struct GameTele
 
 typedef std::unordered_map<uint32, GameTele > GameTeleContainer;
 
+// Class-by-expansion availability (3.4.3). Replaces the legacy DBC ChrClasses `expansion`
+// field, which is gone in the 54261 DB2 layout. Backed by the `class_expansion_requirement`
+// world table. Also consumed by the modern SMSG_AUTH_RESPONSE AvailableClasses block.
+struct ClassAvailability
+{
+    uint8 ClassID = 0;
+    uint8 ActiveExpansionLevel = 0;
+    uint8 AccountExpansionLevel = 0;
+    uint8 MinActiveExpansionLevel = 0;
+};
+
+struct RaceClassAvailability
+{
+    uint8 RaceID = 0;
+    std::vector<ClassAvailability> Classes;
+};
+
 enum ScriptsType
 {
     SCRIPTS_FIRST = 1,
@@ -812,6 +829,10 @@ public:
 
     [[nodiscard]] PlayerInfo const* GetPlayerInfo(uint32 race, uint32 class_) const;
 
+    [[nodiscard]] std::vector<RaceClassAvailability> const& GetClassExpansionRequirements() const { return _classExpansionRequirementStore; }
+    [[nodiscard]] ClassAvailability const* GetClassExpansionRequirement(uint8 raceId, uint8 classId) const;
+    [[nodiscard]] ClassAvailability const* GetClassExpansionRequirementFallback(uint8 classId) const;
+
     void GetPlayerLevelInfo(uint32 race, uint32 class_, uint8 level, PlayerLevelInfo* info) const;
 
     uint32 GetNearestTaxiNode(float x, float y, float z, uint32 mapid, uint32 teamId);
@@ -1092,6 +1113,7 @@ public:
     PageText const* GetPageText(uint32 pageEntry);
 
     void LoadPlayerInfo();
+    void LoadClassExpansionRequirements();
     void LoadPetLevelInfo();
     void LoadExplorationBaseXP();
     void LoadPetNames();
@@ -1597,6 +1619,8 @@ private:
     std::unique_ptr<Acore::AhoCorasick<wchar_t>> _chatFilterAutomaton;
 
     GameTeleContainer _gameTeleStore;
+
+    std::vector<RaceClassAvailability> _classExpansionRequirementStore;
 
     ScriptNameContainer _scriptNamesStore;
 

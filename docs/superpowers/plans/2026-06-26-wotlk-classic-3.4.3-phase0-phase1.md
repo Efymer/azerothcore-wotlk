@@ -113,6 +113,13 @@ code + git history:
     a minimal Death-Knight-only stopgap at the char-create gate until that table is ported. Removed the DBC store
     (DBCStructure/Stores/fmt) and added `DB2Stores.h` includes to the 5 consumers. CharacterHandler.cpp edits are
     minimal/forced; the other agent's modern char-create will supersede them.
+  - **Completed the ChrClasses model rework (no deferral): ported the `class_expansion_requirement` mechanism.**
+    Added `ObjectMgr` structs (`ClassAvailability`/`RaceClassAvailability`), `LoadClassExpansionRequirements()` +
+    `GetClassExpansionRequirement(race,class)` / `GetClassExpansionRequirementFallback(class)` (ported from xian55),
+    wired into boot after `LoadPlayerInfo`, and a new `class_expansion_requirement` world table (Death Knight → WotLK
+    for all 10 races). Replaced the char-create stopgap with the real accessor. Verified live: SQL update applies,
+    loader logs "Loaded 10 class expansion requirements", full World Initialized. Also exposes
+    `GetClassExpansionRequirements()` for the other agent's SMSG_AUTH_RESPONSE AvailableClasses block.
   - **1c.4–1c.5** — not started. ⚠️ Note: AC's `DB2Meta` stays a designated-init aggregate (do NOT add TC's
     constructor — it would break the extractor's + runtime's designated-init metadata).
 - **Phase 1d** — not started.

@@ -346,16 +346,28 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         return;
     }
 
-    // prevent character creating Expansion class without Expansion account
-    // 3.4.3: ChrClasses.db2 has no `expansion` field (TC moves class-by-expansion gating to the
-    // class_expansion_requirement DB table). Death Knight is the only WotLK-gated class — keep the
-    // existing behaviour with a minimal mapping until the modern requirement table is ported.
-    uint8 const classExpansion = (createInfo->Class == CLASS_DEATH_KNIGHT) ? EXPANSION_WRATH_OF_THE_LICH_KING : EXPANSION_CLASSIC;
-    if (classExpansion > Expansion())
+    // prevent character creating Expansion class without Expansion account.
+    // 3.4.3: ChrClasses.db2 has no `expansion` field; class-by-expansion gating comes from the
+    // `class_expansion_requirement` world table (see ObjectMgr::LoadClassExpansionRequirements).
+    if (ClassAvailability const* raceClassRequirement = sObjectMgr->GetClassExpansionRequirement(createInfo->Race, createInfo->Class))
     {
-        SendCharCreate(CHAR_CREATE_EXPANSION_CLASS);
-        LOG_ERROR("network.opcode", "Expansion {} account:[{}] tried to Create character with expansion {} class ({})", Expansion(), GetAccountId(), classExpansion, createInfo->Class);
-        return;
+        if (raceClassRequirement->ActiveExpansionLevel > Expansion() || raceClassRequirement->AccountExpansionLevel > Expansion())
+        {
+            SendCharCreate(CHAR_CREATE_EXPANSION_CLASS);
+            LOG_ERROR("network.opcode", "Account:[{}] tried to Create character with race/class {}/{} without the required expansion (had {}, needs active {} / account {})",
+                GetAccountId(), uint32(createInfo->Race), uint32(createInfo->Class), Expansion(), raceClassRequirement->ActiveExpansionLevel, raceClassRequirement->AccountExpansionLevel);
+            return;
+        }
+    }
+    else if (ClassAvailability const* classRequirement = sObjectMgr->GetClassExpansionRequirementFallback(createInfo->Class))
+    {
+        if (classRequirement->MinActiveExpansionLevel > Expansion())
+        {
+            SendCharCreate(CHAR_CREATE_EXPANSION_CLASS);
+            LOG_ERROR("network.opcode", "Account:[{}] tried to Create character with class {} without the required expansion (had {}, needs {})",
+                GetAccountId(), uint32(createInfo->Class), Expansion(), classRequirement->MinActiveExpansionLevel);
+            return;
+        }
     }
 
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_RACEMASK))

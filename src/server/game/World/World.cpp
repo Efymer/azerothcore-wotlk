@@ -699,6 +699,9 @@ void World::SetInitialWorldSettings()
     LOG_INFO("server.loading", "Loading Player Create Data...");
     sObjectMgr->LoadPlayerInfo();
 
+    LOG_INFO("server.loading", "Loading Class Expansion Requirements...");
+    sObjectMgr->LoadClassExpansionRequirements();
+
     LOG_INFO("server.loading", "Loading Exploration BaseXP Data...");
     sObjectMgr->LoadExplorationBaseXP();
 
