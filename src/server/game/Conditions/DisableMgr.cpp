@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "DB2Stores.h"
 #include "DisableMgr.h"
 #include "GameEventMgr.h"
 #include "ObjectMgr.h"
@@ -182,7 +183,7 @@ bool DisableMgr::HandleDisableType(DisableType type, uint32 entry, uint8 flags, 
             return false;
         }
         bool isFlagInvalid = false;
-        switch (mapEntry->map_type)
+        switch (mapEntry->InstanceType)
         {
         case MAP_COMMON:
             if (flags)
@@ -244,7 +245,7 @@ bool DisableMgr::HandleDisableType(DisableType type, uint32 entry, uint8 flags, 
             LOG_ERROR("sql.sql", "Map entry {} from `disables` doesn't exist in dbc, skipped.", entry);
             return false;
         }
-        switch (mapEntry->map_type)
+        switch (mapEntry->InstanceType)
         {
         case MAP_COMMON:
             if (flags & VMAP::VMAP_DISABLE_AREAFLAG)
@@ -393,7 +394,7 @@ bool DisableMgr::IsDisabledFor(DisableType type, uint32 entry, Unit const* unit,
                 return false;
 
             if (!mapEntry->IsDungeon())
-                return mapEntry->map_type == MAP_COMMON;
+                return mapEntry->InstanceType == MAP_COMMON;
 
             uint8 disabledModes = itr->second.flags;
 

@@ -36,6 +36,7 @@ Copied events should probably have a new owner
 #include "ArenaTeamMgr.h"
 #include "CalendarMgr.h"
 #include "CalendarPackets.h"
+#include "DB2Stores.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
 #include "GameEventMgr.h"

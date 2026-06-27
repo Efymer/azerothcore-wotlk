@@ -3027,7 +3027,7 @@ void WorldObject::AddToNotify(uint16 f)
         {
             if (f & NOTIFY_VISIBILITY_CHANGED)
             {
-                uint32 EVENT_VISIBILITY_DELAY = u->FindMap() ? DynamicVisibilityMgr::GetVisibilityNotifyDelay(u->FindMap()->GetEntry()->map_type) : 1000;
+                uint32 EVENT_VISIBILITY_DELAY = u->FindMap() ? DynamicVisibilityMgr::GetVisibilityNotifyDelay(u->FindMap()->GetEntry()->InstanceType) : 1000;
 
                 uint32 diff = getMSTimeDiff(u->m_last_notify_mstime, GameTime::GetGameTimeMS().count());
                 if (diff >= EVENT_VISIBILITY_DELAY / 2)
@@ -3039,7 +3039,7 @@ void WorldObject::AddToNotify(uint16 f)
             }
             else if (f & NOTIFY_AI_RELOCATION)
             {
-                u->m_delayed_unit_ai_notify_timer = u->FindMap() ? DynamicVisibilityMgr::GetAINotifyDelay(u->FindMap()->GetEntry()->map_type) : 500;
+                u->m_delayed_unit_ai_notify_timer = u->FindMap() ? DynamicVisibilityMgr::GetAINotifyDelay(u->FindMap()->GetEntry()->InstanceType) : 500;
             }
 
             m_notifyflags |= f;

@@ -656,7 +656,7 @@ public:
         }
 
         handler->PSendSysMessage(LANG_MAP_POSITION,
-                                 object->GetMapId(), (mapEntry ? mapEntry->name[handler->GetSessionDbcLocale()] : "<unknown>"),
+                                 object->GetMapId(), (mapEntry ? mapEntry->MapName.Str[handler->GetSessionDbcLocale()] : "<unknown>"),
                                  zoneId, (zoneEntry ? zoneEntry->AreaName.Str[handler->GetSessionDbcLocale()] : "<unknown>"),
                                  areaId, (areaEntry ? areaEntry->AreaName.Str[handler->GetSessionDbcLocale()] : "<unknown>"),
                                  object->GetPhaseMask(),

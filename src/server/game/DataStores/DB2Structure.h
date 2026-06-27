@@ -18,6 +18,7 @@
 #ifndef AC_DB2STRUCTURE_H
 #define AC_DB2STRUCTURE_H
 
+#include "AreaDefines.h"
 #include "Common.h"
 #include "DB2FileLoader.h"
 #include "DBCEnums.h"
@@ -704,6 +705,68 @@ struct FactionTemplateEntry
     }
     [[nodiscard]] bool IsContestedGuardFaction() const { return (Flags & FACTION_TEMPLATE_FLAG_ATTACK_PVP_ACTIVE_PLAYERS) != 0; }
     [[nodiscard]] bool FactionRespondsToCallForHelp() const { return (Flags & FACTION_TEMPLATE_FLAG_RESPOND_TO_CALL_FOR_HELP) != 0; }
+};
+
+// Migrated from DBC (3.3.5a Map.dbc) to build 3.4.3.54261 Map.db2 (WDC4, LayoutHash 0xBFC078A9).
+// Field order/types are byte-for-byte vs xian55 DB2Structure.h MapEntry. Legacy field renames:
+//   MapID->ID, map_type->InstanceType, name[loc]->MapName.Str[loc], linked_zone->AreaTableID,
+//   addon/expansionID->ExpansionID, maxPlayers->MaxPlayers, entrance_map->CorpseMapID, Flags->Flags[0..2].
+// AC lacks the MapFlags EnumFlag wrapper, so Flags is modelled as the raw int triple (3.3.5a helpers
+// read the bit directly). The 3.3.5a corpse X/Y coordinates were dropped from the client store.
+struct MapEntry
+{
+    uint32 ID;
+    char const* Directory;
+    LocalizedString MapName;
+    LocalizedString MapDescription0;                               // Horde
+    LocalizedString MapDescription1;                               // Alliance
+    LocalizedString PvpShortDescription;
+    LocalizedString PvpLongDescription;
+    uint8 MapType;
+    int8 InstanceType;
+    uint8 ExpansionID;
+    uint16 AreaTableID;
+    int16 LoadingScreenID;
+    int16 TimeOfDayOverride;
+    int16 ParentMapID;
+    int16 CosmeticParentMapID;
+    uint8 TimeOffset;
+    float MinimapIconScale;
+    int32 RaidOffset;
+    int16 CorpseMapID;                                             // map_id of entrance map in ghost mode (continent always and in most cases = normal entrance)
+    uint8 MaxPlayers;
+    int16 WindSettingsID;
+    int32 ZmpFileDataID;
+    std::array<int32, 3> Flags;
+
+    // helpers (legacy 3.3.5a DBC API preserved; field names repointed to DB2)
+    [[nodiscard]] uint32 Expansion() const { return ExpansionID; }
+
+    [[nodiscard]] bool IsDungeon() const { return InstanceType == MAP_INSTANCE || InstanceType == MAP_RAID; }
+    [[nodiscard]] bool IsNonRaidDungeon() const { return InstanceType == MAP_INSTANCE; }
+    [[nodiscard]] bool Instanceable() const { return InstanceType == MAP_INSTANCE || InstanceType == MAP_RAID || InstanceType == MAP_BATTLEGROUND || InstanceType == MAP_ARENA; }
+    [[nodiscard]] bool IsRaid() const { return InstanceType == MAP_RAID; }
+    [[nodiscard]] bool IsBattleground() const { return InstanceType == MAP_BATTLEGROUND; }
+    [[nodiscard]] bool IsBattleArena() const { return InstanceType == MAP_ARENA; }
+    [[nodiscard]] bool IsBattlegroundOrArena() const { return InstanceType == MAP_BATTLEGROUND || InstanceType == MAP_ARENA; }
+    [[nodiscard]] bool IsWorldMap() const { return InstanceType == MAP_COMMON; }
+
+    bool GetEntrancePos(int32& mapid, float& /*x*/, float& /*y*/) const
+    {
+        // 3.4.3.54261 Map.db2 carries only the entrance/ghost map id (CorpseMapID); the corpse X/Y
+        // coordinates present in the 3.3.5a Map.dbc were dropped from the client store.
+        if (CorpseMapID < 0)
+            return false;
+        mapid = CorpseMapID;
+        return true;
+    }
+
+    [[nodiscard]] bool IsContinent() const
+    {
+        return ID == MAP_EASTERN_KINGDOMS || ID == MAP_KALIMDOR || ID == MAP_OUTLAND || ID == MAP_NORTHREND;
+    }
+
+    [[nodiscard]] bool IsDynamicDifficultyMap() const { return (Flags[0] & MAP_FLAG_DYNAMIC_DIFFICULTY) != 0; }
 };
 
 #pragma pack(pop)

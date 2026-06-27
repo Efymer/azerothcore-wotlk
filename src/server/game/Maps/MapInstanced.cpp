@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "DB2Stores.h"
 #include "MapInstanced.h"
 #include "Battleground.h"
 #include "Group.h"

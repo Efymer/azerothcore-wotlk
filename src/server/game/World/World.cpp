@@ -1037,10 +1037,10 @@ void World::SetInitialWorldSettings()
             if (mapEntry && !mapEntry->Instanceable())
             {
                 if (sMapMgr->GetMapUpdater()->activated())
-                    sMapMgr->GetMapUpdater()->schedule_map_preload(mapEntry->MapID);
+                    sMapMgr->GetMapUpdater()->schedule_map_preload(mapEntry->ID);
                 else
                 {
-                    Map* map = sMapMgr->CreateBaseMap(mapEntry->MapID);
+                    Map* map = sMapMgr->CreateBaseMap(mapEntry->ID);
 
                     if (map)
                     {

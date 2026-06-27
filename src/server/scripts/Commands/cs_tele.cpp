@@ -17,6 +17,7 @@
 
 #include "Chat.h"
 #include "CommandScript.h"
+#include "DB2Stores.h"
 #include "DBCStores.h"
 #include "DatabaseEnv.h"
 #include "Group.h"

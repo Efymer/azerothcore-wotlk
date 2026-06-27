@@ -22,6 +22,7 @@
 #include "CellImpl.h"
 #include "Chat.h"
 #include "Corpse.h"
+#include "DB2Stores.h"
 #include "GameGraveyard.h"
 #include "GameTime.h"
 #include "InstanceSaveMgr.h"
@@ -226,7 +227,7 @@ void WorldSession::HandleMoveWorldportAck()
     if (!corpse && mEntry->IsDungeon())
     {
         // resurrect character upon entering instance when the corpse is not available anymore
-        if (GetPlayer()->GetCorpseLocation().GetMapId() == mEntry->MapID)
+        if (GetPlayer()->GetCorpseLocation().GetMapId() == mEntry->ID)
         {
             GetPlayer()->ResurrectPlayer(0.5f);
             GetPlayer()->RemoveCorpse();
@@ -237,12 +238,12 @@ void WorldSession::HandleMoveWorldportAck()
     if (mInstance)
     {
         Difficulty diff = GetPlayer()->GetDifficulty(mEntry->IsRaid());
-        if (MapDifficulty const* mapDiff = GetMapDifficultyData(mEntry->MapID, diff))
+        if (MapDifficulty const* mapDiff = GetMapDifficultyData(mEntry->ID, diff))
             if (mapDiff->resetTime)
-                if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(mEntry->MapID, diff))
+                if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(mEntry->ID, diff))
                 {
                     uint32 timeleft = uint32(timeReset - GameTime::GetGameTime().count());
-                    GetPlayer()->SendInstanceResetWarning(mEntry->MapID, diff, timeleft, true);
+                    GetPlayer()->SendInstanceResetWarning(mEntry->ID, diff, timeleft, true);
                 }
         allowMount = mInstance->AllowMount;
     }

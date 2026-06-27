@@ -16387,7 +16387,7 @@ void Unit::ExecuteDelayedUnitRelocationEvent()
                     float dy = active->m_last_notify_position.GetPositionY() - active->GetPositionY();
                     float dz = active->m_last_notify_position.GetPositionZ() - active->GetPositionZ();
                     float distsq = dx * dx + dy * dy + dz * dz;
-                    float mindistsq = DynamicVisibilityMgr::GetReqMoveDistSq(active->FindMap()->GetEntry()->map_type);
+                    float mindistsq = DynamicVisibilityMgr::GetReqMoveDistSq(active->FindMap()->GetEntry()->InstanceType);
                     if (distsq < mindistsq)
                         continue;
 
@@ -16422,7 +16422,7 @@ void Unit::ExecuteDelayedUnitRelocationEvent()
                 float dz     = active->m_last_notify_position.GetPositionZ() - active->GetPositionZ();
                 float distsq = dx * dx + dy * dy + dz * dz;
 
-                float mindistsq = DynamicVisibilityMgr::GetReqMoveDistSq(active->FindMap()->GetEntry()->map_type);
+                float mindistsq = DynamicVisibilityMgr::GetReqMoveDistSq(active->FindMap()->GetEntry()->InstanceType);
                 if (distsq < mindistsq)
                     return;
 
@@ -16448,7 +16448,7 @@ void Unit::ExecuteDelayedUnitRelocationEvent()
         float dy = unit->m_last_notify_position.GetPositionY() - unit->GetPositionY();
         float dz = unit->m_last_notify_position.GetPositionZ() - unit->GetPositionZ();
         float distsq = dx * dx + dy * dy + dz * dz;
-        float mindistsq = DynamicVisibilityMgr::GetReqMoveDistSq(unit->FindMap()->GetEntry()->map_type);
+        float mindistsq = DynamicVisibilityMgr::GetReqMoveDistSq(unit->FindMap()->GetEntry()->InstanceType);
         if (distsq < mindistsq)
             return;
 

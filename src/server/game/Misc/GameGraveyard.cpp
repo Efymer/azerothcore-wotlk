@@ -170,15 +170,8 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
     float distNear = 10000;
     GraveyardStruct const* entryNear = nullptr;
 
-    // at entrance map for corpse map
-    bool foundEntr = false;
-    float distEntr = 10000;
-    GraveyardStruct const* entryEntr = nullptr;
-
     // some where other
     GraveyardStruct const* entryFar = nullptr;
-
-    MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
 
     for (; range.first != range.second; ++range.first)
     {
@@ -211,34 +204,10 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
         // find now nearest graveyard at other map
         if (mapId != entry->Map)
         {
-            // if find graveyard at different map from where entrance placed (or no entrance data), use any first
-            if (!mapEntry
-                    || mapEntry->entrance_map < 0
-                    || uint32(mapEntry->entrance_map) != entry->Map
-                    || (mapEntry->entrance_x == 0 && mapEntry->entrance_y == 0))
-            {
-                // not have any corrdinates for check distance anyway
-                entryFar = entry;
-                continue;
-            }
-
-            // at entrance map calculate distance (2D);
-            float dist2 = (entry->x - mapEntry->entrance_x) * (entry->x - mapEntry->entrance_x)
-                          + (entry->y - mapEntry->entrance_y) * (entry->y - mapEntry->entrance_y);
-            if (foundEntr)
-            {
-                if (dist2 < distEntr)
-                {
-                    distEntr = dist2;
-                    entryEntr = entry;
-                }
-            }
-            else
-            {
-                foundEntr = true;
-                distEntr = dist2;
-                entryEntr = entry;
-            }
+            // 3.4.3.54261 Map.db2 dropped the entrance corpse X/Y coordinates, so a cross-map
+            // distance can no longer be measured here; fall back to using any first match.
+            entryFar = entry;
+            continue;
         }
         // find now nearest graveyard at same map
         else
@@ -263,9 +232,6 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
 
     if (entryNear)
         return entryNear;
-
-    if (entryEntr)
-        return entryEntr;
 
     return entryFar;
 }

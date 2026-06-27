@@ -16,6 +16,7 @@
  */
 
 #include "AccountMgr.h"
+#include "DB2Stores.h"
 #include "GameTime.h"
 #include "InstancePackets.h"
 #include "MapMgr.h"

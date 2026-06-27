@@ -19,6 +19,7 @@
 #define ACORE_MAP_H
 
 #include "Cell.h"
+#include "DB2Structure.h"
 #include "DBCStructure.h"
 #include "DataMap.h"
 #include "Define.h"
@@ -229,7 +230,7 @@ public:
     GridTerrainData* GetGridTerrainData(GridCoord const& gridCoord);
     GridTerrainData* GetGridTerrainData(float x, float y);
 
-    [[nodiscard]] uint32 GetId() const { return i_mapEntry->MapID; }
+    [[nodiscard]] uint32 GetId() const { return i_mapEntry->ID; }
 
     [[nodiscard]] Map const* GetParent() const { return m_parentMap; }
 

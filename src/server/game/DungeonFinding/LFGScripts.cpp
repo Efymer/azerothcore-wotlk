@@ -19,6 +19,7 @@
  * Interaction between core and LFGScripts
  */
 
+#include "DB2Stores.h"
 #include "LFGScripts.h"
 #include "Group.h"
 #include "LFGMgr.h"

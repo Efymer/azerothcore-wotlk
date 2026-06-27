@@ -13,6 +13,7 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "DB2Stores.h"
 #include "TestMap.h"
 #include "DBCStores.h"
 #include "ScriptMgr.h"
@@ -46,9 +47,9 @@ TestMap::~TestMap()
     if (!sMapStore.LookupEntry(0))
     {
         auto* entry = new MapEntry{};
-        entry->MapID = 0;
-        entry->map_type = MAP_COMMON;
-        entry->entrance_map = -1;
+        entry->ID = 0;
+        entry->InstanceType = MAP_COMMON;
+        entry->CorpseMapID = -1;
         sMapStore.SetEntry(0, entry);
     }
 

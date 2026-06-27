@@ -1502,6 +1502,74 @@ struct AreaTableLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 28, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct MapLoadInfo
+{
+    // Build 3.4.3.54261 (xian55 MapMeta, LayoutHash 0xBFC078A9). IndexField -1 = ID is the
+    // implicit (non-inline) record id: present in the flattened Fields list but NOT in MetaFields.
+    static constexpr DB2MetaField MetaFields[22] =
+    {
+        { FT_STRING_NOT_LOCALIZED, 1, true },
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_FLOAT, 1, true },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_SHORT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 3, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1349477, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 22, .FileFieldCount = 22, .LayoutHash = 0xBFC078A9, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[25] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING_NOT_LOCALIZED, "Directory" },
+        { false, FT_STRING, "MapName" },
+        { false, FT_STRING, "MapDescription0" },
+        { false, FT_STRING, "MapDescription1" },
+        { false, FT_STRING, "PvpShortDescription" },
+        { false, FT_STRING, "PvpLongDescription" },
+        { false, FT_BYTE, "MapType" },
+        { true, FT_BYTE, "InstanceType" },
+        { false, FT_BYTE, "ExpansionID" },
+        { false, FT_SHORT, "AreaTableID" },
+        { true, FT_SHORT, "LoadingScreenID" },
+        { true, FT_SHORT, "TimeOfDayOverride" },
+        { true, FT_SHORT, "ParentMapID" },
+        { true, FT_SHORT, "CosmeticParentMapID" },
+        { false, FT_BYTE, "TimeOffset" },
+        { false, FT_FLOAT, "MinimapIconScale" },
+        { true, FT_INT, "RaidOffset" },
+        { true, FT_SHORT, "CorpseMapID" },
+        { false, FT_BYTE, "MaxPlayers" },
+        { true, FT_SHORT, "WindSettingsID" },
+        { true, FT_INT, "ZmpFileDataID" },
+        { true, FT_INT, "Flags1" },
+        { true, FT_INT, "Flags2" },
+        { true, FT_INT, "Flags3" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 25, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct FactionLoadInfo
 {
     static constexpr DB2MetaField MetaFields[18] =

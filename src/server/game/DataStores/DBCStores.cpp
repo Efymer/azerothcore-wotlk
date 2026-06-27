@@ -109,7 +109,7 @@ DBCStorage <LiquidTypeEntry> sLiquidTypeStore(LiquidTypefmt);
 DBCStorage <LockEntry> sLockStore(LockEntryfmt);
 
 DBCStorage <MailTemplateEntry> sMailTemplateStore(MailTemplateEntryfmt);
-DBCStorage <MapEntry> sMapStore(MapEntryfmt);
+// sMapStore migrated to DB2 (3.4.3.54261) — see DataStores/DB2Stores.cpp
 
 // DBC used only for initialization sMapDifficultyMap at startup.
 DBCStorage <MapDifficultyEntry> sMapDifficultyStore(MapDifficultyEntryfmt); // only for loading
@@ -311,7 +311,6 @@ void LoadDBCStores(const std::string& dataPath)
     LOAD_DBC(sLiquidTypeStore,                      "LiquidType.dbc",                       "liquidtype_dbc");
     LOAD_DBC(sLockStore,                            "Lock.dbc",                             "lock_dbc");
     LOAD_DBC(sMailTemplateStore,                    "MailTemplate.dbc",                     "mailtemplate_dbc");
-    LOAD_DBC(sMapStore,                             "Map.dbc",                              "map_dbc");
     LOAD_DBC(sMapDifficultyStore,                   "MapDifficulty.dbc",                    "mapdifficulty_dbc");
     LOAD_DBC(sMovieStore,                           "Movie.dbc",                            "movie_dbc");
     LOAD_DBC(sNamesReservedStore,                   "NamesReserved.dbc",                    "namesreserved_dbc");
@@ -608,7 +607,6 @@ void LoadDBCStores(const std::string& dataPath)
             !sGemPropertiesStore.LookupEntry(1629)     ||       // last added spell in 3.3.5a
             !sItemStore.LookupEntry(56806)             ||       // last client known item added in 3.3.5a
             !sItemExtendedCostStore.LookupEntry(2997)  ||       // last item extended cost added in 3.3.5a
-            !sMapStore.LookupEntry(724)                ||       // last map added in 3.3.5a
             !sSpellStore.LookupEntry(80864)            )        // last client known item added in 3.3.5a
     {
         LOG_ERROR("dbc", "You have _outdated_ DBC data. Please extract correct versions from current using client.");

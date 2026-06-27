@@ -1541,14 +1541,14 @@ public:
                 }
 
                 std::ostringstream ss;
-                ss << mapInfo->MapID << " - [" << name << ']';
+                ss << mapInfo->ID << " - [" << name << ']';
 
                 if (mapInfo->IsContinent())
                 {
                     ss << handler->GetAcoreString(LANG_CONTINENT);
                 }
 
-                switch (mapInfo->map_type)
+                switch (mapInfo->InstanceType)
                 {
                     case MAP_INSTANCE:
                         ss << handler->GetAcoreString(LANG_INSTANCE);

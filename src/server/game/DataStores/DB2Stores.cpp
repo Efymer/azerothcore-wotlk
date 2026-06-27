@@ -50,6 +50,7 @@ DB2Storage<TaxiPathNodeEntry>           sTaxiPathNodeStore("TaxiPathNode.db2", &
 DB2Storage<AreaTableEntry>              sAreaTableStore("AreaTable.db2", &AreaTableLoadInfo::Instance);
 DB2Storage<FactionEntry>                sFactionStore("Faction.db2", &FactionLoadInfo::Instance);
 DB2Storage<FactionTemplateEntry>        sFactionTemplateStore("FactionTemplate.db2", &FactionTemplateLoadInfo::Instance);
+DB2Storage<MapEntry>                    sMapStore("Map.db2", &MapLoadInfo::Instance);
 
 // The DB2 loader produces packed records (stride = DB2Meta::GetRecordSize()), so a store's C++ struct must
 // have the identical packed size. Mirrors TrinityCore's GetCppRecordSize() structure check.
@@ -114,6 +115,7 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     LOAD_DB2(sAreaTableStore);
     LOAD_DB2(sFactionStore);
     LOAD_DB2(sFactionTemplateStore);
+    LOAD_DB2(sMapStore);
 
 #undef LOAD_DB2
 

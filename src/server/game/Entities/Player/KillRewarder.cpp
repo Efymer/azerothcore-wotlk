@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "DB2Stores.h"
 #include "KillRewarder.h"
 #include "Creature.h"
 #include "Formulas.h"
