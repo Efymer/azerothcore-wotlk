@@ -17,23 +17,30 @@
 
 #include "WorldSocket.h"
 #include "AccountMgr.h"
+#include "AuthenticationPackets.h"
+#include "ClientBuildInfo.h"
 #include "Config.h"
 #include "CryptoHash.h"
 #include "CryptoRandom.h"
 #include "DatabaseEnv.h"
 #include "GameTime.h"
+#include "HMAC.h"
 #include "IPLocation.h"
 #include "IpBanCheckConnectionInitializer.h"
 #include "Opcodes.h"
 #include "PacketLog.h"
+#include "ProtobufJSON.h"
 #include "Random.h"
 #include "Realm.h"
+#include "RealmList.pb.h"
 #include "ScriptMgr.h"
+#include "SessionKeyGenerator.h"
 #include "World.h"
 #include "WorldSession.h"
 #include "WorldSessionMgr.h"
 #include "RBAC.h"
 #include "zlib.h"
+#include <algorithm>
 #include <memory>
 
 using boost::asio::ip::tcp;
@@ -51,6 +58,17 @@ struct CompressedWorldPacket
 #pragma pack(pop)
 
 uint32 const WorldSocket::MinSizeForCompression = 0x400;
+
+// 3.4.3 world-auth seeds, copied verbatim from TrinityCore wotlk_classic WorldSocket.cpp. These are
+// part of the client/server contract and must not change.
+std::array<uint8, 32> const WorldSocket::AuthCheckSeed = { 0xDE, 0x3A, 0x2A, 0x8E, 0x6B, 0x89, 0x52, 0x66, 0x88, 0x9D, 0x7E, 0x7A, 0x77, 0x1D, 0x5D, 0x1F,
+    0x4E, 0xD9, 0x0C, 0x23, 0x9B, 0xCD, 0x0E, 0xDC, 0xD2, 0xE8, 0x04, 0x3A, 0x68, 0x64, 0xC7, 0xB0 };
+std::array<uint8, 32> const WorldSocket::SessionKeySeed = { 0xE8, 0x1E, 0x8B, 0x59, 0x27, 0x62, 0x1E, 0xAA, 0x86, 0x15, 0x18, 0xEA, 0xC0, 0xBF, 0x66, 0x8C,
+    0x6D, 0xBF, 0x83, 0x93, 0xBC, 0xAA, 0x80, 0x52, 0x5B, 0x1E, 0xDC, 0x23, 0xA0, 0x12, 0xB7, 0x50 };
+std::array<uint8, 32> const WorldSocket::ContinuedSessionSeed = { 0x56, 0x5C, 0x61, 0x9C, 0x48, 0x3A, 0x52, 0x1F, 0x61, 0x5D, 0x05, 0x49, 0xB2, 0x9A, 0x39, 0xBF,
+    0x4B, 0x97, 0xB0, 0x1B, 0xF9, 0x6C, 0xDE, 0xD6, 0x80, 0x1D, 0xAB, 0x26, 0x02, 0xA9, 0x9B, 0x9D };
+std::array<uint8, 32> const WorldSocket::EncryptionKeySeed = { 0x71, 0xC9, 0xED, 0x5A, 0xA7, 0x0E, 0x4D, 0xFF, 0x4C, 0x36, 0xA6, 0x5A, 0x3E, 0x46, 0x8A, 0x4A,
+    0x5D, 0xA1, 0x48, 0xC8, 0x30, 0x47, 0x4A, 0xDE, 0xF6, 0x0D, 0x6C, 0xBE, 0x6F, 0xE4, 0x55, 0x73 };
 
 WorldSocket::WorldSocket(Acore::Net::IoContextTcpSocket&& socket) : BaseSocket(std::move(socket)),
     _type(CONNECTION_TYPE_REALM), _key(0), _serverChallenge(), _sessionKey(), _encryptKey(), _OverSpeedPings(0),
@@ -235,15 +253,15 @@ bool WorldSocket::Update()
 
 void WorldSocket::SendAuthSession()
 {
-    Acore::Crypto::GetRandomBytes(_serverChallenge);
+    _serverChallenge = Acore::Crypto::GetRandomBytes<32>();
 
-    // SMSG_AUTH_CHALLENGE (3.4.3): DosChallenge[32] + Challenge[32] + DosZeroBits(uint8)
-    WorldPacket packet(SMSG_AUTH_CHALLENGE, 32 + 32 + 1);
-    packet.append(Acore::Crypto::GetRandomBytes<32>());     // DosChallenge
-    packet.append(_serverChallenge);                        // server challenge
-    packet << uint8(1);                                     // DosZeroBits
+    WorldPackets::Auth::AuthChallenge challenge;
+    challenge.Challenge = _serverChallenge;
+    std::array<uint8, 32> dosChallenge = Acore::Crypto::GetRandomBytes<32>();
+    memcpy(challenge.DosChallenge.data(), dosChallenge.data(), dosChallenge.size());
+    challenge.DosZeroBits = 1;
 
-    SendPacketAndLogOpcode(packet);
+    SendPacketAndLogOpcode(*challenge.Write());
 }
 
 void WorldSocket::OnClose()
@@ -352,72 +370,48 @@ bool WorldSocket::ReadHeaderHandler()
     return true;
 }
 
-struct ClientAuthSession
-{
-    uint32 BattlegroupID = 0;
-    uint32 LoginServerType = 0;
-    uint32 RealmID = 0;
-    uint32 Build = 0;
-    std::array<uint8, 4> LocalChallenge = {};
-    uint32 LoginServerID = 0;
-    uint32 RegionID = 0;
-    uint64 DosResponse = 0;
-    Acore::Crypto::SHA1::Digest Digest = {};
-    std::string Account;
-    ByteBuffer AddonInfo;
-};
-
-struct ClientAuthContinuedSession
-{
-    uint64 Key = 0;
-    std::array<uint8, 16> LocalChallenge = {};
-    std::array<uint8, 24> Digest = {};
-};
-
 struct AccountInfo
 {
     uint32 Id;
-    ::SessionKey SessionKey;
+    std::array<uint8, 64> KeyData;      // 3.4.3: the 64-byte bnet key blob (session_key_bnet) the world key derives from
     std::string LastIP;
     bool IsLockedToIP;
     std::string LockCountry;
     uint8 Expansion;
     uint32 Flags;
     int64 MuteTime;
+    uint32 Build;
     LocaleConstant Locale;
     uint32 Recruiter;
     std::string OS;
-    bool IsRectuiter;
+    Minutes TimezoneOffset;
     AccountTypes Security;
     bool IsBanned;
-    uint32 TotalTime;
+    bool IsRectuiter;
 
     explicit AccountInfo(Field* fields)
     {
-        //           0             1          2         3               4            5        6          7         8            9    10           11          12
-        // SELECT a.id, a.sessionkey, a.last_ip, a.locked, a.lock_country, a.expansion, a.Flags a.mutetime, a.locale, a.recruiter, a.os, a.totaltime, aa.gmLevel,
-        //                                                           13    14
-        // ab.unbandate > UNIX_TIMESTAMP() OR ab.unbandate = ab.bandate, r.id
-        // FROM account a
-        // LEFT JOIN account_access aa ON a.id = aa.AccountID AND aa.RealmID IN (-1, ?)
-        // LEFT JOIN account_banned ab ON a.id = ab.id
-        // LEFT JOIN account r ON a.id = r.recruiter
-        // WHERE a.username = ? ORDER BY aa.RealmID DESC LIMIT 1
+        // LOGIN_SEL_ACCOUNT_INFO_FOR_WORLD_AUTH columns:
+        //           0                   1            2          3               4            5         6           7                8           9             10        11
+        // SELECT a.id, a.session_key_bnet, a.last_ip, a.locked, a.lock_country, a.expansion, a.Flags, a.mutetime, a.client_build, a.locale, a.recruiter, a.os,
+        //                       12             13                                                             14    15
+        // a.timezone_offset, aa.gmlevel, ab.unbandate > UNIX_TIMESTAMP() OR ab.unbandate = ab.bandate, r.id
         Id = fields[0].Get<uint32>();
-        SessionKey = fields[1].Get<Binary, SESSION_KEY_LENGTH>();
+        KeyData = fields[1].Get<Binary, 64>();
         LastIP = fields[2].Get<std::string>();
         IsLockedToIP = fields[3].Get<bool>();
         LockCountry = fields[4].Get<std::string>();
         Expansion = fields[5].Get<uint8>();
         Flags = fields[6].Get<uint32>();
         MuteTime = fields[7].Get<int64>();
-        Locale = LocaleConstant(fields[8].Get<uint8>());
-        Recruiter = fields[9].Get<uint32>();
-        OS = fields[10].Get<std::string>();
-        TotalTime = fields[11].Get<uint32>();
-        Security = AccountTypes(fields[12].Get<uint8>());
-        IsBanned = fields[13].Get<uint64>() != 0;
-        IsRectuiter = fields[14].Get<uint32>() != 0;
+        Build = fields[8].Get<uint32>();
+        Locale = LocaleConstant(fields[9].Get<uint8>());
+        Recruiter = fields[10].Get<uint32>();
+        OS = fields[11].Get<std::string>();
+        TimezoneOffset = Minutes(fields[12].Get<int16>());
+        Security = AccountTypes(fields[13].Get<uint8>());
+        IsBanned = fields[14].Get<uint64>() != 0;
+        IsRectuiter = fields[15].Get<uint32>() != 0;
 
         uint32 world_expansion = sWorld->getIntConfig(CONFIG_EXPANSION);
         if (Expansion > world_expansion)
@@ -481,15 +475,14 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
                 return ReadDataHandlerResult::Error;
             }
 
-            try
+            std::shared_ptr<WorldPackets::Auth::AuthSession> authSession = std::make_shared<WorldPackets::Auth::AuthSession>(std::move(packet));
+            if (!authSession->ReadNoThrow())
             {
-                HandleAuthSession(packet);
-                return ReadDataHandlerResult::WaitingForQuery;
+                LOG_ERROR("network", "WorldSocket::ReadDataHandler(): client {} sent malformed CMSG_AUTH_SESSION", GetRemoteIpAddress().to_string());
+                return ReadDataHandlerResult::Error;
             }
-            catch (ByteBufferException const&) { }
-
-            LOG_ERROR("network", "WorldSocket::ReadDataHandler(): client {} sent malformed CMSG_AUTH_SESSION", GetRemoteIpAddress().to_string());
-            return ReadDataHandlerResult::Error;
+            HandleAuthSession(authSession);
+            return ReadDataHandlerResult::WaitingForQuery;
         }
         case CMSG_AUTH_CONTINUED_SESSION:
         {
@@ -502,15 +495,14 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
                 return ReadDataHandlerResult::Error;
             }
 
-            try
+            std::shared_ptr<WorldPackets::Auth::AuthContinuedSession> authSession = std::make_shared<WorldPackets::Auth::AuthContinuedSession>(std::move(packet));
+            if (!authSession->ReadNoThrow())
             {
-                HandleAuthContinuedSession(packet);
-                return ReadDataHandlerResult::WaitingForQuery;
+                LOG_ERROR("network", "WorldSocket::ReadDataHandler(): client {} sent malformed CMSG_AUTH_CONTINUED_SESSION", GetRemoteIpAddress().to_string());
+                return ReadDataHandlerResult::Error;
             }
-            catch (ByteBufferException const&) { }
-
-            LOG_ERROR("network", "WorldSocket::ReadDataHandler(): client {} sent malformed CMSG_AUTH_CONTINUED_SESSION", GetRemoteIpAddress().to_string());
-            return ReadDataHandlerResult::Error;
+            HandleAuthContinuedSession(authSession);
+            return ReadDataHandlerResult::WaitingForQuery;
         }
         case CMSG_KEEP_ALIVE: /// @todo: handle this packet in the same way of CMSG_TIME_SYNC_RESPONSE
             sessionGuard.lock();
@@ -688,36 +680,31 @@ uint32 WorldSocket::CompressPacket(uint8* buffer, WorldPacket const& packet)
     return bufferSize - _compressionStream->avail_out;
 }
 
-void WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
+void WorldSocket::HandleAuthSession(std::shared_ptr<WorldPackets::Auth::AuthSession> authSession)
 {
-    std::shared_ptr<ClientAuthSession> authSession = std::make_shared<ClientAuthSession>();
-
-    // TODO(3.4.3 brick-E2): the real 3.4.3 CMSG_AUTH_SESSION carries a JSON RealmJoinTicket plus
-    // the bnet RegionRealmBattlegroup/LocalChallenge/Digest in the modern bit-packed layout. For
-    // brick E1 we best-effort parse the legacy SRP field order so the WorldSession can be built;
-    // the digest/key-derivation is left for E2.
-    recvPacket >> authSession->Build;
-    recvPacket >> authSession->LoginServerID;
-    recvPacket >> authSession->Account;
-    recvPacket >> authSession->LoginServerType;
-    recvPacket.read(authSession->LocalChallenge);
-    recvPacket >> authSession->RegionID;
-    recvPacket >> authSession->BattlegroupID;
-    recvPacket >> authSession->RealmID;               // realmId from auth_database.realmlist table
-    recvPacket >> authSession->DosResponse;
-    recvPacket.read(authSession->Digest);
-    authSession->AddonInfo.resize(recvPacket.size() - recvPacket.rpos());
-    recvPacket.read(authSession->AddonInfo.contents(), authSession->AddonInfo.size()); // .contents will throw if empty, thats what we want
+    // 3.4.3 CMSG_AUTH_SESSION carries a JSON RealmJoinTicket identifying the game account + client variant.
+    std::shared_ptr<JSON::RealmList::RealmJoinTicket> joinTicket = std::make_shared<JSON::RealmList::RealmJoinTicket>();
+    if (!JSON::Deserialize(authSession->RealmJoinTicket, joinTicket.get()))
+    {
+        SendAuthResponseError(REALM_LIST_REALM_NOT_FOUND);
+        LOG_ERROR("network", "WorldSocket::HandleAuthSession: Failed to deserialize RealmJoinTicket from {}.", GetRemoteIpAddress().to_string());
+        DelayedCloseSocket();
+        return;
+    }
 
     // Get the account information from the auth database
-    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_INFO_BY_NAME);
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_INFO_FOR_WORLD_AUTH);
     stmt->SetData(0, int32(realm.Id.Realm));
-    stmt->SetData(1, authSession->Account);
+    stmt->SetData(1, joinTicket->gameaccount());
 
-    QueueQuery(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&WorldSocket::HandleAuthSessionCallback, this, authSession, std::placeholders::_1)));
+    QueueQuery(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback([this, authSession = std::move(authSession), joinTicket = std::move(joinTicket)](PreparedQueryResult result) mutable
+    {
+        HandleAuthSessionCallback(std::move(authSession), std::move(joinTicket), std::move(result));
+    }));
 }
 
-void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> authSession, PreparedQueryResult result)
+void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::AuthSession> authSession,
+    std::shared_ptr<JSON::RealmList::RealmJoinTicket> joinTicket, PreparedQueryResult result)
 {
     // Stop if the account is not found
     if (!result)
@@ -734,21 +721,98 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
     // For hook purposes, we get Remoteaddress at this point.
     std::string address = sConfigMgr->GetOption<bool>("AllowLoggingIPAddressesInDatabase", true, true) ? GetRemoteIpAddress().to_string() : "0.0.0.0";
 
+    // ---------------------------------------------------------------------------------------------
+    // 3.4.3 world-auth crypto. The digest is HMAC_SHA512 over LocalChallenge || _serverChallenge ||
+    // AuthCheckSeed, keyed by SHA512(KeyData || buildAuthKey). The build auth key is per build/variant.
+    //
+    // OPEN GATE: ClientBuild::Info::AuthKeys is a deferred stub (no build_auth_key table in
+    // AzerothCore), so it is always empty. We therefore fall back to an EMPTY auth key rather than
+    // hard-failing with ERROR_BAD_VERSION. This keeps the path testable; if the live 54261 client
+    // actually requires a non-empty key the digest check below will surface it (logged).
+    std::vector<uint8> authKey;
+    ClientBuild::VariantId buildVariant = { joinTicket->platform(), joinTicket->clientarch(), joinTicket->type() };
+    ClientBuild::Info const* buildInfo = ClientBuild::GetBuildInfo(account.Build);
+    if (!buildInfo)
+    {
+        LOG_WARN("network", "WorldSocket::HandleAuthSession: No client build info for build {} ({}); proceeding with empty auth key.",
+            account.Build, address);
+    }
+    else
+    {
+        auto authKeyItr = std::find_if(buildInfo->AuthKeys.begin(), buildInfo->AuthKeys.end(),
+            [&buildVariant](ClientBuild::AuthKey const& key) { return key.Variant == buildVariant; });
+        if (authKeyItr != buildInfo->AuthKeys.end())
+            authKey.assign(authKeyItr->Key.begin(), authKeyItr->Key.end());
+        else
+            LOG_WARN("network", "WorldSocket::HandleAuthSession: No build_auth_key configured for build {} variant {}-{}-{} ({}); proceeding with empty auth key.",
+                account.Build, ClientBuild::ToCharArray(buildVariant.Platform).data(), ClientBuild::ToCharArray(buildVariant.Arch).data(),
+                ClientBuild::ToCharArray(buildVariant.Type).data(), address);
+    }
+
+    // digestKeyHash = SHA512(KeyData || authKey)
+    Acore::Crypto::SHA512 digestKeyHash;
+    digestKeyHash.UpdateData(account.KeyData.data(), account.KeyData.size());
+    if (!authKey.empty())
+        digestKeyHash.UpdateData(authKey.data(), authKey.size());
+    digestKeyHash.Finalize();
+
+    // serverDigest = HMAC_SHA512(digestKeyHash)( LocalChallenge || _serverChallenge || AuthCheckSeed )
+    Acore::Crypto::HMAC_SHA512 hmac(digestKeyHash.GetDigest());
+    hmac.UpdateData(authSession->LocalChallenge);
+    hmac.UpdateData(_serverChallenge);
+    hmac.UpdateData(AuthCheckSeed);
+    hmac.Finalize();
+
+    // Check that Key and account name are the same on client and server
+    if (memcmp(hmac.GetDigest().data(), authSession->Digest.data(), authSession->Digest.size()) != 0)
+    {
+        SendAuthResponseError(AUTH_FAILED);
+        LOG_ERROR("network", "WorldSocket::HandleAuthSession: Authentication failed for account: {} ('{}') address: {}. "
+            "Digest mismatch (authKeyLen: {}, keyData[0]: {:02X}, serverDigest[0]: {:02X}, clientDigest[0]: {:02X}).",
+            account.Id, joinTicket->gameaccount(), address, authKey.size(), account.KeyData[0], hmac.GetDigest()[0], authSession->Digest[0]);
+        DelayedCloseSocket();
+        return;
+    }
+
+    // sessionKey = SessionKeyGenerator( HMAC_SHA512( SHA512(KeyData) )( _serverChallenge || LocalChallenge || SessionKeySeed ) )
+    Acore::Crypto::SHA512 keyData;
+    keyData.UpdateData(account.KeyData.data(), account.KeyData.size());
+    keyData.Finalize();
+
+    Acore::Crypto::HMAC_SHA512 sessionKeyHmac(keyData.GetDigest());
+    sessionKeyHmac.UpdateData(_serverChallenge);
+    sessionKeyHmac.UpdateData(authSession->LocalChallenge);
+    sessionKeyHmac.UpdateData(SessionKeySeed);
+    sessionKeyHmac.Finalize();
+
+    SessionKeyGenerator<Acore::Crypto::SHA512> sessionKeyGenerator(sessionKeyHmac.GetDigest());
+    sessionKeyGenerator.Generate(_sessionKey.data(), 40);
+
+    // _encryptKey = first 32 bytes of HMAC_SHA512(_sessionKey)( LocalChallenge || _serverChallenge || EncryptionKeySeed )
+    Acore::Crypto::HMAC_SHA512 encryptKeyGen(_sessionKey);
+    encryptKeyGen.UpdateData(authSession->LocalChallenge);
+    encryptKeyGen.UpdateData(_serverChallenge);
+    encryptKeyGen.UpdateData(EncryptionKeySeed);
+    encryptKeyGen.Finalize();
+
+    // only first 32 bytes of the hmac are used
+    memcpy(_encryptKey.data(), encryptKeyGen.GetDigest().data(), 32);
+
     LoginDatabasePreparedStatement* stmt = nullptr;
 
     // As we don't know if attempted login process by ip works, we update last_attempt_ip right away
     stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_LAST_ATTEMPT_IP);
     stmt->SetData(0, address);
-    stmt->SetData(1, authSession->Account);
+    stmt->SetData(1, joinTicket->gameaccount());
     LoginDatabase.Execute(stmt);
     // This also allows to check for possible "hack" attempts on account
 
-    // TODO(3.4.3 brick-E2): derive _sessionKey/_encryptKey from the modern handshake
-    // (SHA512/HMAC over the four 3.4.3 seeds: AuthCheckSeed, SessionKeySeed, ContinuedSessionSeed,
-    // EncryptionKeySeed) and verify authSession->Digest. For brick E1 we keep the account session
-    // key so the WorldSession can be built, but skip the digest check and leave the AES-GCM crypt
-    // uninitialized (HandleEnterEncryptedModeAck would Init it once E2 fills _encryptKey).
-    _sessionKey = account.SessionKey;
+    // Persist the derived 40-byte world session key (overwrites the 64-byte bnet blob) so a follow-up
+    // continued (instance) session can reload it.
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_ACCOUNT_INFO_CONTINUED_SESSION);
+    stmt->SetData(0, _sessionKey);
+    stmt->SetData(1, account.Id);
+    LoginDatabase.Execute(stmt);
 
     // First reject the connection if packet contains invalid data or realm state doesn't allow logging in
     if (sWorld->IsClosed())
@@ -777,9 +841,6 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
         DelayedCloseSocket();
         return;
     }
-
-    // TODO(3.4.3 brick-E2): digest verification of authSession->Digest against the HMAC of the
-    // local challenge + server challenge + AuthCheckSeed. Skipped in brick E1.
 
     if (IpLocationRecord const* location = sIPLocation->GetLocationRecord(address))
         _ipCountry = location->CountryCode;
@@ -842,12 +903,12 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
         return;
     }
 
-    LOG_DEBUG("network", "WorldSocket::HandleAuthSession: Client '{}' authenticated successfully from {}.", authSession->Account, address);
+    LOG_DEBUG("network", "WorldSocket::HandleAuthSession: Client '{}' authenticated successfully from {}.", joinTicket->gameaccount(), address);
 
     // Update the last_ip in the database as it was successful for login
     stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_LAST_IP);
     stmt->SetData(0, address);
-    stmt->SetData(1, authSession->Account);
+    stmt->SetData(1, joinTicket->gameaccount());
 
     LoginDatabase.Execute(stmt);
 
@@ -858,15 +919,16 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
 
     sScriptMgr->OnLastIpUpdate(account.Id, address);
 
-    // TODO(3.4.3 brick-E2): real values from the modern handshake (battlenet account id, timezone
-    // offset, client build variant). For now the legacy SRP handshake supplies what it can and the
-    // rest are sensible placeholders so the modern WorldSession ctor compiles.
-    _worldSession = new WorldSession(account.Id, std::move(authSession->Account), account.Flags, 0 /*battlenetAccountId*/,
+    // TODO(3.4.3 brick-E2b): battlenetAccountId is not provided by LOGIN_SEL_ACCOUNT_INFO_FOR_WORLD_AUTH;
+    // passing 0 for now. TotalTime is likewise not selected here (was account.totaltime in the legacy
+    // SELECT) - pass 0 until the world-auth SELECT carries it.
+    _worldSession = new WorldSession(account.Id, std::move(*joinTicket->mutable_gameaccount()), account.Flags, 0 /*battlenetAccountId*/,
         std::static_pointer_cast<WorldSocket>(shared_from_this()), account.Security, account.Expansion, account.MuteTime,
-        account.OS, Minutes(0) /*timezoneOffset*/, authSession->Build, ClientBuild::VariantId{} /*clientBuildVariant*/,
-        account.Locale, account.Recruiter, account.IsRectuiter, account.Security ? true : false, account.TotalTime);
+        account.OS, account.TimezoneOffset, account.Build, buildVariant, account.Locale,
+        account.Recruiter, account.IsRectuiter, account.Security ? true : false, 0 /*TotalTime*/);
 
-    _worldSession->ReadAddonsInfo(authSession->AddonInfo);
+    // TODO(3.4.3 brick-E2b): the modern CMSG_AUTH_SESSION does not carry the legacy addon blob; addon
+    // info now arrives via a separate path. ReadAddonsInfo is intentionally not called here.
 
     // Initialize Warden system only if it is enabled by config
     if (wardenActive)
@@ -883,20 +945,13 @@ void WorldSocket::LoadSessionPermissionsCallback(PreparedQueryResult result)
     // RBAC must be loaded before adding session to check for skip queue permission
     _worldSession->GetRBACData()->LoadFromDBCallback(result);
 
-    // TODO(3.4.3 brick-E2): once _encryptKey is derived, send SMSG_ENTER_ENCRYPTED_MODE here and
-    // defer AddSession to HandleEnterEncryptedModeAck (modern AES-GCM goes live only after the
-    // client acks). For brick E1 we add the session immediately (crypt stays uninitialized).
-    sWorldSessionMgr->AddSession(_worldSession);
+    // 3.4.3: arm AES-256-GCM only after the client acks. Send SMSG_ENTER_ENCRYPTED_MODE here and defer
+    // AddSession to HandleEnterEncryptedModeAck.
+    SendPacketAndLogOpcode(*WorldPackets::Auth::EnterEncryptedMode(_encryptKey, true).Write());
 }
 
-void WorldSocket::HandleAuthContinuedSession(WorldPacket& recvPacket)
+void WorldSocket::HandleAuthContinuedSession(std::shared_ptr<WorldPackets::Auth::AuthContinuedSession> authSession)
 {
-    std::shared_ptr<ClientAuthContinuedSession> authSession = std::make_shared<ClientAuthContinuedSession>();
-
-    recvPacket >> authSession->Key;
-    recvPacket.read(authSession->LocalChallenge);
-    recvPacket.read(authSession->Digest);
-
     WorldSession::ConnectToKey key;
     key.Raw = authSession->Key;
 
@@ -912,10 +967,13 @@ void WorldSocket::HandleAuthContinuedSession(WorldPacket& recvPacket)
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_INFO_CONTINUED_SESSION);
     stmt->SetData(0, accountId);
 
-    QueueQuery(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&WorldSocket::HandleAuthContinuedSessionCallback, this, authSession, std::placeholders::_1)));
+    QueueQuery(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback([this, authSession = std::move(authSession)](PreparedQueryResult result) mutable
+    {
+        HandleAuthContinuedSessionCallback(std::move(authSession), std::move(result));
+    }));
 }
 
-void WorldSocket::HandleAuthContinuedSessionCallback(std::shared_ptr<ClientAuthContinuedSession> authSession, PreparedQueryResult result)
+void WorldSocket::HandleAuthContinuedSessionCallback(std::shared_ptr<WorldPackets::Auth::AuthContinuedSession> authSession, PreparedQueryResult result)
 {
     if (!result)
     {
@@ -932,11 +990,12 @@ void WorldSocket::HandleAuthContinuedSessionCallback(std::shared_ptr<ClientAuthC
     std::string login = fields[0].Get<std::string>();
     _sessionKey = fields[1].Get<Binary, SESSION_KEY_LENGTH>();
 
-    // TODO(3.4.3 brick-E2): verify the HMAC(_sessionKey, Key||LocalChallenge||ServerChallenge||
-    // ContinuedSessionSeed) digest, derive _encryptKey, then drive SMSG_ENTER_ENCRYPTED_MODE and
-    // wire the freshly authenticated instance socket onto its WorldSession via
-    // WorldSession::AddInstanceConnection (sWorldSessionMgr currently has no AddInstanceSocket).
-    LOG_DEBUG("network", "WorldSocket::HandleAuthContinuedSession: stubbed continued-session for account {} ('{}') - awaiting brick E2", accountId, login);
+    // TODO(3.4.3 brick-E2b): verify HMAC_SHA512(_sessionKey)(Key||LocalChallenge||_serverChallenge||
+    // ContinuedSessionSeed) against authSession->Digest, derive _encryptKey, send SMSG_ENTER_ENCRYPTED_MODE
+    // and register the instance socket with its WorldSession (needs WorldSessionMgr::AddInstanceSocket /
+    // WorldSession::AddInstanceConnection, both deferred to E2b). For now reject the 2nd socket so the
+    // realm path (char-select) is unaffected.
+    LOG_DEBUG("network", "WorldSocket::HandleAuthContinuedSession: stubbed continued-session for account {} ('{}') - awaiting brick E2b", accountId, login);
 
     SendAuthResponseError(AUTH_FAILED);
     DelayedCloseSocket();
@@ -953,16 +1012,31 @@ void WorldSocket::HandleConnectToFailed(WorldPacket& recvPacket)
 
 void WorldSocket::HandleEnterEncryptedModeAck()
 {
-    // TODO(3.4.3 brick-E2): _authCrypt.Init(_encryptKey) and add the session / instance socket here
-    // once _encryptKey is derived in the auth callbacks. No-op in brick E1 (crypt stays disabled).
+    // Arm AES-256-GCM with the derived key, then complete the auth flow.
+    _authCrypt.Init(_encryptKey);
+
+    if (_type == CONNECTION_TYPE_REALM)
+    {
+        sWorldSessionMgr->AddSession(_worldSession);
+    }
+    else
+    {
+        // TODO(3.4.3 brick-E2b): register the instance socket onto its WorldSession
+        // (sWorldSessionMgr has no AddInstanceSocket yet). The continued-session path currently
+        // rejects before reaching here, so this branch is unreachable for now.
+    }
 }
 
-void WorldSocket::SendAuthResponseError(uint8 code)
+void WorldSocket::SendAuthResponseError(uint32 code)
 {
-    WorldPacket packet(SMSG_AUTH_RESPONSE, 1);
-    packet << uint8(code);
-
-    SendPacketAndLogOpcode(packet);
+    // 3.4.3 SMSG_AUTH_RESPONSE: a uint32 Result followed by bit-packed success/wait blocks. Use the
+    // brick-C packet so the error response is wire-correct (the legacy 1-byte form did not parse).
+    // NOTE: `code` is still an AzerothCore ResponseCodes value (not a Battlenet RpcErrorCode like TC
+    // uses); the client treats any non-success Result as a denial, so error reporting still works.
+    // TODO(3.4.3 brick-E2b): map these to proper Battlenet RpcErrorCodes for accurate client messages.
+    WorldPackets::Auth::AuthResponse response;
+    response.Result = code;
+    SendPacketAndLogOpcode(*response.Write());
 }
 
 bool WorldSocket::HandlePing(WorldPacket& recvPacket)

@@ -52,9 +52,19 @@ private:
     bool _encrypt;
 };
 
+namespace JSON::RealmList
+{
+    class RealmJoinTicket;
+}
+
 namespace WorldPackets
 {
     class ServerPacket;
+    namespace Auth
+    {
+        class AuthSession;
+        class AuthContinuedSession;
+    }
 }
 
 #pragma pack(push, 1)
@@ -78,12 +88,16 @@ struct IncomingPacketHeader : PacketHeader
 
 #pragma pack(pop)
 
-struct ClientAuthSession;
-struct ClientAuthContinuedSession;
-
 class AC_GAME_API WorldSocket final : public Acore::Net::Socket<>
 {
     static uint32 const MinSizeForCompression;
+
+    // 3.4.3 world-auth seeds. These MUST stay byte-exact with the client (and the bnetserver) or
+    // the digest/session-key derivation produces a mismatch and the client rejects the connection.
+    static std::array<uint8, 32> const AuthCheckSeed;
+    static std::array<uint8, 32> const SessionKeySeed;
+    static std::array<uint8, 32> const ContinuedSessionSeed;
+    static std::array<uint8, 32> const EncryptionKeySeed;
 
     using BaseSocket = Acore::Net::Socket<>;
 
@@ -109,7 +123,7 @@ public:
     // 3.4.3: lets a WorldSession adopt this socket as its second (instance) connection.
     void SetWorldSession(WorldSession* session);
     // public so WorldSession::AddInstanceConnection can reject a bad instance handshake
-    void SendAuthResponseError(uint8 code);
+    void SendAuthResponseError(uint32 code);
 
     void OnClose() override;
     Acore::Net::SocketReadCallbackResult ReadHandler() override;
@@ -142,11 +156,12 @@ private:
     void WritePacketToBuffer(EncryptablePacket const& packet, MessageBuffer& buffer);
     uint32 CompressPacket(uint8* buffer, WorldPacket const& packet);
 
-    void HandleAuthSession(WorldPacket& recvPacket);
-    void HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> authSession, PreparedQueryResult result);
+    void HandleAuthSession(std::shared_ptr<WorldPackets::Auth::AuthSession> authSession);
+    void HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::AuthSession> authSession,
+        std::shared_ptr<JSON::RealmList::RealmJoinTicket> joinTicket, PreparedQueryResult result);
     void LoadSessionPermissionsCallback(PreparedQueryResult result);
-    void HandleAuthContinuedSession(WorldPacket& recvPacket);
-    void HandleAuthContinuedSessionCallback(std::shared_ptr<ClientAuthContinuedSession> authSession, PreparedQueryResult result);
+    void HandleAuthContinuedSession(std::shared_ptr<WorldPackets::Auth::AuthContinuedSession> authSession);
+    void HandleAuthContinuedSessionCallback(std::shared_ptr<WorldPackets::Auth::AuthContinuedSession> authSession, PreparedQueryResult result);
     void HandleConnectToFailed(WorldPacket& recvPacket);
     void HandleEnterEncryptedModeAck();
 

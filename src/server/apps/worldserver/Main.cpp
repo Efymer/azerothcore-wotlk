@@ -21,6 +21,7 @@
 
 #include "ACSoap.h"
 #include "AppenderDB.h"
+#include "AuthenticationPackets.h"
 #include "Banner.h"
 #include "BattlegroundMgr.h"
 #include "BigNumber.h"
@@ -204,6 +205,20 @@ int main(int argc, char** argv)
     OpenSSLCrypto::threadsSetup();
 
     std::shared_ptr<void> opensslHandle(nullptr, [](void*) { OpenSSLCrypto::threadsCleanup(); });
+
+    // 3.4.3: load the RSA / Ed25519 signing keys used by SMSG_CONNECT_TO and SMSG_ENTER_ENCRYPTED_MODE.
+    // Must succeed before any client reaches the auth handshake (WorldSocket sends EnterEncryptedMode).
+    if (!WorldPackets::Auth::ConnectTo::InitializeEncryption() || !WorldPackets::Auth::EnterEncryptedMode::InitializeEncryption())
+    {
+        LOG_ERROR("server.worldserver", "Failed to initialize world auth packet encryption keys, exiting.");
+        return 1;
+    }
+
+    std::shared_ptr<void> authEncryptionHandle(nullptr, [](void*)
+    {
+        WorldPackets::Auth::EnterEncryptedMode::ShutdownEncryption();
+        WorldPackets::Auth::ConnectTo::ShutdownEncryption();
+    });
 
     // Seed the OpenSSL's PRNG here.
     // That way it won't auto-seed when calling BigNumber::SetRand and slow down the first world login
