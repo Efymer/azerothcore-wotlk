@@ -128,6 +128,12 @@ code + git history:
     accessor + world table; Draenei/Blood Elf → TBC) and wired the char-create race gate to it. **Ordering fix:**
     `LoadDB2Stores()` now runs before `DetectDBCLang()` (which reads the now-DB2 race names) — caught a null-deref
     crash via boot-testing. Verified live: ChrRaces + 2 race-unlock rows load, full World Initialized.
+  - **`SkillLine` migrated DBC→DB2 (no deferral).** Loads 789 records; 16 DB2 stores live. Repoints across ~10
+    files: `id`→`ID`, `categoryId`→`CategoryID`, `canLink`→`CanLink`, `name[i]`→`DisplayName.Str[i]`. Moved
+    `LoadDB2Stores()` before `LoadDBCStores()` (a DBC post-load loop validates SkillID against the now-DB2 store).
+    Resolved an `FT_*` enum clash (DB2FileLoader's `DBCFormer` vs DBCFileLoader's `DbcFieldFormat`) by keeping
+    `DBCStores.cpp` off the DB2 headers — dropped a redundant SkillRaceClassInfo validity check there. Verified
+    live: full World Initialized, sSkillLineStore exercised across SpellMgr/ObjectMgr with no errors.
   - **1c.4–1c.5** — not started. ⚠️ Note: AC's `DB2Meta` stays a designated-init aggregate (do NOT add TC's
     constructor — it would break the extractor's + runtime's designated-init metadata).
 - **Phase 1d** — not started.

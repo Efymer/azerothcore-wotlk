@@ -18,6 +18,7 @@
 #include "CharacterCache.h"
 #include "Chat.h"
 #include "CommandScript.h"
+#include "DB2Stores.h"
 #include "GameEventMgr.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
@@ -916,7 +917,7 @@ public:
         for (auto skillInfo : sSkillLineStore)
         {
             int locale = handler->GetSessionDbcLocale();
-            std::string name = skillInfo->name[locale];
+            std::string name = skillInfo->DisplayName.Str[locale];
 
             if (name.empty())
             {
@@ -933,7 +934,7 @@ public:
                         continue;
                     }
 
-                    name = skillInfo->name[locale];
+                    name = skillInfo->DisplayName.Str[locale];
                     if (name.empty())
                     {
                         continue;
@@ -957,13 +958,13 @@ public:
                 std::string valStr;
                 std::string knownStr;
 
-                if (target && target->HasSkill(skillInfo->id))
+                if (target && target->HasSkill(skillInfo->ID))
                 {
                     knownStr = handler->GetAcoreString(LANG_KNOWN);
-                    uint32 curValue = target->GetPureSkillValue(skillInfo->id);
-                    uint32 maxValue = target->GetPureMaxSkillValue(skillInfo->id);
-                    uint32 permValue = target->GetSkillPermBonusValue(skillInfo->id);
-                    uint32 tempValue = target->GetSkillTempBonusValue(skillInfo->id);
+                    uint32 curValue = target->GetPureSkillValue(skillInfo->ID);
+                    uint32 maxValue = target->GetPureMaxSkillValue(skillInfo->ID);
+                    uint32 permValue = target->GetSkillPermBonusValue(skillInfo->ID);
+                    uint32 tempValue = target->GetSkillTempBonusValue(skillInfo->ID);
 
                     valStr = Acore::StringFormat(handler->GetAcoreString(LANG_SKILL_VALUES), curValue, maxValue, permValue, tempValue);
                 }
@@ -971,11 +972,11 @@ public:
                 // send skill in "id - [namedlink locale]" format
                 if (handler->GetSession())
                 {
-                    handler->PSendSysMessage(LANG_SKILL_LIST_CHAT, skillInfo->id, skillInfo->id, name, localeNames[locale], knownStr, valStr);
+                    handler->PSendSysMessage(LANG_SKILL_LIST_CHAT, skillInfo->ID, skillInfo->ID, name, localeNames[locale], knownStr, valStr);
                 }
                 else
                 {
-                    handler->PSendSysMessage(LANG_SKILL_LIST_CONSOLE, skillInfo->id, name, localeNames[locale], knownStr, valStr);
+                    handler->PSendSysMessage(LANG_SKILL_LIST_CONSOLE, skillInfo->ID, name, localeNames[locale], knownStr, valStr);
                 }
 
                 if (!found)

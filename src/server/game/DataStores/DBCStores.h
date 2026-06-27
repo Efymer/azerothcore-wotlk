@@ -152,7 +152,7 @@ extern DBCStorage <QuestFactionRewEntry>         sQuestFactionRewardStore;
 extern DBCStorage <RandomPropertiesPointsEntry>  sRandomPropertiesPointsStore;
 extern DBCStorage <ScalingStatDistributionEntry> sScalingStatDistributionStore;
 extern DBCStorage <ScalingStatValuesEntry>       sScalingStatValuesStore;
-extern DBCStorage <SkillLineEntry>               sSkillLineStore;
+// sSkillLineStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 extern DBCStorage <SkillLineAbilityEntry>        sSkillLineAbilityStore;
 extern SkillLineAbilityIndexBySkillLine          sSkillLineAbilityIndexBySkillLine;
 extern DBCStorage <SkillTiersEntry>              sSkillTiersStore;

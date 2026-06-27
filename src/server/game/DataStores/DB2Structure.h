@@ -408,6 +408,25 @@ struct ChrRacesEntry
     int8 UnalteredVisualCustomizationRaceID;
 };
 
+// Migrated from DBC (Task 1c.3). Legacy DBC -> DB2: id->ID, categoryId->CategoryID,
+// name[locale]->DisplayName.Str[locale], spellIcon->SpellIconFileID, canLink->CanLink.
+struct SkillLineEntry
+{
+    LocalizedString DisplayName;
+    LocalizedString AlternateVerb;
+    LocalizedString Description;
+    LocalizedString HordeDisplayName;
+    char const* OverrideSourceInfoDisplayName;
+    uint32 ID;
+    int8 CategoryID;
+    int32 SpellIconFileID;
+    int8 CanLink;
+    uint32 ParentSkillLineID;
+    int32 ParentTierIndex;
+    uint16 Flags;
+    int32 SpellBookSpellID;
+};
+
 // Migrated from DBC (Task 1c.3): the DBC PowerDisplayEntry {Id, PowerType} maps to the
 // 54261 DB2 layout; the legacy `PowerType` field is `ActualType` here.
 struct PowerDisplayEntry

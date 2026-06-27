@@ -17,6 +17,7 @@
 
 #include "ConditionMgr.h"
 #include "AchievementMgr.h"
+#include "DB2Stores.h"
 #include "GameEventMgr.h"
 #include "GameObject.h"
 #include "GameObjectAI.h"

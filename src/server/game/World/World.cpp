@@ -377,14 +377,13 @@ void World::SetInitialWorldSettings()
 
     ///- Load the DBC files
     LOG_INFO("server.loading", "Initialize Data Stores...");
-    LoadDBCStores(_dataPath);
-
-    // Load the DB2 store subset (3.4.3.54261) before DetectDBCLang(): locale detection reads race
-    // names from the (now DB2) sChrRacesStore, so it must be populated first. enUS is the
-    // extracted/authoritative locale for now; this should follow the configured DBC locale once
-    // non-enUS DB2 data is available.
+    // Load the DB2 store subset (3.4.3.54261) BEFORE the DBC stores: DBC post-load processing and
+    // DetectDBCLang() read migrated stores (sChrRacesStore, sSkillLineStore, ...) that now live in DB2,
+    // so they must be populated first. enUS is the extracted/authoritative locale for now; this should
+    // follow the configured DBC locale once non-enUS DB2 data is available.
     LoadDB2Stores(_dataPath, LOCALE_enUS);
 
+    LoadDBCStores(_dataPath);
     DetectDBCLang();
 
     // Load cinematic cameras

@@ -17,6 +17,7 @@
 
 #include "AccountMgr.h"
 #include "AchievementMgr.h"
+#include "DB2Stores.h"
 #include "Chat.h"
 #include "CommandScript.h"
 #include "DBCStores.h"

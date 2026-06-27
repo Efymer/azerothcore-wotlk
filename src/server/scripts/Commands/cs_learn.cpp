@@ -318,13 +318,13 @@ public:
             if (!skillInfo)
                 continue;
 
-            if ((skillInfo->categoryId == SKILL_CATEGORY_PROFESSION || skillInfo->categoryId == SKILL_CATEGORY_SECONDARY) &&
-                    skillInfo->canLink)                             // only prof. with recipes have
+            if ((skillInfo->CategoryID == SKILL_CATEGORY_PROFESSION || skillInfo->CategoryID == SKILL_CATEGORY_SECONDARY) &&
+                    skillInfo->CanLink)                             // only prof. with recipes have
             {
-                HandleLearnSkillRecipesHelper(target, skillInfo->id);
+                HandleLearnSkillRecipesHelper(target, skillInfo->ID);
 
-                uint16 const maxLevel = target->GetPureMaxSkillValue(skillInfo->id);
-                target->SetSkill(skillInfo->id, target->GetSkillStep(skillInfo->id), maxLevel, maxLevel);
+                uint16 const maxLevel = target->GetPureMaxSkillValue(skillInfo->ID);
+                target->SetSkill(skillInfo->ID, target->GetSkillStep(skillInfo->ID), maxLevel, maxLevel);
             }
         }
 
@@ -358,15 +358,15 @@ public:
             if (!skillInfo)
                 continue;
 
-            if ((skillInfo->categoryId != SKILL_CATEGORY_PROFESSION &&
-                 skillInfo->categoryId != SKILL_CATEGORY_SECONDARY) ||
-                !skillInfo->canLink)                            // only prof with recipes have set
+            if ((skillInfo->CategoryID != SKILL_CATEGORY_PROFESSION &&
+                 skillInfo->CategoryID != SKILL_CATEGORY_SECONDARY) ||
+                !skillInfo->CanLink)                            // only prof with recipes have set
                 continue;
 
             uint8 locale = 0;
             for (; locale < TOTAL_LOCALES; ++locale)
             {
-                name = skillInfo->name[locale];
+                name = skillInfo->DisplayName.Str[locale];
                 if (!name || !*name)
                     continue;
 

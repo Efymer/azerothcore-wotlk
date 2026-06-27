@@ -17,6 +17,7 @@
 
 #include "Hyperlinks.h"
 #include "Common.h"
+#include "DB2Stores.h"
 #include "DBCStores.h"
 #include "ObjectMgr.h"
 #include "QuestDef.h"
@@ -252,7 +253,7 @@ struct LinkValidator<LinkTags::enchant>
 
             for (uint8 i = 0; i < TOTAL_LOCALES; ++i)
             {
-                std::string_view skillName = skill->name[i];
+                std::string_view skillName = skill->DisplayName.Str[i];
                 std::string_view spellName = info->SpellName[i];
                 // alternate form [Skill Name: Spell Name]
                 if ((text.length() == (skillName.length() + 2 + spellName.length())) &&

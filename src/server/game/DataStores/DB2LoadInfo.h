@@ -1036,6 +1036,51 @@ struct ChrClassesLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 25, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct SkillLineLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[13] =
+    {
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_STRING_NOT_LOCALIZED, 1, true },
+        { FT_INT, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_INT, 1, true },
+        { FT_BYTE, 1, true },
+        { FT_INT, 1, false },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1240935, .IndexField = 5, .ParentIndexField = -1,
+        .FieldCount = 13, .FileFieldCount = 13, .LayoutHash = 0x5CB7F941, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[13] =
+    {
+        { false, FT_STRING, "DisplayName" },
+        { false, FT_STRING, "AlternateVerb" },
+        { false, FT_STRING, "Description" },
+        { false, FT_STRING, "HordeDisplayName" },
+        { false, FT_STRING_NOT_LOCALIZED, "OverrideSourceInfoDisplayName" },
+        { false, FT_INT, "ID" },
+        { true, FT_BYTE, "CategoryID" },
+        { true, FT_INT, "SpellIconFileID" },
+        { true, FT_BYTE, "CanLink" },
+        { false, FT_INT, "ParentSkillLineID" },
+        { true, FT_INT, "ParentTierIndex" },
+        { false, FT_SHORT, "Flags" },
+        { true, FT_INT, "SpellBookSpellID" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 13, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct PowerDisplayLoadInfo
 {
     static constexpr DB2MetaField MetaFields[5] =

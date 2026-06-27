@@ -1531,20 +1531,7 @@ struct SkillRaceClassInfoEntry
 
 #define MAX_SKILL_STEP 16
 
-struct SkillLineEntry
-{
-    uint32    id;                                           // 0        m_ID
-    int32     categoryId;                                   // 1        m_categoryID
-    //uint32    skillCostID;                                // 2        m_skillCostsID
-    char const*     name[16];                               // 3-18     m_displayName_lang
-    // 19 string flags
-    //char const*     description[16];                      // 20-35    m_description_lang
-    // 36 string flags
-    uint32    spellIcon;                                    // 37       m_spellIconID
-    //char const*     alternateVerb[16];                    // 38-53    m_alternateVerb_lang
-    // 54 string flags
-    uint32    canLink;                                      // 55       m_canLink (prof. with recipes
-};
+// SkillLineEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
 struct SkillLineAbilityEntry
 {

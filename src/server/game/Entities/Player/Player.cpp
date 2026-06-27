@@ -3105,10 +3105,10 @@ bool Player::CheckSkillLearnedBySpell(uint32 spellId)
         if (!pSkill)
             continue;
 
-        if (GetSkillRaceClassInfo(pSkill->id, getRace(), getClass()))
+        if (GetSkillRaceClassInfo(pSkill->ID, getRace(), getClass()))
             return true;
         else
-            errorSkill = pSkill->id;
+            errorSkill = pSkill->ID;
     }
 
     if (errorSkill)
@@ -3266,10 +3266,10 @@ bool Player::_addSpell(uint32 spellId, uint8 addSpecMask, bool temporary, bool l
 
             /// @todo confirm if rogues start wth lockpicking skill at level 1 but only recieve the spell to use it at level 16
             // Added for runeforging, it is confirmed via sniff that this happens when death knights learn the spell, not on character creation.
-            if ((_spell_idx->second->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN && !HasSkill(pSkill->id)) || ((pSkill->id == SKILL_LOCKPICKING || pSkill->id == SKILL_RUNEFORGING) && _spell_idx->second->TrivialSkillLineRankHigh == 0))
-                LearnDefaultSkill(pSkill->id, 0);
+            if ((_spell_idx->second->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN && !HasSkill(pSkill->ID)) || ((pSkill->ID == SKILL_LOCKPICKING || pSkill->ID == SKILL_RUNEFORGING) && _spell_idx->second->TrivialSkillLineRankHigh == 0))
+                LearnDefaultSkill(pSkill->ID, 0);
 
-            if (pSkill->id == SKILL_MOUNTS && !Has310Flyer(false))
+            if (pSkill->ID == SKILL_MOUNTS && !Has310Flyer(false))
                 for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
                     if (spellInfo->Effects[i].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED && spellInfo->Effects[i].CalcValue() == 310)
                         SetHas310Flyer(true);

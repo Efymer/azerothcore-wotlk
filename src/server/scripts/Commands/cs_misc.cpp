@@ -18,6 +18,7 @@
 #include "AccountMgr.h"
 #include "ArenaTeamMgr.h"
 #include "BattlegroundMgr.h"
+#include "DB2Stores.h"
 #include "CellImpl.h"
 #include "CharacterCache.h"
 #include "Chat.h"
@@ -1991,7 +1992,7 @@ public:
         // add the skill to the player's book with step 1 (which is the first rank, in most cases something
         // like 'Apprentice <skill>'.
         target->SetSkill(skillID, targetHasSkill ? target->GetSkillStep(skillID) : 1, level, max);
-        handler->PSendSysMessage(LANG_SET_SKILL, skillID, skillLine->name[handler->GetSessionDbcLocale()], handler->GetNameLink(target), level, max);
+        handler->PSendSysMessage(LANG_SET_SKILL, skillID, skillLine->DisplayName.Str[handler->GetSessionDbcLocale()], handler->GetNameLink(target), level, max);
         return true;
     }
 

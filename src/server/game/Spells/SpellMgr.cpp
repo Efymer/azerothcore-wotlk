@@ -16,6 +16,7 @@
  */
 
 #include "SpellMgr.h"
+#include "DB2Stores.h"
 #include "Log.h"
 #include "BattlefieldMgr.h"
 #include "BattlegroundIC.h"
@@ -41,7 +42,7 @@ bool IsPrimaryProfessionSkill(uint32 skill)
     if (!pSkill)
         return false;
 
-    if (pSkill->categoryId != SKILL_CATEGORY_PROFESSION)
+    if (pSkill->CategoryID != SKILL_CATEGORY_PROFESSION)
         return false;
 
     return true;
