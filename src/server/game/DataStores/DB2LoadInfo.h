@@ -1430,4 +1430,124 @@ struct TaxiPathNodeLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 11, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct FactionLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[18] =
+    {
+        { FT_LONG, 4, true },
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_INT, 1, false },                                     // ID -> IndexField (3), must be unsigned
+        { FT_SHORT, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_SHORT, 4, true },
+        { FT_SHORT, 4, false },
+        { FT_INT, 4, true },
+        { FT_INT, 4, true },
+        { FT_FLOAT, 2, true },
+        { FT_BYTE, 2, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1361972, .IndexField = 3, .ParentIndexField = -1,
+        .FieldCount = 18, .FileFieldCount = 18, .LayoutHash = 0x767B5394, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[35] =
+    {
+        { true, FT_LONG, "ReputationRaceMask1" },
+        { true, FT_LONG, "ReputationRaceMask2" },
+        { true, FT_LONG, "ReputationRaceMask3" },
+        { true, FT_LONG, "ReputationRaceMask4" },
+        { false, FT_STRING, "Name" },
+        { false, FT_STRING, "Description" },
+        { false, FT_INT, "ID" },
+        { true, FT_SHORT, "ReputationIndex" },
+        { false, FT_SHORT, "ParentFactionID" },
+        { false, FT_BYTE, "Expansion" },
+        { false, FT_BYTE, "FriendshipRepID" },
+        { true, FT_INT, "Flags" },
+        { false, FT_SHORT, "ParagonFactionID" },
+        { true, FT_INT, "RenownFactionID" },
+        { true, FT_INT, "RenownCurrencyID" },
+        { true, FT_SHORT, "ReputationClassMask1" },
+        { true, FT_SHORT, "ReputationClassMask2" },
+        { true, FT_SHORT, "ReputationClassMask3" },
+        { true, FT_SHORT, "ReputationClassMask4" },
+        { false, FT_SHORT, "ReputationFlags1" },
+        { false, FT_SHORT, "ReputationFlags2" },
+        { false, FT_SHORT, "ReputationFlags3" },
+        { false, FT_SHORT, "ReputationFlags4" },
+        { true, FT_INT, "ReputationBase1" },
+        { true, FT_INT, "ReputationBase2" },
+        { true, FT_INT, "ReputationBase3" },
+        { true, FT_INT, "ReputationBase4" },
+        { true, FT_INT, "ReputationMax1" },
+        { true, FT_INT, "ReputationMax2" },
+        { true, FT_INT, "ReputationMax3" },
+        { true, FT_INT, "ReputationMax4" },
+        { false, FT_FLOAT, "ParentFactionMod1" },
+        { false, FT_FLOAT, "ParentFactionMod2" },
+        { false, FT_BYTE, "ParentFactionCap1" },
+        { false, FT_BYTE, "ParentFactionCap2" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 35, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct FactionTemplateLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[7] =
+    {
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_SHORT, 8, false },
+        { FT_SHORT, 8, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1361579, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 7, .FileFieldCount = 7, .LayoutHash = 0x207C5E80, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[22] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_SHORT, "Faction" },
+        { false, FT_SHORT, "Flags" },
+        { false, FT_BYTE, "FactionGroup" },
+        { false, FT_BYTE, "FriendGroup" },
+        { false, FT_BYTE, "EnemyGroup" },
+        { false, FT_SHORT, "Enemies1" },
+        { false, FT_SHORT, "Enemies2" },
+        { false, FT_SHORT, "Enemies3" },
+        { false, FT_SHORT, "Enemies4" },
+        { false, FT_SHORT, "Enemies5" },
+        { false, FT_SHORT, "Enemies6" },
+        { false, FT_SHORT, "Enemies7" },
+        { false, FT_SHORT, "Enemies8" },
+        { false, FT_SHORT, "Friend1" },
+        { false, FT_SHORT, "Friend2" },
+        { false, FT_SHORT, "Friend3" },
+        { false, FT_SHORT, "Friend4" },
+        { false, FT_SHORT, "Friend5" },
+        { false, FT_SHORT, "Friend6" },
+        { false, FT_SHORT, "Friend7" },
+        { false, FT_SHORT, "Friend8" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 22, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 #endif // AC_DB2LOADINFO_H

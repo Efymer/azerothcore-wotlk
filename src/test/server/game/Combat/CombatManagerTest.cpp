@@ -50,24 +50,24 @@ protected:
         // Insert two mutually hostile DBC faction entries
         auto* factionA = new FactionTemplateEntry{};
         factionA->ID = 90001;
-        factionA->faction = 90001;
-        factionA->factionFlags = 0;
-        factionA->ourMask = 1;
-        factionA->friendlyMask = 0;
-        factionA->hostileMask = 2;
-        for (auto& e : factionA->enemyFaction) e = 0;
-        for (auto& f : factionA->friendFaction) f = 0;
+        factionA->Faction = 90001;
+        factionA->Flags = 0;
+        factionA->FactionGroup = 1;
+        factionA->FriendGroup = 0;
+        factionA->EnemyGroup = 2;
+        for (auto& e : factionA->Enemies) e = 0;
+        for (auto& f : factionA->Friend) f = 0;
         sFactionTemplateStore.SetEntry(90001, factionA);
 
         auto* factionB = new FactionTemplateEntry{};
         factionB->ID = 90002;
-        factionB->faction = 90002;
-        factionB->factionFlags = 0;
-        factionB->ourMask = 2;
-        factionB->friendlyMask = 0;
-        factionB->hostileMask = 1;
-        for (auto& e : factionB->enemyFaction) e = 0;
-        for (auto& f : factionB->friendFaction) f = 0;
+        factionB->Faction = 90002;
+        factionB->Flags = 0;
+        factionB->FactionGroup = 2;
+        factionB->FriendGroup = 0;
+        factionB->EnemyGroup = 1;
+        for (auto& e : factionB->Enemies) e = 0;
+        for (auto& f : factionB->Friend) f = 0;
         sFactionTemplateStore.SetEntry(90002, factionB);
 
         TestMap::EnsureDBC();
@@ -1110,13 +1110,13 @@ TEST_F(CombatManagerIntegrationTest, CanBeginCombat_AsymmetricHostileVsFriendly_
 {
     auto* factionC = new FactionTemplateEntry{};
     factionC->ID = 90003;
-    factionC->faction = 90003;
-    factionC->factionFlags = 0;
-    factionC->ourMask = 2;       // A (hostileMask=2) is hostile to this group...
-    factionC->friendlyMask = 1;  // ...but this faction considers A's group (ourMask=1) friendly
-    factionC->hostileMask = 0;
-    for (auto& e : factionC->enemyFaction) e = 0;
-    for (auto& f : factionC->friendFaction) f = 0;
+    factionC->Faction = 90003;
+    factionC->Flags = 0;
+    factionC->FactionGroup = 2;  // A (EnemyGroup=2) is hostile to this group...
+    factionC->FriendGroup = 1;   // ...but this faction considers A's group (FactionGroup=1) friendly
+    factionC->EnemyGroup = 0;
+    for (auto& e : factionC->Enemies) e = 0;
+    for (auto& f : factionC->Friend) f = 0;
     sFactionTemplateStore.SetEntry(90003, factionC);
 
     _creatureB->SetFaction(90003);
@@ -1131,13 +1131,13 @@ TEST_F(CombatManagerIntegrationTest, CanBeginCombat_FriendlyWithoutHostility_Fai
 {
     auto* factionD = new FactionTemplateEntry{};
     factionD->ID = 90004;
-    factionD->faction = 90004;
-    factionD->factionFlags = 0;
-    factionD->ourMask = 4;       // A (hostileMask=2) is NOT hostile to this group...
-    factionD->friendlyMask = 1;  // ...and this faction considers A's group friendly
-    factionD->hostileMask = 0;
-    for (auto& e : factionD->enemyFaction) e = 0;
-    for (auto& f : factionD->friendFaction) f = 0;
+    factionD->Faction = 90004;
+    factionD->Flags = 0;
+    factionD->FactionGroup = 4;  // A (EnemyGroup=2) is NOT hostile to this group...
+    factionD->FriendGroup = 1;   // ...and this faction considers A's group friendly
+    factionD->EnemyGroup = 0;
+    for (auto& e : factionD->Enemies) e = 0;
+    for (auto& f : factionD->Friend) f = 0;
     sFactionTemplateStore.SetEntry(90004, factionD);
 
     _creatureB->SetFaction(90004);

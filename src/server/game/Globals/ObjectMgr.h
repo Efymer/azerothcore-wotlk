@@ -44,6 +44,7 @@
 
 class Item;
 struct DungeonProgressionRequirements;
+struct FactionEntry;                              // migrated to DB2; used here by pointer only
 struct PlayerClassInfo;
 struct PlayerClassLevelInfo;
 struct PlayerInfo;

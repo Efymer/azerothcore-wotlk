@@ -17,6 +17,7 @@
 
 #include "AreaDefines.h"
 #include "Battlefield.h"
+#include "DB2Stores.h"
 #include "BattlefieldMgr.h"
 #include "Battleground.h"
 #include "BattlegroundMgr.h"

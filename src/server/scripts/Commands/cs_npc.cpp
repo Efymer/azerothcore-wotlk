@@ -17,6 +17,7 @@
 
 #include "CellImpl.h"
 #include "Chat.h"
+#include "DB2Stores.h"
 #include "CommandScript.h"
 #include "CreatureAI.h"
 #include "CreatureGroups.h"

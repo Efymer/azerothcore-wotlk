@@ -62,24 +62,24 @@ protected:
         // Create two mutually hostile factions
         auto* factionA = new FactionTemplateEntry{};
         factionA->ID = 90001;
-        factionA->faction = 90001;
-        factionA->factionFlags = 0;
-        factionA->ourMask = 1;
-        factionA->friendlyMask = 0;
-        factionA->hostileMask = 2;
-        for (auto& e : factionA->enemyFaction) e = 0;
-        for (auto& f : factionA->friendFaction) f = 0;
+        factionA->Faction = 90001;
+        factionA->Flags = 0;
+        factionA->FactionGroup = 1;
+        factionA->FriendGroup = 0;
+        factionA->EnemyGroup = 2;
+        for (auto& e : factionA->Enemies) e = 0;
+        for (auto& f : factionA->Friend) f = 0;
         sFactionTemplateStore.SetEntry(90001, factionA);
 
         auto* factionB = new FactionTemplateEntry{};
         factionB->ID = 90002;
-        factionB->faction = 90002;
-        factionB->factionFlags = 0;
-        factionB->ourMask = 2;
-        factionB->friendlyMask = 0;
-        factionB->hostileMask = 1;
-        for (auto& e : factionB->enemyFaction) e = 0;
-        for (auto& f : factionB->friendFaction) f = 0;
+        factionB->Faction = 90002;
+        factionB->Flags = 0;
+        factionB->FactionGroup = 2;
+        factionB->FriendGroup = 0;
+        factionB->EnemyGroup = 1;
+        for (auto& e : factionB->Enemies) e = 0;
+        for (auto& f : factionB->Friend) f = 0;
         sFactionTemplateStore.SetEntry(90002, factionB);
 
         TestMap::EnsureDBC();

@@ -48,6 +48,8 @@ extern DB2Storage<PowerDisplayEntry> sPowerDisplayStore;        // migrated from
 extern DB2Storage<TaxiNodesEntry> sTaxiNodesStore;              // migrated from DBC (1c.3)
 extern DB2Storage<TaxiPathEntry> sTaxiPathStore;               // migrated from DBC (1c.3)
 extern DB2Storage<TaxiPathNodeEntry> sTaxiPathNodeStore;       // migrated from DBC (1c.3)
+extern DB2Storage<FactionEntry> sFactionStore;                 // migrated from DBC
+extern DB2Storage<FactionTemplateEntry> sFactionTemplateStore; // migrated from DBC
 
 // Loads the DB2 store subset from <dataPath>/dbc/<locale>/ at worldserver boot.
 void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale);

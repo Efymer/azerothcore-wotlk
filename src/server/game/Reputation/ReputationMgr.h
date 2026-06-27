@@ -19,6 +19,7 @@
 #define __ACORE_REPUTATION_MGR_H
 
 #include "DatabaseEnvFwd.h"
+#include "DB2Structure.h"
 #include "DBCStructure.h"
 #include "Language.h"
 #include "SharedDefines.h"
@@ -80,7 +81,7 @@ public:                                                 // accessors
 
     FactionState const* GetState(FactionEntry const* factionEntry) const
     {
-        return factionEntry->CanHaveReputation() ? GetState(factionEntry->reputationListID) : nullptr;
+        return factionEntry->CanHaveReputation() ? GetState(factionEntry->ReputationIndex) : nullptr;
     }
 
     FactionState const* GetState(RepListID id) const
@@ -105,7 +106,7 @@ public:                                                 // accessors
 
     ReputationRank const* GetForcedRankIfAny(FactionTemplateEntry const* factionTemplateEntry) const
     {
-        ForcedReactions::const_iterator forceItr = _forcedReactions.find(factionTemplateEntry->faction);
+        ForcedReactions::const_iterator forceItr = _forcedReactions.find(factionTemplateEntry->Faction);
         return forceItr != _forcedReactions.end() ? &forceItr->second : nullptr;
     }
 

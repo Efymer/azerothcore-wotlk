@@ -556,6 +556,107 @@ struct TaxiPathNodeEntry
     uint32 DepartureEventID;
 };
 
+// Migrated from DBC (Faction/FactionTemplate). Legacy DBC -> DB2 field mapping:
+//   FactionEntry: reputationListID->ReputationIndex, BaseRepRaceMask->ReputationRaceMask (uint32[4] -> int64[4]),
+//     BaseRepClassMask->ReputationClassMask, BaseRepValue->ReputationBase, team->ParentFactionID,
+//     spilloverRateIn/Out->ParentFactionMod[0]/[1], spilloverMaxRankIn->ParentFactionCap[0],
+//     name[locale]->Name.Str[locale]. ReputationFlags keeps its name.
+//   FactionTemplateEntry: faction->Faction, factionFlags->Flags, ourMask->FactionGroup,
+//     friendlyMask->FriendGroup, hostileMask->EnemyGroup, enemyFaction->Enemies, friendFaction->Friend.
+// MAX_FACTION_RELATIONS grows 4 -> 8 (54261 layout). Legacy helper API is preserved verbatim
+// (same names/signatures, including the FactionTemplateEntry const& by-reference args).
+struct FactionEntry
+{
+    std::array<int64, 4> ReputationRaceMask;
+    LocalizedString Name;
+    LocalizedString Description;
+    uint32 ID;
+    int16 ReputationIndex;
+    uint16 ParentFactionID;
+    uint8 Expansion;
+    uint8 FriendshipRepID;
+    int32 Flags;
+    uint16 ParagonFactionID;
+    int32 RenownFactionID;
+    int32 RenownCurrencyID;
+    std::array<int16, 4> ReputationClassMask;
+    std::array<uint16, 4> ReputationFlags;
+    std::array<int32, 4> ReputationBase;
+    std::array<int32, 4> ReputationMax;
+    std::array<float, 2> ParentFactionMod;            // Faction gains incoming rep * ParentFactionMod[0]; outputs rep * ParentFactionMod[1] as spillover
+    std::array<uint8, 2> ParentFactionCap;            // [0] = highest rank the faction will profit from incoming spillover
+
+    // helpers
+    [[nodiscard]] bool CanHaveReputation() const
+    {
+        return ReputationIndex >= 0;
+    }
+
+    [[nodiscard]] bool CanBeSetAtWar() const
+    {
+        return ReputationIndex >= 0 && ReputationRaceMask[0] == 1791;
+    }
+};
+
+#define MAX_FACTION_RELATIONS 8
+
+struct FactionTemplateEntry
+{
+    uint32 ID;
+    uint16 Faction;
+    uint16 Flags;
+    uint8 FactionGroup;
+    uint8 FriendGroup;
+    uint8 EnemyGroup;
+    std::array<uint16, MAX_FACTION_RELATIONS> Enemies;
+    std::array<uint16, MAX_FACTION_RELATIONS> Friend;
+    //-------------------------------------------------------  end structure
+
+    // helpers
+    [[nodiscard]] bool IsFriendlyTo(FactionTemplateEntry const& entry) const
+    {
+        // Xinef: Always friendly to self faction
+        if (Faction == entry.Faction)
+            return true;
+
+        if (entry.Faction)
+        {
+            for (uint16 i : Enemies)
+                if (i == entry.Faction)
+                    return false;
+            for (uint16 i : Friend)
+                if (i == entry.Faction)
+                    return true;
+        }
+        return (FriendGroup & entry.FactionGroup) || (FactionGroup & entry.FriendGroup);
+    }
+    [[nodiscard]] bool IsHostileTo(FactionTemplateEntry const& entry) const
+    {
+        if (entry.Faction)
+        {
+            for (uint16 i : Enemies)
+                if (i == entry.Faction)
+                    return true;
+            for (uint16 i : Friend)
+                if (i == entry.Faction)
+                    return false;
+        }
+        return (EnemyGroup & entry.FactionGroup) != 0;
+    }
+    [[nodiscard]] bool IsHostileToPlayers() const { return (EnemyGroup & FACTION_MASK_PLAYER) != 0; }
+    [[nodiscard]] bool IsHostileToAlliancePlayers() const { return (EnemyGroup & FACTION_MASK_ALLIANCE) != 0; }
+    [[nodiscard]] bool IsHostileToHordePlayers() const { return (EnemyGroup & FACTION_MASK_HORDE) != 0; }
+    [[nodiscard]] bool IsNeutralToAll() const
+    {
+        for (uint16 i : Enemies)
+            if (i != 0)
+                return false;
+        return EnemyGroup == 0 && FriendGroup == 0;
+    }
+    [[nodiscard]] bool IsContestedGuardFaction() const { return (Flags & FACTION_TEMPLATE_FLAG_ATTACK_PVP_ACTIVE_PLAYERS) != 0; }
+    [[nodiscard]] bool FactionRespondsToCallForHelp() const { return (Flags & FACTION_TEMPLATE_FLAG_RESPOND_TO_CALL_FOR_HELP) != 0; }
+};
+
 #pragma pack(pop)
 
 #endif // AC_DB2STRUCTURE_H

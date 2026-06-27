@@ -21,6 +21,7 @@
 #include "EnumFlag.h"
 #include "EventProcessor.h"
 #include "CombatManager.h"
+#include "DB2Structure.h"
 #include "ItemTemplate.h"
 #include "MotionMaster.h"
 #include "Object.h"

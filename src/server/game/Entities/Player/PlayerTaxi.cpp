@@ -16,6 +16,7 @@
  */
 
 #include "ObjectMgr.h"
+#include "DB2Stores.h"
 #include "Player.h"
 #include "StringConvert.h"
 #include "Tokenize.h"

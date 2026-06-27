@@ -17,6 +17,7 @@
 
 #include "ServerMailMgr.h"
 #include "AccountMgr.h"
+#include "DB2Stores.h"
 #include "AchievementMgr.h"
 #include "Common.h"
 #include "DatabaseEnv.h"

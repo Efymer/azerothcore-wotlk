@@ -17,6 +17,7 @@
 
 #include "Chat.h"
 #include "CommandScript.h"
+#include "DB2Stores.h"
 #include "ConditionMgr.h"
 #include "DisableMgr.h"
 #include "GameTime.h"

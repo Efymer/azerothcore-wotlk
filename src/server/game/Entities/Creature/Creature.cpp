@@ -22,6 +22,7 @@
 #include "CreatureAI.h"
 #include "CreatureAISelector.h"
 #include "CreatureGroups.h"
+#include "DB2Stores.h"
 #include "MoveSpline.h"
 #include "DatabaseEnv.h"
 #include "Formulas.h"
@@ -656,7 +657,7 @@ bool Creature::UpdateEntry(uint32 Entry, const CreatureData* data, bool changele
     // checked and error show at loading templates
     if (FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(cInfo->faction))
     {
-        if (factionTemplate->factionFlags & FACTION_TEMPLATE_FLAG_ASSIST_PLAYERS)
+        if (factionTemplate->Flags & FACTION_TEMPLATE_FLAG_ASSIST_PLAYERS)
             SetPvP(true);
         else
             SetPvP(false);
@@ -2637,7 +2638,7 @@ void Creature::UpdateMoveInLineOfSightState()
 
     bool nonHostile = true;
     if (FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(GetFaction()))
-        if (factionTemplate->hostileMask || factionTemplate->enemyFaction[0] || factionTemplate->enemyFaction[1] || factionTemplate->enemyFaction[2] || factionTemplate->enemyFaction[3])
+        if (factionTemplate->EnemyGroup || factionTemplate->Enemies[0] || factionTemplate->Enemies[1] || factionTemplate->Enemies[2] || factionTemplate->Enemies[3])
             nonHostile = false;
 
     if (nonHostile)

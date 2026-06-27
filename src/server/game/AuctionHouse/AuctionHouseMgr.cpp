@@ -18,6 +18,7 @@
 #include "AuctionHouseMgr.h"
 #include "AuctionHouseSearcher.h"
 #include "Common.h"
+#include "DB2Stores.h"
 #include "DBCStores.h"
 #include "DatabaseEnv.h"
 #include "GameTime.h"
@@ -62,9 +63,9 @@ AuctionHouseObject* AuctionHouseMgr::GetAuctionsMap(uint32 factionTemplateId)
     FactionTemplateEntry const* u_entry = sFactionTemplateStore.LookupEntry(factionTemplateId);
     if (!u_entry)
         return &_neutralAuctions;
-    else if (u_entry->ourMask & FACTION_MASK_ALLIANCE)
+    else if (u_entry->FactionGroup & FACTION_MASK_ALLIANCE)
         return &_allianceAuctions;
-    else if (u_entry->ourMask & FACTION_MASK_HORDE)
+    else if (u_entry->FactionGroup & FACTION_MASK_HORDE)
         return &_hordeAuctions;
 
     return &_neutralAuctions;
@@ -476,9 +477,9 @@ AuctionHouseEntry const* AuctionHouseMgr::GetAuctionHouseEntryFromFactionTemplat
 
     if (!uEntry || sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_AUCTION))
         houseid = AuctionHouseId::Neutral;
-    else if (uEntry->ourMask & FACTION_MASK_ALLIANCE)
+    else if (uEntry->FactionGroup & FACTION_MASK_ALLIANCE)
         houseid = AuctionHouseId::Alliance;
-    else if (uEntry->ourMask & FACTION_MASK_HORDE)
+    else if (uEntry->FactionGroup & FACTION_MASK_HORDE)
         houseid = AuctionHouseId::Horde;
     else
         houseid = AuctionHouseId::Neutral;

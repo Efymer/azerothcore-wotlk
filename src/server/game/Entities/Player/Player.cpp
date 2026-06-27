@@ -6008,7 +6008,7 @@ FactionTemplateEntry const* GetAnyFactionTemplateForFaction(uint32 factionId)
     {
         if (FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(i))
         {
-            if (factionTemplate->faction == factionId)
+            if (factionTemplate->Faction == factionId)
                 return factionTemplate;
         }
     }
@@ -12398,13 +12398,13 @@ float Player::GetReputationPriceDiscount(FactionTemplateEntry const* factionTemp
 {
     float discount = 1.0f;
 
-    if (!factionTemplate || !factionTemplate->faction)
+    if (!factionTemplate || !factionTemplate->Faction)
     {
         sScriptMgr->OnPlayerGetReputationPriceDiscount(this, factionTemplate, discount);
         return discount;
     }
 
-    ReputationRank rank = GetReputationRank(factionTemplate->faction);
+    ReputationRank rank = GetReputationRank(factionTemplate->Faction);
 
     if (rank <= REP_NEUTRAL)
     {

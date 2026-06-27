@@ -1589,7 +1589,7 @@ struct npc_chesspiece : public ScriptedAI
             }
             else if (FactionTemplateEntry const* factionTemplateEntry = me->GetFactionTemplateEntry())
             {
-                me->SetFaction(factionTemplateEntry->faction);
+                me->SetFaction(factionTemplateEntry->Faction);
             }
             else
             {

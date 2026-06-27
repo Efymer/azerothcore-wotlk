@@ -16,6 +16,7 @@
  */
 
 #include "OutdoorPvPSI.h"
+#include "DB2Stores.h"
 #include "GameObject.h"
 #include "Language.h"
 #include "MapMgr.h"

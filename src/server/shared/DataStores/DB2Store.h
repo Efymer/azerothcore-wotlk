@@ -21,6 +21,7 @@
 #include "Common.h"
 #include "DBStorageIterator.h"
 #include "Errors.h"
+#include <cstring>
 #include <type_traits>
 #include <vector>
 
@@ -84,6 +85,24 @@ public:
 
     iterator begin() const { return iterator(reinterpret_cast<T const* const*>(_indexTable), _indexTableSize, _minId); }
     iterator end() const { return iterator(reinterpret_cast<T const* const*>(_indexTable), _indexTableSize, _indexTableSize); }
+
+    // Inject/override a record by id (used by unit tests; mirrors DBCStorage::SetEntry).
+    void SetEntry(uint32 id, T* t)
+    {
+        if (id >= _indexTableSize)
+        {
+            std::size_t newSize = id + 1;
+            char** newArr = new char*[newSize];
+            std::memset(newArr, 0, newSize * sizeof(char*));
+            std::memcpy(newArr, _indexTable, _indexTableSize * sizeof(char*));
+            delete[] reinterpret_cast<char*>(_indexTable);
+            _indexTable = newArr;
+            _indexTableSize = static_cast<uint32>(newSize);
+        }
+
+        delete reinterpret_cast<T*>(_indexTable[id]);
+        _indexTable[id] = reinterpret_cast<char*>(t);
+    }
 };
 
 #endif

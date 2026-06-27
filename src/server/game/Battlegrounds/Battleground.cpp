@@ -17,6 +17,7 @@
 
 #include "Battleground.h"
 #include "ArenaSpectator.h"
+#include "DB2Stores.h"
 #include "ArenaTeam.h"
 #include "BattlegroundBE.h"
 #include "BattlegroundDS.h"

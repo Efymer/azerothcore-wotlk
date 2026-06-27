@@ -17,6 +17,7 @@
 
 #include "Battleground.h"
 #include "ConditionMgr.h"
+#include "DB2Stores.h"
 #include "BattlegroundMgr.h"
 #include "Creature.h"
 #include "DatabaseEnv.h"
