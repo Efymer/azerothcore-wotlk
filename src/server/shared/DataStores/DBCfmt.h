@@ -31,7 +31,6 @@ char constexpr BattlemasterListEntryfmt[] = "niiiiiiiiixssssssssssssssssxiixx";
 char constexpr CharStartOutfitEntryfmt[] = "dbbbXiiiiiiiiiiiiiiiiiiiiiiiixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 char constexpr CharTitlesEntryfmt[] = "nxssssssssssssssssxssssssssssssssssxi";
 char constexpr ChatChannelsEntryfmt[] = "nixssssssssssssssssxxxxxxxxxxxxxxxxxx"; // ChatChannelsEntryfmt, index not used (more compact store)
-char constexpr ChrRacesEntryfmt[] = "niixiixixxxxiissssssssssssssssxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxi";
 char constexpr CinematicCameraEntryfmt[] = "nsiffff";
 char constexpr CinematicSequencesEntryfmt[] = "nxixxxxxxx";
 char constexpr CreatureDisplayInfofmt[] = "nixifxxxxxxxxxxx";

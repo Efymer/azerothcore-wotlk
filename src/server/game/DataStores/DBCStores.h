@@ -89,7 +89,7 @@ extern DBCStorage <ChatChannelsEntry>            sChatChannelsStore;
 extern DBCStorage <CharStartOutfitEntry>         sCharStartOutfitStore;
 extern DBCStorage <CharTitlesEntry>              sCharTitlesStore;
 // sChrClassesStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
-extern DBCStorage <ChrRacesEntry>                sChrRacesStore;
+// sChrRacesStore migrated to DB2 (Task 1c.3) — see DataStores/DB2Stores.h
 extern DBCStorage <CinematicCameraEntry>         sCinematicCameraStore;
 extern DBCStorage <CinematicSequencesEntry>      sCinematicSequencesStore;
 extern DBCStorage <CreatureDisplayInfoEntry>     sCreatureDisplayInfoStore;

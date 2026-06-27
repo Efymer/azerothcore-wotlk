@@ -120,6 +120,14 @@ code + git history:
     for all 10 races). Replaced the char-create stopgap with the real accessor. Verified live: SQL update applies,
     loader logs "Loaded 10 class expansion requirements", full World Initialized. Also exposes
     `GetClassExpansionRequirements()` for the other agent's SMSG_AUTH_RESPONSE AvailableClasses block.
+  - **`ChrRaces` migrated DBC→DB2 (no deferral).** 57-field struct; loads 22 records, byte-exact (size-check).
+    Repoints: `TeamID`(7/1)→`Alliance`(0/1) in `TeamIdForRace`, `model_m/f`→`MaleDisplayID/FemaleDisplayID`
+    (display IDs stayed in ChrRaces — no ChrRaceXChrModel needed), `RaceID`→`ID`, `Flags&NOT_PLAYABLE`→
+    `PlayableRaceBit<0`, `HasFlag(CAN_MOUNT)`→`Flags&0x04`, `name[i]`→`Name.Str[i]` (DetectDBCLang),
+    `CinematicSequence`→`CinematicSequenceID`. Built the **`race_unlock_requirement`** mechanism (struct + loader +
+    accessor + world table; Draenei/Blood Elf → TBC) and wired the char-create race gate to it. **Ordering fix:**
+    `LoadDB2Stores()` now runs before `DetectDBCLang()` (which reads the now-DB2 race names) — caught a null-deref
+    crash via boot-testing. Verified live: ChrRaces + 2 race-unlock rows load, full World Initialized.
   - **1c.4–1c.5** — not started. ⚠️ Note: AC's `DB2Meta` stays a designated-init aggregate (do NOT add TC's
     constructor — it would break the extractor's + runtime's designated-init metadata).
 - **Phase 1d** — not started.

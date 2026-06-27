@@ -5842,14 +5842,8 @@ TeamId Player::TeamIdForRace(uint8 race)
 {
     if (ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(race))
     {
-        switch (rEntry->TeamID)
-        {
-            case 1:
-                return TEAM_HORDE;
-            case 7:
-                return TEAM_ALLIANCE;
-        }
-        LOG_ERROR("entities.player", "Race ({}) has wrong teamid ({}) in DBC: wrong DBC files?", uint32(race), rEntry->TeamID);
+        // DB2 ChrRaces.Alliance: 0 = Alliance, 1 = Horde (the legacy DBC TeamID 7/1 is gone).
+        return rEntry->Alliance == 0 ? TEAM_ALLIANCE : TEAM_HORDE;
     }
     else
         LOG_ERROR("entities.player", "Race ({}) not found in DBC: wrong DBC files?", uint32(race));

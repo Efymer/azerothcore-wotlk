@@ -338,12 +338,17 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         return;
     }
 
-    // prevent character creating Expansion race without Expansion account
-    if (raceEntry->expansion > Expansion())
+    // prevent character creating Expansion race without Expansion account.
+    // 3.4.3: ChrRaces.db2 has no `expansion` field; gating comes from the `race_unlock_requirement`
+    // world table (see ObjectMgr::LoadRaceUnlockRequirements).
+    if (RaceUnlockRequirement const* raceExpansionRequirement = sObjectMgr->GetRaceUnlockRequirement(createInfo->Race))
     {
-        SendCharCreate(CHAR_CREATE_EXPANSION);
-        LOG_ERROR("network.opcode", "Expansion {} account:[{}] tried to Create character with expansion {} race ({})", Expansion(), GetAccountId(), raceEntry->expansion, createInfo->Race);
-        return;
+        if (raceExpansionRequirement->Expansion > Expansion())
+        {
+            SendCharCreate(CHAR_CREATE_EXPANSION);
+            LOG_ERROR("network.opcode", "Expansion {} account:[{}] tried to Create character with expansion {} race ({})", Expansion(), GetAccountId(), raceExpansionRequirement->Expansion, createInfo->Race);
+            return;
+        }
     }
 
     // prevent character creating Expansion class without Expansion account.
@@ -952,7 +957,7 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
             if (cEntry->CinematicSequenceID)
                 pCurrChar->GetCinematicMgr().StartCinematic(cEntry->CinematicSequenceID);
             else if (ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(pCurrChar->getRace()))
-                pCurrChar->GetCinematicMgr().StartCinematic(rEntry->CinematicSequence);
+                pCurrChar->GetCinematicMgr().StartCinematic(rEntry->CinematicSequenceID);
 
             // send new char string if not empty
             std::string_view newCharString = sWorld->getStringConfig(CONFIG_NEW_CHAR_STRING);

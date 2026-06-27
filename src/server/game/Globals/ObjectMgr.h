@@ -161,6 +161,14 @@ struct RaceClassAvailability
     std::vector<ClassAvailability> Classes;
 };
 
+// Race-by-expansion availability (3.4.3). Replaces the legacy DBC ChrRaces `expansion` field
+// (gone in the 54261 DB2 layout). Backed by the `race_unlock_requirement` world table.
+struct RaceUnlockRequirement
+{
+    uint8 Expansion = 0;
+    uint32 AchievementId = 0;
+};
+
 enum ScriptsType
 {
     SCRIPTS_FIRST = 1,
@@ -832,6 +840,13 @@ public:
     [[nodiscard]] std::vector<RaceClassAvailability> const& GetClassExpansionRequirements() const { return _classExpansionRequirementStore; }
     [[nodiscard]] ClassAvailability const* GetClassExpansionRequirement(uint8 raceId, uint8 classId) const;
     [[nodiscard]] ClassAvailability const* GetClassExpansionRequirementFallback(uint8 classId) const;
+    [[nodiscard]] RaceUnlockRequirement const* GetRaceUnlockRequirement(uint8 race) const
+    {
+        auto itr = _raceUnlockRequirementStore.find(race);
+        if (itr != _raceUnlockRequirementStore.end())
+            return &itr->second;
+        return nullptr;
+    }
 
     void GetPlayerLevelInfo(uint32 race, uint32 class_, uint8 level, PlayerLevelInfo* info) const;
 
@@ -1114,6 +1129,7 @@ public:
 
     void LoadPlayerInfo();
     void LoadClassExpansionRequirements();
+    void LoadRaceUnlockRequirements();
     void LoadPetLevelInfo();
     void LoadExplorationBaseXP();
     void LoadPetNames();
@@ -1621,6 +1637,7 @@ private:
     GameTeleContainer _gameTeleStore;
 
     std::vector<RaceClassAvailability> _classExpansionRequirementStore;
+    std::unordered_map<uint8, RaceUnlockRequirement> _raceUnlockRequirementStore;
 
     ScriptNameContainer _scriptNamesStore;
 

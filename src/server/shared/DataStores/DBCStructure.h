@@ -658,30 +658,7 @@ enum ChrRacesFlags
     CHRRACES_FLAGS_CAN_MOUNT    = 0x04
 };
 
-struct ChrRacesEntry
-{
-    uint32      RaceID;                                     // 0
-    uint32      Flags;                                      // 1
-    uint32      FactionID;                                  // 2 facton template id
-    // 3 unused
-    uint32      model_m;                                    // 4
-    uint32      model_f;                                    // 5
-    // 6 unused
-    uint32      TeamID;                                     // 7 (7-Alliance 1-Horde)
-    // 8-11 unused
-    uint32      CinematicSequence;                          // 12 id from CinematicSequences.dbc
-    uint32      alliance;                                   // 13 faction (0 alliance, 1 horde, 2 not available?)
-    char const* name[16];                                   // 14-29 used for DBC language detection/selection
-    // 30 string flags, unused
-    //char const*       nameFemale[16];                     // 31-46, if different from base (male) case
-    // 47 string flags, unused
-    //char const*       nameNeutralGender[16];              // 48-63, if different from base (male) case
-    // 64 string flags, unused
-    // 65-67 unused
-    uint32      expansion;                                  // 68 (0 - original race, 1 - tbc addon, ...)
-
-    inline bool HasFlag(ChrRacesFlags flag) const { return (Flags & flag) != 0; }
-};
+// ChrRacesEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
 struct CinematicCameraEntry
 {

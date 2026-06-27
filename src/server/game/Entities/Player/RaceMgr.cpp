@@ -17,6 +17,7 @@
 
 #include "RaceMgr.h"
 #include "AccountMgr.h"
+#include "DB2Stores.h"
 #include "DatabaseEnv.h"
 #include "ObjectMgr.h"
 #include "Player.h"
@@ -56,10 +57,11 @@ void RaceMgr::LoadRaces()
         if (!raceEntry)
             continue;
 
-        uint8 alliance = raceEntry->alliance;
-        uint8 raceId = raceEntry->RaceID;
+        uint8 alliance = raceEntry->Alliance;
+        uint8 raceId = raceEntry->ID;
 
-        if (raceEntry->Flags & CHRRACES_FLAGS_NOT_PLAYABLE)
+        // DB2: non-playable races carry PlayableRaceBit == -1 (replaces the DBC NOT_PLAYABLE flag).
+        if (raceEntry->PlayableRaceBit < 0)
             continue;
 
         if (GetMaxRaces() <= raceId)

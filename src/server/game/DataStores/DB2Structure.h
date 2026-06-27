@@ -342,6 +342,72 @@ struct ChrClassesEntry
     uint8 HasRelicSlot;
 };
 
+// Migrated from DBC (Task 1c.3). Legacy DBC -> DB2 field mapping: RaceID->ID, model_m->MaleDisplayID,
+// model_f->FemaleDisplayID, TeamID(7/1)->Alliance(0/1), CinematicSequence->CinematicSequenceID,
+// name[locale]->Name.Str[locale]. The DBC `expansion` field moved to race_unlock_requirement; the
+// "not playable" flag check is replaced by PlayableRaceBit (< 0 == not playable).
+struct ChrRacesEntry
+{
+    uint32 ID;
+    char const* ClientPrefix;
+    char const* ClientFileString;
+    LocalizedString Name;
+    LocalizedString NameFemale;
+    LocalizedString NameLowercase;
+    LocalizedString NameFemaleLowercase;
+    LocalizedString LoreName;
+    LocalizedString LoreNameFemale;
+    LocalizedString LoreNameLower;
+    LocalizedString LoreNameLowerFemale;
+    LocalizedString LoreDescription;
+    LocalizedString ShortName;
+    LocalizedString ShortNameFemale;
+    LocalizedString ShortNameLower;
+    LocalizedString ShortNameLowerFemale;
+    int32 Flags;
+    uint32 MaleDisplayID;
+    uint32 FemaleDisplayID;
+    uint32 HighResMaleDisplayID;
+    uint32 HighResFemaleDisplayID;
+    int32 ResSicknessSpellID;
+    int32 SplashSoundID;
+    int32 CreateScreenFileDataID;
+    int32 SelectScreenFileDataID;
+    int32 LowResScreenFileDataID;
+    std::array<uint32, 3> AlteredFormStartVisualKitID;
+    std::array<uint32, 3> AlteredFormFinishVisualKitID;
+    int32 HeritageArmorAchievementID;
+    int32 StartingLevel;
+    int32 UiDisplayOrder;
+    int32 PlayableRaceBit;
+    int32 FemaleSkeletonFileDataID;
+    int32 MaleSkeletonFileDataID;
+    int32 HelmetAnimScalingRaceID;
+    int32 TransmogrifyDisabledSlotMask;
+    std::array<float, 3> AlteredFormCustomizeOffsetFallback;
+    float AlteredFormCustomizeRotationFallback;
+    std::array<float, 3> Unknown910_1;
+    std::array<float, 3> Unknown910_2;
+    int16 FactionID;
+    int16 CinematicSequenceID;
+    int8 BaseLanguage;
+    int8 CreatureType;
+    int8 Alliance;
+    int8 RaceRelated;
+    int8 UnalteredVisualRaceID;
+    int8 DefaultClassID;
+    int8 NeutralRaceID;
+    int8 MaleModelFallbackRaceID;
+    int8 MaleModelFallbackSex;
+    int8 FemaleModelFallbackRaceID;
+    int8 FemaleModelFallbackSex;
+    int8 MaleTextureFallbackRaceID;
+    int8 MaleTextureFallbackSex;
+    int8 FemaleTextureFallbackRaceID;
+    int8 FemaleTextureFallbackSex;
+    int8 UnalteredVisualCustomizationRaceID;
+};
+
 // Migrated from DBC (Task 1c.3): the DBC PowerDisplayEntry {Id, PowerType} maps to the
 // 54261 DB2 layout; the legacy `PowerType` field is `ActualType` here.
 struct PowerDisplayEntry

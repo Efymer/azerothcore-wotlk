@@ -378,11 +378,14 @@ void World::SetInitialWorldSettings()
     ///- Load the DBC files
     LOG_INFO("server.loading", "Initialize Data Stores...");
     LoadDBCStores(_dataPath);
-    DetectDBCLang();
 
-    // Load the DB2 store subset (3.4.3.54261). enUS is the extracted/authoritative locale for now;
-    // this should follow the configured DBC locale once non-enUS DB2 data is available.
+    // Load the DB2 store subset (3.4.3.54261) before DetectDBCLang(): locale detection reads race
+    // names from the (now DB2) sChrRacesStore, so it must be populated first. enUS is the
+    // extracted/authoritative locale for now; this should follow the configured DBC locale once
+    // non-enUS DB2 data is available.
     LoadDB2Stores(_dataPath, LOCALE_enUS);
+
+    DetectDBCLang();
 
     // Load cinematic cameras
     LoadM2Cameras(_dataPath);
@@ -701,6 +704,9 @@ void World::SetInitialWorldSettings()
 
     LOG_INFO("server.loading", "Loading Class Expansion Requirements...");
     sObjectMgr->LoadClassExpansionRequirements();
+
+    LOG_INFO("server.loading", "Loading Race Unlock Requirements...");
+    sObjectMgr->LoadRaceUnlockRequirements();
 
     LOG_INFO("server.loading", "Loading Exploration BaseXP Data...");
     sObjectMgr->LoadExplorationBaseXP();
@@ -1077,12 +1083,20 @@ void World::DetectDBCLang()
     }
 
     ChrRacesEntry const* race = sChrRacesStore.LookupEntry(1);
+    if (!race)
+    {
+        LOG_ERROR("server.loading", "DetectDBCLang: ChrRaces.db2 race 1 missing; defaulting locale to enUS.");
+        _defaultDbcLocale = LOCALE_enUS;
+        _availableDbcLocaleMask = 1 << LOCALE_enUS;
+        return;
+    }
+
     std::string availableLocalsStr;
 
     uint8 default_locale = TOTAL_LOCALES;
     for (uint8 i = default_locale - 1; i < TOTAL_LOCALES; --i) // -1 will be 255 due to uint8
     {
-        if (race->name[i][0] != '\0')                     // check by race names
+        if (race->Name.Str[i][0] != '\0')                 // check by race names (DB2 LocalizedString)
         {
             default_locale = i;
             _availableDbcLocaleMask |= (1 << i);

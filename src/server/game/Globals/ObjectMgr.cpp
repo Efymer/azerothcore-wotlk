@@ -4430,8 +4430,8 @@ void ObjectMgr::LoadPlayerInfo()
                 info->positionY = positionY;
                 info->positionZ = positionZ;
                 info->orientation = orientation;
-                info->displayId_m = rEntry->model_m;
-                info->displayId_f = rEntry->model_f;
+                info->displayId_m = rEntry->MaleDisplayID;
+                info->displayId_f = rEntry->FemaleDisplayID;
                 _playerInfo[current_race][current_class] = info;
 
                 ++count;
@@ -5080,6 +5080,57 @@ ClassAvailability const* ObjectMgr::GetClassExpansionRequirementFallback(uint8 c
                 return &classAvailability;
 
     return nullptr;
+}
+
+void ObjectMgr::LoadRaceUnlockRequirements()
+{
+    uint32 oldMSTime = getMSTime();
+    _raceUnlockRequirementStore.clear();
+
+    //                                                    0       1          2
+    QueryResult result = WorldDatabase.Query("SELECT raceID, expansion, achievementId FROM `race_unlock_requirement`");
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 race unlock requirements. DB table `race_unlock_requirement` is empty.");
+        LOG_INFO("server.loading", " ");
+        return;
+    }
+
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint8 raceID = fields[0].Get<uint8>();
+        uint8 expansion = fields[1].Get<uint8>();
+        uint32 achievementId = fields[2].Get<uint32>();
+
+        if (!sChrRacesStore.LookupEntry(raceID))
+        {
+            LOG_ERROR("sql.sql", "Race {} defined in `race_unlock_requirement` does not exist, skipped.", uint32(raceID));
+            continue;
+        }
+
+        if (expansion >= MAX_EXPANSIONS)
+        {
+            LOG_ERROR("sql.sql", "Race {} defined in `race_unlock_requirement` has incorrect expansion {}, skipped.", uint32(raceID), uint32(expansion));
+            continue;
+        }
+
+        if (achievementId && !sAchievementStore.LookupEntry(achievementId))
+        {
+            LOG_ERROR("sql.sql", "Race {} defined in `race_unlock_requirement` has incorrect achievement {}, skipped.", uint32(raceID), achievementId);
+            continue;
+        }
+
+        RaceUnlockRequirement& raceUnlockRequirement = _raceUnlockRequirementStore[raceID];
+        raceUnlockRequirement.Expansion = expansion;
+        raceUnlockRequirement.AchievementId = achievementId;
+        ++count;
+    } while (result->NextRow());
+
+    LOG_INFO("server.loading", ">> Loaded {} race unlock requirements in {} ms.", count, GetMSTimeDiffToNow(oldMSTime));
+    LOG_INFO("server.loading", " ");
 }
 
 void ObjectMgr::GetPlayerClassLevelInfo(uint32 class_, uint8 level, PlayerClassLevelInfo* info) const

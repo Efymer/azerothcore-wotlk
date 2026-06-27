@@ -33,6 +33,7 @@
 #include "Creature.h"
 #include "CreatureAIImpl.h"
 #include "CreatureGroups.h"
+#include "DB2Stores.h"
 #include "DisableMgr.h"
 #include "DynamicVisibility.h"
 #include "Errors.h"
@@ -17380,7 +17381,7 @@ bool Unit::IsInDisallowedMountForm() const
 
     if (model && !(model->HasFlag(CREATURE_MODEL_DATA_FLAGS_CAN_MOUNT)))
     {
-        if (race && !(race->HasFlag(CHRRACES_FLAGS_CAN_MOUNT)))
+        if (race && !(race->Flags & CHRRACES_FLAGS_CAN_MOUNT))   // DB2 ChrRacesFlag::CanMount == DBC 0x04
         {
             return true;
         }
