@@ -317,15 +317,29 @@ game and require the enormous `game` build):
     (and make `m_playerLoading` an `ObjectGuid`); real ctor values from the handshake; `SendPacket`
     routing by `ConnectionType`; wire `AddInstanceConnection` on the 2nd socket's `CMSG_AUTH_CONTINUED_SESSION`.
 - **E — the `WorldSocket` + `WorldSocketMgr`/`Main` on `Acore::Net`** (depends on A–D; **user chose the
-  full Acore::Net migration** over a handshake-only rewrite on the legacy socket). Sub-phases: (E-prep)
-  `ClientBuild` auth-key system + `SessionKeyGenerator` + the 4 key-derivation seeds + the JSON
-  `RealmList::RealmJoinTicket` message; (E-net) migrate `WorldSocket`/`WorldSocketMgr`/worldserver `Main`
-  onto `Acore::Net` + proxy-protocol parity (deferred N3, `NetworkThread` lacks `EnableProxyProtocol`);
-  (E-handshake) V2 banner → `SMSG_AUTH_CHALLENGE`+DOS → parse `AuthSession`/JSON ticket → digest check
-  (HMAC-SHA512 w/ `AuthCheckSeed`) → session-key derivation (`SessionKeySeed`) → world-encrypt-key
-  (`EncryptionKeySeed`) → `SMSG_ENTER_ENCRYPTED_MODE` (Ed25519 — KAT-verified) → 2-socket continued-session
-  dance; (E-verify) **live test with the real 54261 client** — the decisive gate (TC opcode VALUES +
-  the RSA/Ed25519 signatures confirmed here). Session key + crypt live on the **socket**, not the session.
+  full Acore::Net migration**). Prep subsystems already existed from the bnet work: `SessionKeyGenerator`,
+  the JSON `RealmList::RealmJoinTicket` proto + `ProtobufJSON`, `ClientBuild::VariantId/AuthKey/Info` (✅).
+  - ✅ **E1 (Acore::Net migration + framing, `715ef5608`):** rebased `WorldSocket` on
+    `Acore::Net::Socket<>` (plain TCP — world isn't TLS); the **V2 banner** (exact strings, via AC's
+    existing `SocketConnectionInitializer` chain); modern wire headers `PacketHeader{Size,Tag[12]}` (16B
+    out) / `IncomingPacketHeader{…,EncryptedOpcode}` (20B in); the `ReadHeaderHandler`/`ReadDataHandler`
+    AES-GCM flow + `WritePacketToBuffer`; swapped `AuthCrypt`(ARC4)→`WorldPacketCrypt`(AES-256-GCM);
+    `WorldSocketMgr` on `Acore::Net::SocketMgr` (custom `WorldSocketThread`). **`worldserver.exe` builds
+    + links green.** Also fixed deferred **N2** (legacy vs modern `Socket.h` collision: isolated the RA
+    acceptor into `RemoteAccess/RAAcceptor.*` + include ordering). Auth crypto stubbed (`TODO brick-E2`).
+  - 🔜 **E2 (auth handshake + login flow):** real `CMSG_AUTH_SESSION` parse (JSON `RealmJoinTicket`);
+    digest check `HMAC_SHA512(SHA512(KeyData‖authKey))(LocalChallenge‖serverChallenge‖AuthCheckSeed)`;
+    session-key derivation (`SessionKeyGenerator<SHA512>` w/ `SessionKeySeed`, 40B); world-encrypt-key
+    (`EncryptionKeySeed`, 32B); `SMSG_ENTER_ENCRYPTED_MODE` (Ed25519 — KAT-verified) → `_authCrypt.Init`
+    on `CMSG_ENTER_ENCRYPTED_MODE_ACK`; the **login-holder split** (`HandlePlayerLoginOpcode` →
+    `SendConnectToInstance` → 2-socket continued-session → `AddInstanceSocket`/`HandleContinuePlayerLogin`).
+    Copy the 4 seed byte-arrays verbatim from TC. **Open gate:** the digest needs the **per-variant
+    `build_auth_key`** (16B, client-extracted, build-specific) — TC ships none in source (61581 keys live
+    in its auth SQL); whether 54261 needs one (and its value) is a live-verify question — build the path to
+    tolerate an empty key so it can be tested.
+  - 🔜 **E-verify — live test with the real 54261 client** — the decisive gate (TC-61581 opcode VALUES +
+    the RSA/Ed25519 signatures + the auth-key question confirmed here). Session key + crypt live on the
+    **socket**, not the session. Proxy-protocol parity (N3) remains its own deferred task.
 - Then (Phase 1c): **server-side DB2 store layer** (~30-40 world-entry tables, WoWDBDefs method),
   regenerated **UpdateFields** for 54261, login-sequence packets, movement, chat, object spawning.
 
