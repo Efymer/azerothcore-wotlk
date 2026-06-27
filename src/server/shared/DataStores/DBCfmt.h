@@ -35,7 +35,6 @@ char constexpr CreatureFamilyfmt[] = "nfifiiiiixssssssssssssssssxx";
 char constexpr CreatureModelDatafmt[] = "nixxfxxxxxxxxxfffxxxxxxxxxxx";
 char constexpr CreatureSpellDatafmt[] = "niiiixxxx";
 char constexpr CreatureTypefmt[] = "nxxxxxxxxxxxxxxxxxx";
-char constexpr CurrencyTypesfmt[] = "xnxi";
 char constexpr DestructibleModelDatafmt[] = "nxxixxxixxxixxxixxx";
 char constexpr DungeonEncounterfmt[] = "niixissssssssssssssssxx";
 char constexpr DurabilityCostsfmt[] = "niiiiiiiiiiiiiiiiiiiiiiiiiiiii";

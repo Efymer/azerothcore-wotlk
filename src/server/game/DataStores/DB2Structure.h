@@ -214,6 +214,25 @@ struct CinematicSequencesEntry
     std::array<uint16, 8> Camera;                          // 54261: links to CinematicCamera IDs (was single cinematicCamera in DBC)
 };
 
+// 54261: standalone-currency model. Keyed by currency ID (NOT item id), and has no ItemId / BitIndex
+// that the legacy 3.3.5 known-currency bitmask relied on. See CurrencyTypesLoadInfo for field meta.
+struct CurrencyTypesEntry
+{
+    uint32 ID;
+    LocalizedString Name;
+    LocalizedString Description;
+    uint8 CategoryID;
+    int32 InventoryIconFileID;
+    uint32 SpellWeight;
+    uint8 SpellCategory;
+    uint32 MaxQty;
+    uint32 MaxEarnablePerWeek;
+    int8 Quality;
+    int32 FactionID;
+    int32 AwardConditionID;
+    std::array<int32, 2> Flags;
+};
+
 struct ItemEntry
 {
     uint32 ID;

@@ -3819,15 +3819,9 @@ void ObjectMgr::LoadItemTemplates()
                     continue;
                 }
 
-                if (BAG_FAMILY_MASK_CURRENCY_TOKENS & mask)
-                {
-                    CurrencyTypesEntry const* ctEntry = sCurrencyTypesStore.LookupEntry(itemTemplate.ItemId);
-                    if (!ctEntry)
-                    {
-                        LOG_ERROR("sql.sql", "Item (Entry: {}) has currency bag family bit set in BagFamily but not listed in CurrencyTypes.dbc, remove bit", entry);
-                        itemTemplate.BagFamily &= ~mask;
-                    }
-                }
+                // 54261: CurrencyTypes.db2 is the standalone-currency model (keyed by currency ID,
+                // no ItemId), so the legacy lookup-by-item-id validation no longer applies. Keep the
+                // currency-token bag-family bit as authoritative from the DB.
             }
         }
 

@@ -418,6 +418,53 @@ struct CinematicSequencesLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 10, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct CurrencyTypesLoadInfo
+{
+    // Build 3.4.3.54261 (xian55 CurrencyTypesMeta, LayoutHash 0xE814E32E). IndexField -1 = ID is the
+    // implicit (non-inline) record id: present in the flattened Fields list but NOT in MetaFields.
+    static constexpr DB2MetaField MetaFields[12] =
+    {
+        { FT_STRING, 1, true },
+        { FT_STRING, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_INT, 1, false },
+        { FT_INT, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 2, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1095531, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 12, .FileFieldCount = 12, .LayoutHash = 0xE814E32E, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[14] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING, "Name" },
+        { false, FT_STRING, "Description" },
+        { false, FT_BYTE, "CategoryID" },
+        { true, FT_INT, "InventoryIconFileID" },
+        { false, FT_INT, "SpellWeight" },
+        { false, FT_BYTE, "SpellCategory" },
+        { false, FT_INT, "MaxQty" },
+        { false, FT_INT, "MaxEarnablePerWeek" },
+        { true, FT_BYTE, "Quality" },
+        { true, FT_INT, "FactionID" },
+        { true, FT_INT, "AwardConditionID" },
+        { true, FT_INT, "Flags1" },
+        { true, FT_INT, "Flags2" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 14, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct ItemLoadInfo
 {
     // Build 3.4.3.54261 (xian55 ItemMeta, LayoutHash 0x72A6F1C2). IndexField -1 = ID is the

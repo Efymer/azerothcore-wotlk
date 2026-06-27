@@ -14339,10 +14339,14 @@ void Player::LearnPetTalent(ObjectGuid petGuid, uint32 talentId, uint32 talentRa
     pet->SetFreeTalentPoints(CurTalentPoints - (talentRank - curtalent_maxrank + 1));
 }
 
-void Player::AddKnownCurrency(uint32 itemId)
+void Player::AddKnownCurrency(uint32 /*itemId*/)
 {
-    if (CurrencyTypesEntry const* ctEntry = sCurrencyTypesStore.LookupEntry(itemId))
-        SetFlag64(PLAYER_FIELD_KNOWN_CURRENCIES, (1LL << (ctEntry->BitIndex - 1)));
+    // 54261: the 3.3.5 known-currency bitmask was retired (matching the xian55 reference core).
+    // The 54261 CurrencyTypes.db2 is the standalone-currency model: keyed by currency ID, with no
+    // ItemId and no BitIndex, so it cannot drive the legacy PLAYER_FIELD_KNOWN_CURRENCIES bitmask,
+    // and the 3.4.3 client no longer reads that field. Currencies are tracked by the modern
+    // _currencyStorage / ModifyCurrency / SendCurrencies system (a separate feature, out of scope
+    // for this data-store migration). Kept as a no-op so existing callers stay intact.
 }
 
 void Player::UnsummonPetTemporaryIfAny()

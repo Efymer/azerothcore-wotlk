@@ -56,6 +56,7 @@ extern DB2Storage<MapEntry> sMapStore;                         // migrated from 
 extern DB2Storage<MapDifficultyEntry> sMapDifficultyStore;     // migrated from DBC
 extern DB2Storage<CinematicCameraEntry> sCinematicCameraStore; // migrated from DBC
 extern DB2Storage<CinematicSequencesEntry> sCinematicSequencesStore; // migrated from DBC
+extern DB2Storage<CurrencyTypesEntry> sCurrencyTypesStore;     // migrated from DBC
 
 // Loads the DB2 store subset from <dataPath>/dbc/<locale>/ at worldserver boot.
 void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale);
