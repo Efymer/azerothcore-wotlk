@@ -229,30 +229,52 @@ bool LoginQueryHolder::Initialize()
 
 void WorldSession::HandleCharEnum(PreparedQueryResult result)
 {
-    WorldPacket data(SMSG_ENUM_CHARACTERS_RESULT, 100);                  // we guess size
+    // The WotLK Classic client build this core targets; reported back per character as LastLoginVersion.
+    constexpr uint32 CLIENT_BUILD_3_4_3 = 54261;
 
-    uint8 num = 0;
-
-    data << num;
+    WorldPackets::Character::EnumCharactersResult charEnum;
+    charEnum.Success = true;
 
     _legitCharacters.clear();
+
     if (result)
     {
+        uint8 index = 0;
         do
         {
-            ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>((*result)[0].Get<uint32>());
+            Field* fields = result->Fetch();
+
+            ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(fields[0].Get<uint32>());
             LOG_DEBUG("network.opcode", "Loading char {} from account {}.", guid.ToString(), GetAccountId());
-            if (Player::BuildEnumData(result, &data))
-            {
-                _legitCharacters.insert(guid);
-                ++num;
-            }
+
+            WorldPackets::Character::EnumCharactersResult::CharacterInfo charInfo;
+            charInfo.Guid = guid;
+            charInfo.ListPosition = index;
+            charInfo.Name = fields[1].Get<std::string>();
+            charInfo.RaceID = fields[2].Get<uint8>();
+            charInfo.ClassID = fields[3].Get<uint8>();
+            charInfo.SexID = fields[4].Get<uint8>();
+            charInfo.ExperienceLevel = fields[10].Get<uint8>();
+            charInfo.ZoneID = int32(fields[11].Get<uint16>());
+            charInfo.MapID = int32(fields[12].Get<uint16>());
+            charInfo.PreloadPos.Relocate(fields[13].Get<float>(), fields[14].Get<float>(), fields[15].Get<float>());
+
+            // TODO(3.4.3): AC 3.3.5a has no HighGuid::Guild — guilds are uint32 ids here. The modern packet wants a
+            // guild ObjectGuid; leaving it empty until the guild GUID model is ported. fields[16] = guildid (unused for now).
+
+            uint32 atLoginFlags = fields[18].Get<uint16>();
+            charInfo.FirstLogin = (atLoginFlags & AT_LOGIN_FIRST) != 0;
+            charInfo.LastLoginVersion = CLIENT_BUILD_3_4_3;
+
+            // TODO(3.4.3): populate Customizations/VisualItems/SpecID — needs modern character_customizations schema + DB2 ChrCustomization (next brick)
+
+            _legitCharacters.insert(guid);
+            charEnum.Characters.push_back(std::move(charInfo));
+            ++index;
         } while (result->NextRow());
     }
 
-    data.put<uint8>(0, num);
-
-    SendPacket(&data);
+    SendPacket(charEnum.Write());
 }
 
 void WorldSession::HandleCharEnumOpcode(WorldPacket& /*recvData*/)

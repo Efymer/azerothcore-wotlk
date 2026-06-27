@@ -18,12 +18,114 @@
 #ifndef CharacterPackets_h__
 #define CharacterPackets_h__
 
+#include "ObjectGuid.h"
+#include "Optional.h"
 #include "Packet.h"
+#include "PacketUtilities.h"
+#include "Position.h"
+#include <array>
+#include <vector>
 
 namespace WorldPackets
 {
     namespace Character
     {
+        // 3.4.3 modern character customization choice (replaces legacy skin/face/hair fields)
+        struct ChrCustomizationChoice
+        {
+            uint32 ChrCustomizationOptionID = 0;
+            uint32 ChrCustomizationChoiceID = 0;
+        };
+
+        struct VisualItemInfo
+        {
+            uint32 DisplayID = 0;
+            uint32 DisplayEnchantID = 0;
+            int32 SecondaryItemModifiedAppearanceID = 0;
+            uint8 InvType = 0;
+            uint8 Subclass = 0;
+        };
+
+        struct RaceUnlock
+        {
+            int32 RaceID = 0;
+            bool HasExpansion = false;
+            bool HasAchievement = false;
+            bool HasHeritageArmor = false;
+            bool IsLocked = false;
+        };
+
+        struct UnlockedConditionalAppearance
+        {
+            int32 AchievementID = 0;
+            int32 Unused = 0;
+        };
+
+        struct RaceLimitDisableInfo
+        {
+            int32 RaceID = 0;
+            int32 BlockReason = 0;
+        };
+
+        class EnumCharactersResult final : public ServerPacket
+        {
+        public:
+            EnumCharactersResult() : ServerPacket(SMSG_ENUM_CHARACTERS_RESULT, 64) { }
+
+            WorldPacket const* Write() override;
+
+            struct CharacterInfo
+            {
+                ObjectGuid Guid;
+                uint64 GuildClubMemberID = 0;
+                uint8 ListPosition = 0;
+                uint8 RaceID = 0;
+                uint8 ClassID = 0;
+                uint8 SexID = 0;
+                std::vector<ChrCustomizationChoice> Customizations;
+                uint8 ExperienceLevel = 0;
+                int32 ZoneID = 0;
+                int32 MapID = 0;
+                Position PreloadPos;
+                ObjectGuid GuildGUID;
+                uint32 Flags = 0;
+                uint32 Flags2 = 0;
+                uint32 Flags3 = 0;
+                uint32 PetCreatureDisplayID = 0;
+                uint32 PetExperienceLevel = 0;
+                uint32 PetCreatureFamilyID = 0;
+                std::array<uint32, 2> ProfessionIds = { };
+                std::array<VisualItemInfo, 34> VisualItems = { };
+                Timestamp<> LastPlayedTime;
+                int16 SpecID = 0;
+                int32 Unknown703 = 0;
+                int32 LastLoginVersion = 0;
+                uint32 Flags4 = 0;
+                uint32 OverrideSelectScreenFileDataID = 0;
+                std::string Name;
+                bool FirstLogin = false;
+                bool BoostInProgress = false;
+                uint32 unkWod61x = 0;
+                bool RpeResetAvailable = false;
+                bool RpeResetQuestClearAvailable = false;
+
+                friend ByteBuffer& operator<<(ByteBuffer& data, CharacterInfo const& charInfo);
+            };
+
+            bool Success = true;
+            bool IsDeletedCharacters = false;
+            bool IsNewPlayerRestrictionSkipped = false;
+            bool IsNewPlayerRestricted = false;
+            bool IsNewPlayer = false;
+            bool IsTrialAccountRestricted = false;
+            int32 MaxCharacterLevel = 0;
+            Optional<uint32> DisabledClassesMask;
+            std::vector<CharacterInfo> Characters;
+            std::vector<RaceUnlock> RaceUnlockData;
+            std::vector<UnlockedConditionalAppearance> UnlockedConditionalAppearances;
+            std::vector<RaceLimitDisableInfo> RaceLimitDisables;
+        };
+
         class ShowingCloak final : public ClientPacket
         {
         public:

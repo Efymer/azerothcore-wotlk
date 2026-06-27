@@ -1165,6 +1165,13 @@ void WorldSession::HandleComplainOpcode(WorldPackets::Misc::Complain& packet)
     }
 }
 
+void WorldSession::HandleServerTimeOffsetRequest(WorldPacket& /*recvData*/)
+{
+    WorldPackets::Misc::ServerTimeOffset response;
+    response.Time = GameTime::GetSystemTime();
+    SendPacket(response.Write());
+}
+
 void WorldSession::HandleRealmSplitOpcode(WorldPacket& recv_data)
 {
     LOG_DEBUG("network", "CMSG_REALM_SPLIT");

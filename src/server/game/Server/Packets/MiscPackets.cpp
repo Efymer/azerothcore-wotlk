@@ -168,3 +168,10 @@ WorldPacket const* WorldPackets::Misc::ComplainResult::Write()
 
     return &_worldPacket;
 }
+
+WorldPacket const* WorldPackets::Misc::ServerTimeOffset::Write()
+{
+    _worldPacket << Time;
+
+    return &_worldPacket;
+}

@@ -1629,7 +1629,9 @@ void WorldSession::InitializeSessionCallback(CharacterDatabaseQueryHolder const&
     SetInQueue(false);
     ResetTimeOutTime(false);
 
-    SendAddonsInfo();
+    // 3.4.3: the modern client does not expect the legacy SMSG_ADDON_INFO here (the reference 3.4.3 core
+    // omits it; the opcode is not even mapped in the 54261 table, so SendAddonsInfo() emitted a packet with
+    // a garbage/truncated opcode that corrupted the post-auth encrypted stream). Match the reference order.
     SendClientCacheVersion(clientCacheVersion);
     SendTutorialsData();
 }

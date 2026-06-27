@@ -20,6 +20,7 @@
 
 #include "ObjectGuid.h"
 #include "Packet.h"
+#include "PacketUtilities.h"
 #include "Weather.h"
 
 enum WeatherState : uint32;
@@ -236,6 +237,16 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             uint8 Unk = 0;
+        };
+
+        class ServerTimeOffset final : public ServerPacket
+        {
+        public:
+            ServerTimeOffset() : ServerPacket(SMSG_SERVER_TIME_OFFSET, 8) { }
+
+            WorldPacket const* Write() override;
+
+            Timestamp<> Time;
         };
     }
 }
