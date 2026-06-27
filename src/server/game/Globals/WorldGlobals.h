@@ -33,10 +33,12 @@ public:
     static WorldGlobals* instance();
 
     void LoadAntiDosOpcodePolicies();
-    AntiDosOpcodePolicy const* GetAntiDosPolicyForOpcode(uint16 opcode);
+    // brick B: opcodes are uint32 (OpcodeClient) for the 3.4.3 wire protocol
+    AntiDosOpcodePolicy const* GetAntiDosPolicyForOpcode(uint32 opcode);
 
 private:
-    std::array<std::unique_ptr<AntiDosOpcodePolicy>, NUM_OPCODE_HANDLERS> _antiDosOpcodePolicies;
+    // indexed by GetOpcodeArrayIndex(OpcodeClient) - the AntiDos policies only apply to incoming client opcodes
+    std::array<std::unique_ptr<AntiDosOpcodePolicy>, NUM_CMSG_OPCODES> _antiDosOpcodePolicies;
 };
 
 #define sWorldGlobals WorldGlobals::instance()

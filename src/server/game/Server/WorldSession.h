@@ -1206,7 +1206,8 @@ protected:
     protected:
         WorldSession* Session;
     private:
-        typedef std::unordered_map<uint16, PacketCounter> PacketThrottlingMap;
+        // brick B: opcodes are uint32 (OpcodeClient) for the 3.4.3 wire protocol
+        typedef std::unordered_map<uint32, PacketCounter> PacketThrottlingMap;
         // mark this member as "mutable" so it can be modified even in const functions
         mutable PacketThrottlingMap _PacketThrottlingMap;
 

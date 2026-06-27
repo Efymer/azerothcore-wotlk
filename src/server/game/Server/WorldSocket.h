@@ -61,7 +61,8 @@ struct ClientPktHeader
     uint32 cmd;
 
     bool IsValidSize() const { return size >= 4 && size < 10240; }
-    bool IsValidOpcode() const { return cmd < NUM_OPCODE_HANDLERS; }
+    // brick B: opcodes are uint32 (OpcodeClient) for the 3.4.3 wire protocol
+    bool IsValidOpcode() const { return opcodeTable.IsValid(static_cast<OpcodeClient>(cmd)); }
 };
 #pragma pack(pop)
 

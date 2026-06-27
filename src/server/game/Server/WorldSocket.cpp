@@ -459,7 +459,7 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
             }
             LOG_ERROR("network", "WorldSocket::ReadDataHandler: client {} sent CMSG_KEEP_ALIVE without being authenticated", GetRemoteIpAddress().to_string());
             return ReadDataHandlerResult::Error;
-        case CMSG_TIME_SYNC_RESP:
+        case CMSG_TIME_SYNC_RESPONSE: // brick B: renamed from CMSG_TIME_SYNC_RESP for the 3.4.3 wire protocol
             packetToQueue = new WorldPacket(std::move(packet), GameTime::Now());
             break;
         default:
@@ -478,7 +478,8 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
         return ReadDataHandlerResult::Error;
     }
 
-    OpcodeHandler const* handler = opcodeTable[opcode];
+    // brick B: unregistered / invalid opcodes are now legitimately nullptr (most CMSGs are STATUS_UNHANDLED stubs in brick B1)
+    OpcodeHandler const* handler = opcodeTable.IsValid(opcode) ? opcodeTable[opcode] : nullptr;
     if (!handler)
     {
         LOG_ERROR("network.opcode", "No defined handler for opcode {} sent by {}", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packetToQueue->GetOpcode())), _worldSession->GetPlayerInfo());
@@ -487,7 +488,7 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
     }
 
     // Our Idle timer will reset on any non PING opcodes on login screen, allowing us to catch people idling.
-    if (packetToQueue->GetOpcode() != CMSG_WARDEN_DATA)
+    if (packetToQueue->GetOpcode() != CMSG_WARDEN3_DATA) // brick B: renamed from CMSG_WARDEN_DATA for the 3.4.3 wire protocol
     {
         _worldSession->ResetTimeOutTime(false);
     }

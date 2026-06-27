@@ -63,7 +63,15 @@ namespace
 
 bool MapSessionFilter::Process(WorldPacket* packet)
 {
-    ClientOpcodeHandler const* opHandle = opcodeTable[static_cast<OpcodeClient>(packet->GetOpcode())];
+    OpcodeClient opcode = static_cast<OpcodeClient>(packet->GetOpcode());
+
+    // unregistered / invalid opcodes are now legitimately nullptr -> do not process in Map::Update()
+    if (!opcodeTable.IsValid(opcode))
+        return false;
+
+    ClientOpcodeHandler const* opHandle = opcodeTable[opcode];
+    if (!opHandle)
+        return false;
 
     //let's check if our has an anxiety disorder can be really processed in Map::Update()
     if (opHandle->ProcessingPlace == PROCESS_INPLACE)
@@ -85,7 +93,15 @@ bool MapSessionFilter::Process(WorldPacket* packet)
 //OR packet handler is not thread-safe!
 bool WorldSessionFilter::Process(WorldPacket* packet)
 {
-    ClientOpcodeHandler const* opHandle = opcodeTable[static_cast<OpcodeClient>(packet->GetOpcode())];
+    OpcodeClient opcode = static_cast<OpcodeClient>(packet->GetOpcode());
+
+    // unregistered / invalid opcodes are now legitimately nullptr -> let World::UpdateSessions() pick it up (Update() will log + drop)
+    if (!opcodeTable.IsValid(opcode))
+        return true;
+
+    ClientOpcodeHandler const* opHandle = opcodeTable[opcode];
+    if (!opHandle)
+        return true;
 
     //check if packet handler is supposed to be safe
     if (opHandle->ProcessingPlace == PROCESS_INPLACE)
@@ -385,6 +401,21 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
     while (m_Socket && _recvQueue.next(packet, updater))
     {
         OpcodeClient opcode = static_cast<OpcodeClient>(packet->GetOpcode());
+
+        // unregistered / invalid opcodes are now legitimately nullptr (most CMSGs are STATUS_UNHANDLED stubs in brick B1)
+        if (!opcodeTable.IsValid(opcode) || !opcodeTable[opcode])
+        {
+            LOG_ERROR("network.opcode", "Received unregistered opcode {} from {}",
+                GetOpcodeNameForLogging(opcode), GetPlayerInfo());
+
+            if (deletePacket)
+                delete packet;
+
+            deletePacket = true;
+            processedPackets++;
+            continue;
+        }
+
         ClientOpcodeHandler const* opHandle = opcodeTable[opcode];
 
         METRIC_DETAILED_TIMER("worldsession_update_opcode_time", METRIC_TAG("opcode", opHandle->Name));
@@ -469,8 +500,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                         break;
 
                     // some auth opcodes can be recieved before STATUS_LOGGEDIN_OR_RECENTLY_LOGGOUT opcodes
-                    // however when we recieve CMSG_CHAR_ENUM we are surely no longer during the logout process.
-                    if (packet->GetOpcode() == CMSG_CHAR_ENUM)
+                    // however when we recieve CMSG_ENUM_CHARACTERS we are surely no longer during the logout process.
+                    // brick B: renamed from CMSG_CHAR_ENUM for the 3.4.3 wire protocol
+                    if (packet->GetOpcode() == CMSG_ENUM_CHARACTERS)
                         m_playerRecentlyLogout = false;
 
                     if (!sScriptMgr->CanPacketReceive(this, *packet))
@@ -1360,8 +1392,8 @@ Warden* WorldSession::GetWarden()
 
 WorldSession::DosProtection::Policy WorldSession::DosProtection::EvaluateOpcode(WorldPacket const& p, time_t const time) const
 {
-    // legacy 3.3.5 DoS path: opcode is uint16 here; brick B widens the wire/DoS layer to uint32
-    AntiDosOpcodePolicy const* policy = sWorldGlobals->GetAntiDosPolicyForOpcode(uint16(p.GetOpcode()));
+    // brick B: opcodes are uint32 (OpcodeClient) for the 3.4.3 wire protocol
+    AntiDosOpcodePolicy const* policy = sWorldGlobals->GetAntiDosPolicyForOpcode(p.GetOpcode());
     if (!policy)
         return WorldSession::DosProtection::Policy::Process; // Return true if there is no policy for the opcode
 
@@ -1370,8 +1402,8 @@ WorldSession::DosProtection::Policy WorldSession::DosProtection::EvaluateOpcode(
         return WorldSession::DosProtection::Policy::Process; // Return true if there no limit for the opcode
 
     // packetCounter is opcodes handled in the same world second, so MaxAllowedCount is per second
-    // legacy 3.3.5 DoS path: opcode is uint16 here; brick B widens the wire/DoS layer to uint32
-    PacketCounter& packetCounter = _PacketThrottlingMap[uint16(p.GetOpcode())];
+    // brick B: opcodes are uint32 (OpcodeClient) for the 3.4.3 wire protocol
+    PacketCounter& packetCounter = _PacketThrottlingMap[p.GetOpcode()];
     if (packetCounter.lastReceiveTime != time)
     {
         packetCounter.lastReceiveTime = time;
@@ -1384,9 +1416,11 @@ WorldSession::DosProtection::Policy WorldSession::DosProtection::EvaluateOpcode(
 
     if (WorldSession::DosProtection::Policy(policy->Policy) != WorldSession::DosProtection::Policy::BlockingThrottle)
     {
+        OpcodeClient opcode = static_cast<OpcodeClient>(p.GetOpcode());
+        char const* opcodeName = (opcodeTable.IsValid(opcode) && opcodeTable[opcode]) ? opcodeTable[opcode]->Name : "UNKNOWN OPCODE";
         LOG_WARN("network", "AntiDOS: Account {}, IP: {}, Ping: {}, Character: {}, flooding packet (opc: {} (0x{:X}), count: {})",
             Session->GetAccountId(), Session->GetRemoteAddress(), Session->GetLatency(), Session->GetPlayerName(),
-            opcodeTable[static_cast<OpcodeClient>(p.GetOpcode())]->Name, p.GetOpcode(), packetCounter.amountCounter);
+            opcodeName, p.GetOpcode(), packetCounter.amountCounter);
     }
 
     switch (WorldSession::DosProtection::Policy(policy->Policy))
