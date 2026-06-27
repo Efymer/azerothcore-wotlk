@@ -23,7 +23,7 @@
 class AC_COMMON_API WorldPacketCrypt
 {
 public:
-    using Key = std::array<uint8, 32>;
+    using Key = std::array<uint8, 16>;
 
     WorldPacketCrypt();
 

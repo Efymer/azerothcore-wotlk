@@ -34,7 +34,7 @@ using boost::asio::ip::tcp;
 typedef struct z_stream_s z_stream;
 
 // brick E1: migrated to the modern Acore::Net stack with the 3.4.3 V2 banner exchange and
-// AES-256-GCM packet framing. The auth-handshake crypto (digest check + session/encrypt key
+// AES-128-GCM packet framing. The auth-handshake crypto (digest check + session/encrypt key
 // derivation) is stubbed for brick E2 - see HandleAuthSession.
 class EncryptablePacket : public WorldPacket
 {
@@ -70,7 +70,7 @@ namespace WorldPackets
 #pragma pack(push, 1)
 
 // 3.4.3 modern wire header (outbound, 16 bytes). Size is the encrypted payload length
-// ({opcode||data}); Tag is the AES-256-GCM authentication tag.
+// ({opcode||data}); Tag is the AES-128-GCM authentication tag.
 struct PacketHeader
 {
     uint32 Size;
@@ -95,10 +95,10 @@ class AC_GAME_API WorldSocket final : public Acore::Net::Socket<>
 
     // 3.4.3 world-auth seeds. These MUST stay byte-exact with the client (and the bnetserver) or
     // the digest/session-key derivation produces a mismatch and the client rejects the connection.
-    static std::array<uint8, 32> const AuthCheckSeed;
-    static std::array<uint8, 32> const SessionKeySeed;
-    static std::array<uint8, 32> const ContinuedSessionSeed;
-    static std::array<uint8, 32> const EncryptionKeySeed;
+    static std::array<uint8, 16> const AuthCheckSeed;
+    static std::array<uint8, 16> const SessionKeySeed;
+    static std::array<uint8, 16> const ContinuedSessionSeed;
+    static std::array<uint8, 16> const EncryptionKeySeed;
 
     using BaseSocket = Acore::Net::Socket<>;
 
@@ -171,10 +171,10 @@ private:
     ConnectionType _type;
     uint64 _key;
 
-    std::array<uint8, 32> _serverChallenge;
+    std::array<uint8, 16> _serverChallenge;
     WorldPacketCrypt _authCrypt;
     SessionKey _sessionKey;
-    std::array<uint8, 32> _encryptKey;
+    std::array<uint8, 16> _encryptKey;
 
     TimePoint _LastPingTime;
     uint32 _OverSpeedPings;

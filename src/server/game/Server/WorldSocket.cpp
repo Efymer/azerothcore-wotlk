@@ -59,16 +59,12 @@ struct CompressedWorldPacket
 
 uint32 const WorldSocket::MinSizeForCompression = 0x400;
 
-// 3.4.3 world-auth seeds, copied verbatim from TrinityCore wotlk_classic WorldSocket.cpp. These are
-// part of the client/server contract and must not change.
-std::array<uint8, 32> const WorldSocket::AuthCheckSeed = { 0xDE, 0x3A, 0x2A, 0x8E, 0x6B, 0x89, 0x52, 0x66, 0x88, 0x9D, 0x7E, 0x7A, 0x77, 0x1D, 0x5D, 0x1F,
-    0x4E, 0xD9, 0x0C, 0x23, 0x9B, 0xCD, 0x0E, 0xDC, 0xD2, 0xE8, 0x04, 0x3A, 0x68, 0x64, 0xC7, 0xB0 };
-std::array<uint8, 32> const WorldSocket::SessionKeySeed = { 0xE8, 0x1E, 0x8B, 0x59, 0x27, 0x62, 0x1E, 0xAA, 0x86, 0x15, 0x18, 0xEA, 0xC0, 0xBF, 0x66, 0x8C,
-    0x6D, 0xBF, 0x83, 0x93, 0xBC, 0xAA, 0x80, 0x52, 0x5B, 0x1E, 0xDC, 0x23, 0xA0, 0x12, 0xB7, 0x50 };
-std::array<uint8, 32> const WorldSocket::ContinuedSessionSeed = { 0x56, 0x5C, 0x61, 0x9C, 0x48, 0x3A, 0x52, 0x1F, 0x61, 0x5D, 0x05, 0x49, 0xB2, 0x9A, 0x39, 0xBF,
-    0x4B, 0x97, 0xB0, 0x1B, 0xF9, 0x6C, 0xDE, 0xD6, 0x80, 0x1D, 0xAB, 0x26, 0x02, 0xA9, 0x9B, 0x9D };
-std::array<uint8, 32> const WorldSocket::EncryptionKeySeed = { 0x71, 0xC9, 0xED, 0x5A, 0xA7, 0x0E, 0x4D, 0xFF, 0x4C, 0x36, 0xA6, 0x5A, 0x3E, 0x46, 0x8A, 0x4A,
-    0x5D, 0xA1, 0x48, 0xC8, 0x30, 0x47, 0x4A, 0xDE, 0xF6, 0x0D, 0x6C, 0xBE, 0x6F, 0xE4, 0x55, 0x73 };
+// 3.4.3.54261 world-auth seeds (16-byte), byte-exact with the 54261 client (HermesProxy WorldSocket.cs).
+// These are part of the client/server contract and must not change.
+std::array<uint8, 16> const WorldSocket::AuthCheckSeed = { 0xC5, 0xC6, 0x98, 0x95, 0x76, 0x3F, 0x1D, 0xCD, 0xB6, 0xA1, 0x37, 0x28, 0xB3, 0x12, 0xFF, 0x8A };
+std::array<uint8, 16> const WorldSocket::SessionKeySeed = { 0x58, 0xCB, 0xCF, 0x40, 0xFE, 0x2E, 0xCE, 0xA6, 0x5A, 0x90, 0xB8, 0x01, 0x68, 0x6C, 0x28, 0x0B };
+std::array<uint8, 16> const WorldSocket::ContinuedSessionSeed = { 0x16, 0xAD, 0x0C, 0xD4, 0x46, 0xF9, 0x4F, 0xB2, 0xEF, 0x7D, 0xEA, 0x2A, 0x17, 0x66, 0x4D, 0x2F };
+std::array<uint8, 16> const WorldSocket::EncryptionKeySeed = { 0xE9, 0x75, 0x3C, 0x50, 0x90, 0x93, 0x61, 0xDA, 0x3B, 0x07, 0xEE, 0xFA, 0xFF, 0x9D, 0x41, 0xB8 };
 
 WorldSocket::WorldSocket(Acore::Net::IoContextTcpSocket&& socket) : BaseSocket(std::move(socket)),
     _type(CONNECTION_TYPE_REALM), _key(0), _serverChallenge(), _sessionKey(), _encryptKey(), _OverSpeedPings(0),
@@ -253,7 +249,7 @@ bool WorldSocket::Update()
 
 void WorldSocket::SendAuthSession()
 {
-    _serverChallenge = Acore::Crypto::GetRandomBytes<32>();
+    _serverChallenge = Acore::Crypto::GetRandomBytes<16>();
 
     WorldPackets::Auth::AuthChallenge challenge;
     challenge.Challenge = _serverChallenge;
@@ -736,42 +732,24 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     std::string address = sConfigMgr->GetOption<bool>("AllowLoggingIPAddressesInDatabase", true, true) ? GetRemoteIpAddress().to_string() : "0.0.0.0";
 
     // ---------------------------------------------------------------------------------------------
-    // 3.4.3 world-auth crypto. The digest is HMAC_SHA512 over LocalChallenge || _serverChallenge ||
-    // AuthCheckSeed, keyed by SHA512(KeyData || buildAuthKey). The build auth key is per build/variant.
-    //
-    // OPEN GATE: ClientBuild::Info::AuthKeys is a deferred stub (no build_auth_key table in
-    // AzerothCore), so it is always empty. We therefore fall back to an EMPTY auth key rather than
-    // hard-failing with ERROR_BAD_VERSION. This keeps the path testable; if the live 54261 client
-    // actually requires a non-empty key the digest check below will surface it (logged).
-    std::vector<uint8> authKey;
-    ClientBuild::VariantId buildVariant = { joinTicket->platform(), joinTicket->clientarch(), joinTicket->type() };
-    ClientBuild::Info const* buildInfo = ClientBuild::GetBuildInfo(account.Build);
-    if (!buildInfo)
-    {
-        LOG_WARN("network", "WorldSocket::HandleAuthSession: No client build info for build {} ({}); proceeding with empty auth key.",
-            account.Build, address);
-    }
-    else
-    {
-        auto authKeyItr = std::find_if(buildInfo->AuthKeys.begin(), buildInfo->AuthKeys.end(),
-            [&buildVariant](ClientBuild::AuthKey const& key) { return key.Variant == buildVariant; });
-        if (authKeyItr != buildInfo->AuthKeys.end())
-            authKey.assign(authKeyItr->Key.begin(), authKeyItr->Key.end());
-        else
-            LOG_WARN("network", "WorldSocket::HandleAuthSession: No build_auth_key configured for build {} variant {}-{}-{} ({}); proceeding with empty auth key.",
-                account.Build, ClientBuild::ToCharArray(buildVariant.Platform).data(), ClientBuild::ToCharArray(buildVariant.Arch).data(),
-                ClientBuild::ToCharArray(buildVariant.Type).data(), address);
-    }
+    // 3.4.3.54261 world-auth crypto. The digest is HMAC_SHA256 over LocalChallenge || _serverChallenge ||
+    // AuthCheckSeed, keyed by SHA256(KeyData || perBuildAuthSeed). For build 54261 the 64-bit Windows
+    // client uses win64AuthSeed (the only seed Blizzard set for this build; mac64/win are null). The
+    // 16-byte value comes from the 54261 `build_info` row, cross-verified across community 3.4.3 forks.
+    // (We only support the patched Win64 client, so the seed is appended unconditionally.)
+    static constexpr std::array<uint8, 16> Win64AuthSeed =
+        { 0x25, 0xFD, 0x81, 0x24, 0x75, 0xDC, 0xF2, 0x6F, 0x9F, 0x13, 0x83, 0xAE, 0xD3, 0x7F, 0xC9, 0x9E };
 
-    // digestKeyHash = SHA512(KeyData || authKey)
-    Acore::Crypto::SHA512 digestKeyHash;
+    ClientBuild::VariantId buildVariant = { joinTicket->platform(), joinTicket->clientarch(), joinTicket->type() };
+
+    // digestKeyHash = SHA256(KeyData || win64AuthSeed)
+    Acore::Crypto::SHA256 digestKeyHash;
     digestKeyHash.UpdateData(account.KeyData.data(), account.KeyData.size());
-    if (!authKey.empty())
-        digestKeyHash.UpdateData(authKey.data(), authKey.size());
+    digestKeyHash.UpdateData(Win64AuthSeed.data(), Win64AuthSeed.size());
     digestKeyHash.Finalize();
 
-    // serverDigest = HMAC_SHA512(digestKeyHash)( LocalChallenge || _serverChallenge || AuthCheckSeed )
-    Acore::Crypto::HMAC_SHA512 hmac(digestKeyHash.GetDigest());
+    // serverDigest = HMAC_SHA256(digestKeyHash)( LocalChallenge || _serverChallenge || AuthCheckSeed )
+    Acore::Crypto::HMAC_SHA256 hmac(digestKeyHash.GetDigest());
     hmac.UpdateData(authSession->LocalChallenge);
     hmac.UpdateData(_serverChallenge);
     hmac.UpdateData(AuthCheckSeed);
@@ -782,35 +760,35 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     {
         SendAuthResponseError(AUTH_FAILED);
         LOG_ERROR("network", "WorldSocket::HandleAuthSession: Authentication failed for account: {} ('{}') address: {}. "
-            "Digest mismatch (authKeyLen: {}, keyData[0]: {:02X}, serverDigest[0]: {:02X}, clientDigest[0]: {:02X}).",
-            account.Id, joinTicket->gameaccount(), address, authKey.size(), account.KeyData[0], hmac.GetDigest()[0], authSession->Digest[0]);
+            "Digest mismatch (keyData[0]: {:02X}, serverDigest[0]: {:02X}, clientDigest[0]: {:02X}).",
+            account.Id, joinTicket->gameaccount(), address, account.KeyData[0], hmac.GetDigest()[0], authSession->Digest[0]);
         DelayedCloseSocket();
         return;
     }
 
-    // sessionKey = SessionKeyGenerator( HMAC_SHA512( SHA512(KeyData) )( _serverChallenge || LocalChallenge || SessionKeySeed ) )
-    Acore::Crypto::SHA512 keyData;
+    // sessionKey = SessionKeyGenerator( HMAC_SHA256( SHA256(KeyData) )( _serverChallenge || LocalChallenge || SessionKeySeed ) )
+    Acore::Crypto::SHA256 keyData;
     keyData.UpdateData(account.KeyData.data(), account.KeyData.size());
     keyData.Finalize();
 
-    Acore::Crypto::HMAC_SHA512 sessionKeyHmac(keyData.GetDigest());
+    Acore::Crypto::HMAC_SHA256 sessionKeyHmac(keyData.GetDigest());
     sessionKeyHmac.UpdateData(_serverChallenge);
     sessionKeyHmac.UpdateData(authSession->LocalChallenge);
     sessionKeyHmac.UpdateData(SessionKeySeed);
     sessionKeyHmac.Finalize();
 
-    SessionKeyGenerator<Acore::Crypto::SHA512> sessionKeyGenerator(sessionKeyHmac.GetDigest());
+    SessionKeyGenerator<Acore::Crypto::SHA256> sessionKeyGenerator(sessionKeyHmac.GetDigest());
     sessionKeyGenerator.Generate(_sessionKey.data(), 40);
 
-    // _encryptKey = first 32 bytes of HMAC_SHA512(_sessionKey)( LocalChallenge || _serverChallenge || EncryptionKeySeed )
-    Acore::Crypto::HMAC_SHA512 encryptKeyGen(_sessionKey);
+    // _encryptKey = first 16 bytes of HMAC_SHA256(_sessionKey)( LocalChallenge || _serverChallenge || EncryptionKeySeed )
+    Acore::Crypto::HMAC_SHA256 encryptKeyGen(_sessionKey);
     encryptKeyGen.UpdateData(authSession->LocalChallenge);
     encryptKeyGen.UpdateData(_serverChallenge);
     encryptKeyGen.UpdateData(EncryptionKeySeed);
     encryptKeyGen.Finalize();
 
-    // only first 32 bytes of the hmac are used
-    memcpy(_encryptKey.data(), encryptKeyGen.GetDigest().data(), 32);
+    // only first 16 bytes of the hmac are used (AES-128 key)
+    memcpy(_encryptKey.data(), encryptKeyGen.GetDigest().data(), 16);
 
     LoginDatabasePreparedStatement* stmt = nullptr;
 
@@ -848,7 +826,9 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
 
     // Must be done before WorldSession is created
     bool wardenActive = sWorld->getBoolConfig(CONFIG_WARDEN_ENABLED);
-    if (wardenActive && account.OS != "Win" && account.OS != "OSX")
+    // 3.4.3 client OS strings are the modern 4-char forms (Wn64 = Win64, Mc64 = macOS64); the legacy
+    // 3.3.5a "Win"/"OSX" are replaced. Warden only supports these (no 3.4.3 Warden module yet anyway).
+    if (wardenActive && account.OS != "Win" && account.OS != "Wn64" && account.OS != "Mc64")
     {
         SendAuthResponseError(AUTH_REJECT);
         LOG_ERROR("network", "WorldSocket::HandleAuthSession: Client {} attempted to log in using invalid client OS ({}).", address, account.OS);
@@ -959,9 +939,13 @@ void WorldSocket::LoadSessionPermissionsCallback(PreparedQueryResult result)
     // RBAC must be loaded before adding session to check for skip queue permission
     _worldSession->GetRBACData()->LoadFromDBCallback(result);
 
-    // 3.4.3: arm AES-256-GCM only after the client acks. Send SMSG_ENTER_ENCRYPTED_MODE here and defer
+    // 3.4.3: arm AES-128-GCM only after the client acks. Send SMSG_ENTER_ENCRYPTED_MODE here and defer
     // AddSession to HandleEnterEncryptedModeAck.
     SendPacketAndLogOpcode(*WorldPackets::Auth::EnterEncryptedMode(_encryptKey, true).Write());
+
+    // The auth-session read returned WaitingForQuery (read loop paused); resume reading now so we
+    // receive the client's CMSG_ENTER_ENCRYPTED_MODE_ACK that completes the handshake.
+    AsyncRead(Acore::Net::InvokeReadHandlerCallback<WorldSocket>{ .Socket = this });
 }
 
 void WorldSocket::HandleAuthContinuedSession(std::shared_ptr<WorldPackets::Auth::AuthContinuedSession> authSession)
@@ -1026,7 +1010,7 @@ void WorldSocket::HandleConnectToFailed(WorldPacket& recvPacket)
 
 void WorldSocket::HandleEnterEncryptedModeAck()
 {
-    // Arm AES-256-GCM with the derived key, then complete the auth flow.
+    // Arm AES-128-GCM with the derived key, then complete the auth flow.
     _authCrypt.Init(_encryptKey);
 
     if (_type == CONNECTION_TYPE_REALM)

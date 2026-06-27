@@ -223,7 +223,8 @@ void LoginDatabaseConnection::DoPrepareStatements()
     // Continued (already-authenticated) world session: the 40-byte derived world key by account id.
     PrepareStatement(LOGIN_SEL_ACCOUNT_INFO_CONTINUED_SESSION, "SELECT username, session_key_bnet FROM account WHERE id = ? AND LENGTH(session_key_bnet) = 40", CONNECTION_ASYNC);
     // Write the derived 40-byte world session key back over session_key_bnet (overwrites the 64-byte blob).
-    PrepareStatement(LOGIN_UPD_ACCOUNT_INFO_CONTINUED_SESSION, "UPDATE account SET session_key_bnet = ? WHERE id = ?", CONNECTION_SYNCH);
+    // CONNECTION_ASYNC: WorldSocket persists it via LoginDatabase.Execute() (async) during the world auth.
+    PrepareStatement(LOGIN_UPD_ACCOUNT_INFO_CONTINUED_SESSION, "UPDATE account SET session_key_bnet = ? WHERE id = ?", CONNECTION_ASYNC);
 
 #undef BnetAccountInfo
 #undef BnetGameAccountInfo

@@ -18,28 +18,41 @@
 #include "Opcodes.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include "AuthenticationPackets.h"
+#include "GameTime.h"
+#include "Realm.h"
 
+// 3.4.3: the modern SMSG_AUTH_RESPONSE (WorldPackets::Auth::AuthResponse). The legacy 3.3.5a byte
+// layout (uint8 code + billing + expansion + queue) is replaced. The success block's race/class
+// availability + character templates stay empty (brick-C stubs) until the world-entry DB2 store
+// layer lands; an empty list still produces a valid packet the client parses (shows no templates).
 void WorldSession::SendAuthResponse(uint8 code, bool shortForm, uint32 queuePos)
 {
-    WorldPacket packet(SMSG_AUTH_RESPONSE, 1 + 4 + 1 + 4 + 1 + (shortForm ? 0 : (4 + 1)));
-    packet << uint8(code);
-    packet << uint32(0); // BillingTimeRemaining
-    packet << GetBillingPlanFlags();
-    packet << uint32(0); // BillingTimeRested
-    uint8 exp = Expansion(); // 0 - normal, 1 - TBC, 2 - WotLK, must be set in database manually for each account
+    WorldPackets::Auth::AuthResponse response;
+    // 3.4.3 Result uses BattlenetRpcErrorCodes: success and "queued" are ERROR_OK (0), with the queue
+    // signalled by WaitInfo. AC's legacy ResponseCodes (AUTH_OK = 12, …) would read as an error to the
+    // modern client, so map the accept/queue path to 0; other codes are treated as errors as-is.
+    response.Result = (code == AUTH_OK || code == AUTH_WAIT_QUEUE) ? 0u /*ERROR_OK*/ : uint32(code);
 
-    if (exp >= MAX_EXPANSIONS)
-        exp = MAX_EXPANSIONS - 1;
-
-    packet << uint8(exp);
-
-    if (!shortForm)
+    if (code == AUTH_OK)
     {
-        packet << uint32(queuePos);                             // Queue position
-        packet << uint8(0);                                     // Realm has a free character migration - bool
+        response.SuccessInfo.emplace();
+        response.SuccessInfo->ActiveExpansionLevel = Expansion();
+        response.SuccessInfo->AccountExpansionLevel = Expansion();
+        // AzerothCore's grunt RealmHandle only carries the realm index (Region/Site default to 0),
+        // so the virtual-realm address is just the realm id.
+        response.SuccessInfo->VirtualRealmAddress = realm.Id.Realm;
+        response.SuccessInfo->Time = int32(GameTime::GetGameTime().count());
+        // Advertise this realm as the (local, non-internal) home virtual realm.
+        response.SuccessInfo->VirtualRealms.emplace_back(realm.Id.Realm, true, false, realm.Name, realm.Name);
+    }
+    else if (code == AUTH_WAIT_QUEUE)
+    {
+        response.WaitInfo.emplace();
+        response.WaitInfo->WaitCount = queuePos;
     }
 
-    SendPacket(&packet);
+    SendPacket(response.Write());
 }
 
 void WorldSession::SendClientCacheVersion(uint32 version)
