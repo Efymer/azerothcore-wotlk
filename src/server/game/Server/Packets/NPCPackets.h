@@ -91,7 +91,8 @@ namespace WorldPackets::NPC
     class TrainerBuySucceeded final : public ServerPacket
     {
     public:
-        TrainerBuySucceeded() : ServerPacket(SMSG_TRAINER_BUY_SUCCEEDED, 8 + 4) { }
+        // TODO(3.4.3 brick-B): SMSG_TRAINER_BUY_SUCCEEDED removed in 3.4.3 (only SMSG_TRAINER_BUY_FAILED survives) — packet class vestigial
+        TrainerBuySucceeded() : ServerPacket(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 8 + 4) { }
 
         WorldPacket const* Write() override;
 

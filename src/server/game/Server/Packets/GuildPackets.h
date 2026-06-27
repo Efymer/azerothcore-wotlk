@@ -31,7 +31,7 @@ namespace WorldPackets
         class QueryGuildInfo final : public ClientPacket
         {
         public:
-            QueryGuildInfo(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_QUERY, std::move(packet)) { }
+            QueryGuildInfo(WorldPacket&& packet) : ClientPacket(CMSG_QUERY_GUILD_INFO, std::move(packet)) { }
 
             void Read() override;
 
@@ -66,7 +66,8 @@ namespace WorldPackets
         class GuildCreate final : public ClientPacket
         {
         public:
-            GuildCreate(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_CREATE, std::move(packet)) { }
+            // TODO(3.4.3 brick-B): CMSG_GUILD_CREATE removed in 3.4.3 (NPC guild creation gone) — packet class vestigial
+            GuildCreate(WorldPacket&& packet) : ClientPacket(static_cast<OpcodeClient>(UNKNOWN_OPCODE), std::move(packet)) { }
 
             void Read() override;
 
@@ -76,7 +77,8 @@ namespace WorldPackets
         class GuildGetInfo final : ClientPacket
         {
         public:
-            GuildGetInfo(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_INFO, std::move(packet)) { }
+            // TODO(3.4.3 brick-B): CMSG_GUILD_INFO removed in 3.4.3 (guild info merged into roster) — packet class vestigial
+            GuildGetInfo(WorldPacket&& packet) : ClientPacket(static_cast<OpcodeClient>(UNKNOWN_OPCODE), std::move(packet)) { }
 
             void Read() override { }
         };
@@ -84,7 +86,8 @@ namespace WorldPackets
         class GuildInfoResponse final : ServerPacket
         {
         public:
-            GuildInfoResponse() : ServerPacket(SMSG_GUILD_INFO, 123) { }
+            // TODO(3.4.3 brick-B): SMSG_GUILD_INFO removed in 3.4.3 (guild info merged into roster) — packet class vestigial
+            GuildInfoResponse() : ServerPacket(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 123) { }
 
             WorldPacket const* Write() override;
 
@@ -97,7 +100,7 @@ namespace WorldPackets
         class GuildGetRoster final : public ClientPacket
         {
         public:
-            GuildGetRoster(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_ROSTER, std::move(packet)) { }
+            GuildGetRoster(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_GET_ROSTER, std::move(packet)) { }
 
             void Read() override { }
         };
@@ -143,7 +146,7 @@ namespace WorldPackets
         class GuildUpdateMotdText final : public ClientPacket
         {
         public:
-            GuildUpdateMotdText(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_MOTD, std::move(packet)) { }
+            GuildUpdateMotdText(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_UPDATE_MOTD_TEXT, std::move(packet)) { }
 
             void Read() override;
 
@@ -165,7 +168,7 @@ namespace WorldPackets
         class AcceptGuildInvite final : public ClientPacket
         {
         public:
-            AcceptGuildInvite(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_ACCEPT, std::move(packet)) { }
+            AcceptGuildInvite(WorldPacket&& packet) : ClientPacket(CMSG_ACCEPT_GUILD_INVITE, std::move(packet)) { }
 
             void Read() override { }
         };
@@ -173,7 +176,7 @@ namespace WorldPackets
         class GuildDeclineInvitation final : public ClientPacket
         {
         public:
-            GuildDeclineInvitation(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_DECLINE, std::move(packet)) { }
+            GuildDeclineInvitation(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_DECLINE_INVITATION, std::move(packet)) { }
 
             void Read() override { }
         };
@@ -181,7 +184,7 @@ namespace WorldPackets
         class GuildInviteByName final : public ClientPacket
         {
         public:
-            GuildInviteByName(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_INVITE, std::move(packet)) { }
+            GuildInviteByName(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_INVITE_BY_NAME, std::move(packet)) { }
 
             void Read() override;
 
@@ -202,7 +205,8 @@ namespace WorldPackets
         class GuildEvent final : public ServerPacket
         {
         public:
-            GuildEvent() : ServerPacket(SMSG_GUILD_EVENT) { }
+            // TODO(3.4.3 brick-B): SMSG_GUILD_EVENT removed in 3.4.3 (split into granular SMSG_GUILD_EVENT_*) — packet class vestigial
+            GuildEvent() : ServerPacket(static_cast<OpcodeServer>(UNKNOWN_OPCODE)) { }
 
             WorldPacket const* Write() override;
 
@@ -223,7 +227,7 @@ namespace WorldPackets
         class GuildEventLogQuery final : public ClientPacket
         {
         public:
-            GuildEventLogQuery(WorldPacket&& packet) : ClientPacket(MSG_GUILD_EVENT_LOG_QUERY, std::move(packet)) { }
+            GuildEventLogQuery(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_EVENT_LOG_QUERY, std::move(packet)) { }
 
             void Read() override { }
         };
@@ -231,7 +235,7 @@ namespace WorldPackets
         class GuildEventLogQueryResults final : public ServerPacket
         {
         public:
-            GuildEventLogQueryResults() : ServerPacket(MSG_GUILD_EVENT_LOG_QUERY, 4) { }
+            GuildEventLogQueryResults() : ServerPacket(SMSG_GUILD_EVENT_LOG_QUERY_RESULTS, 4) { }
 
             WorldPacket const* Write() override;
 
@@ -241,7 +245,7 @@ namespace WorldPackets
         class GuildPermissionsQuery final : public ClientPacket
         {
         public:
-            GuildPermissionsQuery(WorldPacket&& packet) : ClientPacket(MSG_GUILD_PERMISSIONS, std::move(packet)) { }
+            GuildPermissionsQuery(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_PERMISSIONS_QUERY, std::move(packet)) { }
 
             void Read() override { }
         };
@@ -255,7 +259,7 @@ namespace WorldPackets
                 int32 WithdrawItemLimit = 0;
             };
 
-            GuildPermissionsQueryResults() : ServerPacket(MSG_GUILD_PERMISSIONS, 20) { }
+            GuildPermissionsQueryResults() : ServerPacket(SMSG_GUILD_PERMISSIONS_QUERY_RESULTS, 20) { }
 
             WorldPacket const* Write() override;
 
@@ -269,7 +273,7 @@ namespace WorldPackets
         class GuildSetRankPermissions final : public ClientPacket
         {
         public:
-            GuildSetRankPermissions(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_RANK, std::move(packet)) { }
+            GuildSetRankPermissions(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_SET_RANK_PERMISSIONS, std::move(packet)) { }
 
             void Read() override;
 
@@ -294,7 +298,7 @@ namespace WorldPackets
         class GuildDeleteRank final : public ClientPacket
         {
         public:
-            GuildDeleteRank(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_DEL_RANK, std::move(packet)) { }
+            GuildDeleteRank(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_DELETE_RANK, std::move(packet)) { }
 
             void Read() override { }
         };
@@ -302,7 +306,7 @@ namespace WorldPackets
         class GuildUpdateInfoText final : public ClientPacket
         {
         public:
-            GuildUpdateInfoText(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_INFO_TEXT, std::move(packet)) { }
+            GuildUpdateInfoText(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_UPDATE_INFO_TEXT, std::move(packet)) { }
 
             void Read() override;
 
@@ -323,7 +327,7 @@ namespace WorldPackets
         class GuildDelete final : public ClientPacket
         {
         public:
-            GuildDelete(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_DISBAND, std::move(packet)) { }
+            GuildDelete(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_DELETE, std::move(packet)) { }
 
             void Read() override { }
         };
@@ -331,7 +335,7 @@ namespace WorldPackets
         class GuildDemoteMember final : public ClientPacket
         {
         public:
-            GuildDemoteMember(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_DEMOTE, std::move(packet)) { }
+            GuildDemoteMember(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_DEMOTE_MEMBER, std::move(packet)) { }
 
             void Read() override;
 
@@ -341,7 +345,7 @@ namespace WorldPackets
         class GuildPromoteMember final : public ClientPacket
         {
         public:
-            GuildPromoteMember(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_PROMOTE, std::move(packet)) { }
+            GuildPromoteMember(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_PROMOTE_MEMBER, std::move(packet)) { }
 
             void Read() override;
 
@@ -351,7 +355,7 @@ namespace WorldPackets
         class GuildOfficerRemoveMember : public ClientPacket
         {
         public:
-            GuildOfficerRemoveMember(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_REMOVE, std::move(packet)) { }
+            GuildOfficerRemoveMember(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_OFFICER_REMOVE_MEMBER, std::move(packet)) { }
 
             void Read() override;
 
@@ -369,7 +373,7 @@ namespace WorldPackets
         class GuildBankActivate final : public ClientPacket
         {
         public:
-            GuildBankActivate(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_BANKER_ACTIVATE, std::move(packet)) { }
+            GuildBankActivate(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_BANK_ACTIVATE, std::move(packet)) { }
 
             void Read() override;
 
@@ -427,7 +431,7 @@ namespace WorldPackets
         class GuildBankRemainingWithdrawMoneyQuery final : public ClientPacket
         {
         public:
-            GuildBankRemainingWithdrawMoneyQuery(WorldPacket&& packet) : ClientPacket(MSG_GUILD_BANK_MONEY_WITHDRAWN, std::move(packet)) { }
+            GuildBankRemainingWithdrawMoneyQuery(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_BANK_REMAINING_WITHDRAW_MONEY_QUERY, std::move(packet)) { }
 
             void Read() override { }
         };
@@ -435,7 +439,7 @@ namespace WorldPackets
         class GuildBankRemainingWithdrawMoney final : public ServerPacket
         {
         public:
-            GuildBankRemainingWithdrawMoney() : ServerPacket(MSG_GUILD_BANK_MONEY_WITHDRAWN, 8) { }
+            GuildBankRemainingWithdrawMoney() : ServerPacket(SMSG_GUILD_BANK_REMAINING_WITHDRAW_MONEY, 8) { }
 
             WorldPacket const* Write() override;
 
@@ -481,7 +485,7 @@ namespace WorldPackets
         class GuildBankQueryResults final : public ServerPacket
         {
         public:
-            GuildBankQueryResults() : ServerPacket(SMSG_GUILD_BANK_LIST, 25) { }
+            GuildBankQueryResults() : ServerPacket(SMSG_GUILD_BANK_QUERY_RESULTS, 25) { }
 
             WorldPacket const* Write() override;
 
@@ -501,7 +505,8 @@ namespace WorldPackets
         class GuildBankSwapItems final : public ClientPacket
         {
         public:
-            GuildBankSwapItems(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_BANK_SWAP_ITEMS, std::move(packet)) { }
+            // TODO(3.4.3 brick-B): CMSG_GUILD_BANK_SWAP_ITEMS removed in 3.4.3 (split into granular CMSG_*_GUILD_BANK_ITEM* ops) — packet class vestigial
+            GuildBankSwapItems(WorldPacket&& packet) : ClientPacket(static_cast<OpcodeClient>(UNKNOWN_OPCODE), std::move(packet)) { }
 
             void Read() override;
 
@@ -524,7 +529,7 @@ namespace WorldPackets
         class GuildBankLogQuery final : public ClientPacket
         {
         public:
-            GuildBankLogQuery(WorldPacket&& packet) : ClientPacket(MSG_GUILD_BANK_LOG_QUERY, std::move(packet)) { }
+            GuildBankLogQuery(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_BANK_LOG_QUERY, std::move(packet)) { }
 
             void Read() override;
 
@@ -545,7 +550,7 @@ namespace WorldPackets
         class GuildBankLogQueryResults final : public ServerPacket
         {
         public:
-            GuildBankLogQueryResults() : ServerPacket(MSG_GUILD_BANK_LOG_QUERY, 25) { }
+            GuildBankLogQueryResults() : ServerPacket(SMSG_GUILD_BANK_LOG_QUERY_RESULTS, 25) { }
 
             WorldPacket const* Write() override;
 
@@ -556,7 +561,7 @@ namespace WorldPackets
         class GuildBankTextQuery final : public ClientPacket
         {
         public:
-            GuildBankTextQuery(WorldPacket&& packet) : ClientPacket(MSG_QUERY_GUILD_BANK_TEXT, std::move(packet)) { }
+            GuildBankTextQuery(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_BANK_TEXT_QUERY, std::move(packet)) { }
 
             void Read() override;
 
@@ -566,7 +571,7 @@ namespace WorldPackets
         class GuildBankTextQueryResult : public ServerPacket
         {
         public:
-            GuildBankTextQueryResult() : ServerPacket(MSG_QUERY_GUILD_BANK_TEXT, 4 + 2) { }
+            GuildBankTextQueryResult() : ServerPacket(SMSG_GUILD_BANK_TEXT_QUERY_RESULT, 4 + 2) { }
 
             WorldPacket const* Write() override;
 
@@ -577,7 +582,7 @@ namespace WorldPackets
         class GuildBankSetTabText final : public ClientPacket
         {
         public:
-            GuildBankSetTabText(WorldPacket&& packet) : ClientPacket(CMSG_SET_GUILD_BANK_TEXT, std::move(packet)) { }
+            GuildBankSetTabText(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_BANK_SET_TAB_TEXT, std::move(packet)) { }
 
             void Read() override;
 
@@ -588,7 +593,7 @@ namespace WorldPackets
         class GuildSetGuildMaster final : public ClientPacket
         {
         public:
-            GuildSetGuildMaster(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_LEADER, std::move(packet)) { }
+            GuildSetGuildMaster(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_SET_GUILD_MASTER, std::move(packet)) { }
 
             void Read() override;
 
@@ -598,7 +603,7 @@ namespace WorldPackets
         class SaveGuildEmblem final : public ClientPacket
         {
         public:
-            SaveGuildEmblem(WorldPacket&& packet) : ClientPacket(MSG_SAVE_GUILD_EMBLEM, std::move(packet)) { }
+            SaveGuildEmblem(WorldPacket&& packet) : ClientPacket(CMSG_SAVE_GUILD_EMBLEM, std::move(packet)) { }
 
             void Read() override;
 
@@ -613,7 +618,7 @@ namespace WorldPackets
         class PlayerSaveGuildEmblem final : public ServerPacket
         {
         public:
-            PlayerSaveGuildEmblem() : ServerPacket(MSG_SAVE_GUILD_EMBLEM, 4) { }
+            PlayerSaveGuildEmblem() : ServerPacket(SMSG_PLAYER_SAVE_GUILD_EMBLEM, 4) { }
 
             WorldPacket const* Write() override;
 

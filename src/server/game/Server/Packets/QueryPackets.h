@@ -28,7 +28,7 @@ namespace WorldPackets
         class NameQuery final : public ClientPacket
         {
         public:
-            NameQuery(WorldPacket&& packet) : ClientPacket(CMSG_NAME_QUERY, std::move(packet)) {}
+            NameQuery(WorldPacket&& packet) : ClientPacket(CMSG_QUERY_PLAYER_NAMES, std::move(packet)) {}
 
             void Read() override;
 
@@ -38,7 +38,7 @@ namespace WorldPackets
         class NameQueryResponse final : public ServerPacket
         {
         public:
-            NameQueryResponse() : ServerPacket(SMSG_NAME_QUERY_RESPONSE, 8 + 1 + 1 + 1 + 1 + 1 + 10) {}
+            NameQueryResponse() : ServerPacket(SMSG_QUERY_PLAYER_NAMES_RESPONSE, 8 + 1 + 1 + 1 + 1 + 1 + 10) {}
 
             WorldPacket const* Write() override;
 
@@ -75,7 +75,8 @@ namespace WorldPackets
         class CorpseMapPositionQuery final : public ClientPacket
         {
         public:
-            CorpseMapPositionQuery(WorldPacket&& packet) : ClientPacket(CMSG_CORPSE_MAP_POSITION_QUERY, std::move(packet)) {}
+            // TODO(3.4.3 brick-B): CMSG_CORPSE_MAP_POSITION_QUERY removed in 3.4.3 (no corpse map-position query opcode) — packet class vestigial
+            CorpseMapPositionQuery(WorldPacket&& packet) : ClientPacket(static_cast<OpcodeClient>(UNKNOWN_OPCODE), std::move(packet)) {}
 
             void Read() override;
 

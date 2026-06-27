@@ -24,6 +24,7 @@
 #include "ItemTemplate.h"
 #include "MotionMaster.h"
 #include "Object.h"
+#include "Opcodes.h"
 #include "PetDefines.h"
 #include "SharedDefines.h"
 #include "SpellAuraDefines.h"

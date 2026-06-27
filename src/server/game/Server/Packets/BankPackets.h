@@ -60,7 +60,8 @@ namespace WorldPackets
         class BuyBankSlotResult final : public ServerPacket
         {
         public:
-            BuyBankSlotResult() : ServerPacket(SMSG_BUY_BANK_SLOT_RESULT, 4) { }
+            // TODO(3.4.3 brick-B): SMSG_BUY_BANK_SLOT_RESULT removed in 3.4.3 — packet class vestigial
+            BuyBankSlotResult() : ServerPacket(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 4) { }
 
             WorldPacket const* Write() override;
 
@@ -70,7 +71,8 @@ namespace WorldPackets
         class ShowBank final : public ServerPacket
         {
         public:
-            ShowBank() : ServerPacket(SMSG_SHOW_BANK, 8) { }
+            // TODO(3.4.3 brick-B): SMSG_SHOW_BANK removed in 3.4.3 — packet class vestigial
+            ShowBank() : ServerPacket(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 8) { }
 
             WorldPacket const* Write() override;
 

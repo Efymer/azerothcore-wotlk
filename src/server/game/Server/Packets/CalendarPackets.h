@@ -38,7 +38,8 @@ namespace WorldPackets
         class GuildFilter final : public ClientPacket
         {
         public:
-            GuildFilter(WorldPacket&& packet) : ClientPacket(CMSG_CALENDAR_GUILD_FILTER, std::move(packet)) {}
+            // 3.4.3: CMSG_CALENDAR_GUILD_FILTER -> CMSG_CALENDAR_COMMUNITY_INVITE (guild renamed to community; same min/max level+rank filter)
+            GuildFilter(WorldPacket&& packet) : ClientPacket(CMSG_CALENDAR_COMMUNITY_INVITE, std::move(packet)) {}
 
             void Read() override;
 
@@ -50,7 +51,8 @@ namespace WorldPackets
         class ArenaTeam final : public ClientPacket
         {
         public:
-            ArenaTeam(WorldPacket&& packet) : ClientPacket(CMSG_CALENDAR_ARENA_TEAM, std::move(packet)) {}
+            // TODO(3.4.3 brick-B): CMSG_CALENDAR_ARENA_TEAM removed in 3.4.3 (arena-team calendar events gone) — packet class vestigial
+            ArenaTeam(WorldPacket&& packet) : ClientPacket(static_cast<OpcodeClient>(UNKNOWN_OPCODE), std::move(packet)) {}
 
             void Read() override;
 
