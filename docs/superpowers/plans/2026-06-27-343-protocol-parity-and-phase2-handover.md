@@ -25,7 +25,10 @@ V2 banner → SMSG_AUTH_CHALLENGE (16-byte) → CMSG_AUTH_SESSION (RealmJoinTick
 → stable character-select (no disconnect)
 ```
 
-### 0.2 What was fixed THIS session (all UNCOMMITTED — commit first, see Task 1)
+### 0.2 What was fixed THIS session (COMMITTED in `271c8c5d2`)
+
+> Status: the stack below is committed (`271c8c5d2`, on top of the `75410cbbb` handshake milestone). The working tree is clean of this work. **Task 1 is already done — skip it.** Start at Task 2.
+
 
 1. **Character enumeration brick** — bound `CMSG_ENUM_CHARACTERS` (13801) → `HandleCharEnumOpcode`, rewrote `HandleCharEnum` to emit the modern `SMSG_ENUM_CHARACTERS_RESULT` (9603 / 0x2583), added the `EnumCharactersResult` + `CharacterInfo` packet structs (byte-verified against Xian55 `CharacterPackets.cpp`), bound `CMSG_SERVER_TIME_OFFSET_REQUEST` (13980) → `SMSG_SERVER_TIME_OFFSET` (10004). Reviewed (spec byte-layout + code quality) — both passed. Real-character population is deferred (see 0.5).
 2. **GCM nonce forward-gap tolerance** — `WorldPacketCrypt::DecryptRecv` now probes a small forward window of nonce counters on a tag-verify miss. **This is the fix that stopped the post-login disconnect.** Root cause (byte-accounting proven): the 3.4.3 client advances its outgoing GCM nonce *without transmitting a packet* (it encrypts a queued Battle.net store query, then cancels the send after a server reply), leaving a forward gap in the client→server counter sequence. AC's strictly-sequential receive counter then mismatched every following packet. GCM tag still authenticates and the counter only moves forward, so no replay window opens. **NOTE: Task 2 must verify this is the right fix vs the alternative (completing SMSG_AUTH_RESPONSE so the client never cancels).**
@@ -81,9 +84,11 @@ Start-Process -FilePath "$dir\worldserver.exe" -WorkingDirectory $dir -WindowSty
 
 ---
 
-## Task 1: Commit the working stack (do this first)
+## Task 1: Commit the working stack — ✅ DONE (`271c8c5d2`)
 
-**Files:** (the 11 uncommitted files in 0.3)
+> Already committed at the end of the session that produced this handover. The steps below are retained for the record only; **start at Task 2.**
+
+**Files:** (the 11 files in 0.3)
 
 - [ ] **Step 1: Lint the C++ you touched**
 
