@@ -21,6 +21,7 @@
 
 #include "WorldSession.h"
 #include "AccountMgr.h"
+#include "AuthenticationPackets.h"
 #include "BattlegroundMgr.h"
 #include "BanMgr.h"
 #include "CharacterPackets.h"
@@ -31,6 +32,7 @@
 #include "Guild.h"
 #include "GuildMgr.h"
 #include "Hyperlinks.h"
+#include "IpAddress.h"
 #include "Log.h"
 #include "MapMgr.h"
 #include "Metric.h"
@@ -121,22 +123,26 @@ bool WorldSessionFilter::Process(WorldPacket* packet)
 }
 
 /// WorldSession constructor
-WorldSession::WorldSession(uint32 id, std::string&& name, uint32 accountFlags, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion,
-    time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter, bool skipQueue, uint32 TotalTime) :
+WorldSession::WorldSession(uint32 id, std::string&& name, uint32 accountFlags, uint32 battlenetAccountId, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion,
+    time_t mute_time, std::string os, Minutes timezoneOffset, uint32 build, ClientBuild::VariantId clientBuildVariant, LocaleConstant locale, uint32 recruiter, bool isARecruiter, bool skipQueue, uint32 TotalTime) :
     m_muteTime(mute_time),
     m_timeOutTime(0),
     AntiDOS(this),
     m_GUIDLow(0),
     _player(nullptr),
-    m_Socket(sock),
     _security(sec),
     _skipQueue(skipQueue),
     _accountId(id),
+    _battlenetAccountId(battlenetAccountId),
     _RBACData(nullptr),
     _accountName(std::move(name)),
     _accountFlags(accountFlags),
     m_expansion(expansion),
     m_total_time(TotalTime),
+    _os(std::move(os)),
+    _timezoneOffset(timezoneOffset),
+    _clientBuild(build),
+    _clientBuildVariant(clientBuildVariant),
     _logoutTime(0),
     m_inQueue(false),
     m_playerLoading(false),
@@ -171,6 +177,9 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 accountFlags, s
         ResetTimeOutTime(false);
         LoginDatabase.Execute("UPDATE account SET online = 1 WHERE id = {};", GetAccountId()); // One-time query
     }
+
+    m_Socket[CONNECTION_TYPE_REALM] = std::move(sock);
+    _instanceConnectKey.Raw = UI64LIT(0);
 }
 
 /// WorldSession destructor
@@ -183,10 +192,13 @@ WorldSession::~WorldSession()
         LogoutPlayer(true);
 
     /// - If have unclosed socket, close it
-    if (m_Socket)
+    for (uint8 i = 0; i < MAX_CONNECTION_TYPES; ++i)
     {
-        m_Socket->CloseSocket();
-        m_Socket = nullptr;
+        if (m_Socket[i])
+        {
+            m_Socket[i]->CloseSocket();
+            m_Socket[i] = nullptr;
+        }
     }
 
     delete _RBACData;
@@ -302,7 +314,9 @@ ObjectGuid::LowType WorldSession::GetGuidLow() const
 /// Send a packet to the client
 void WorldSession::SendPacket(WorldPacket const* packet)
 {
-    if (!m_Socket)
+    // TODO(3.4.3 brick-E): route packets to the correct socket by ConnectionType once
+    // the instance connection is fully wired; for now everything goes to the realm socket.
+    if (!m_Socket[CONNECTION_TYPE_REALM])
         return;
 
 #if defined(ACORE_DEBUG)
@@ -346,13 +360,78 @@ void WorldSession::SendPacket(WorldPacket const* packet)
         return;
     }
 
-    m_Socket->SendPacket(*packet);
+    m_Socket[CONNECTION_TYPE_REALM]->SendPacket(*packet);
 }
 
 /// Add an incoming packet to the queue
 void WorldSession::QueuePacket(WorldPacket* new_packet)
 {
     _recvQueue.add(new_packet);
+}
+
+/// 3.4.3: instruct the client to open the second (instance) connection to this world server.
+void WorldSession::SendConnectToInstance(WorldPackets::Auth::ConnectToSerial serial)
+{
+    boost::system::error_code ignored_error;
+    boost::asio::ip::address instanceAddress = realm.GetAddressForClient(Acore::Net::make_address(GetRemoteAddress(), ignored_error)).address();
+
+    _instanceConnectKey.Fields.AccountId = GetAccountId();
+    _instanceConnectKey.Fields.ConnectionType = CONNECTION_TYPE_INSTANCE;
+    _instanceConnectKey.Fields.Key = urand(0, 0x7FFFFFFF);
+
+    WorldPackets::Auth::ConnectTo connectTo;
+    connectTo.Key = _instanceConnectKey.Raw;
+    connectTo.Serial = serial;
+    // TODO(3.4.3 brick-E): refine instance address resolution (per-realm/per-client) once the
+    // instance listener is split out; for now we point the client back at the world port.
+    connectTo.Payload.Port = static_cast<uint16>(sWorld->getIntConfig(CONFIG_PORT_WORLD));
+    if (instanceAddress.is_v4())
+    {
+        memcpy(connectTo.Payload.Where.Address.V4.data(), instanceAddress.to_v4().to_bytes().data(), 4);
+        connectTo.Payload.Where.Type = WorldPackets::Auth::ConnectTo::IPv4;
+    }
+    else
+    {
+        // client always uses a v4 address for loopback and v4-mapped addresses
+        boost::asio::ip::address_v6 v6 = instanceAddress.to_v6();
+        if (v6.is_loopback())
+        {
+            memcpy(connectTo.Payload.Where.Address.V4.data(), boost::asio::ip::address_v4::loopback().to_bytes().data(), 4);
+            connectTo.Payload.Where.Type = WorldPackets::Auth::ConnectTo::IPv4;
+        }
+        else if (v6.is_v4_mapped())
+        {
+            memcpy(connectTo.Payload.Where.Address.V4.data(), Acore::Net::make_address_v4(boost::asio::ip::v4_mapped, v6).to_bytes().data(), 4);
+            connectTo.Payload.Where.Type = WorldPackets::Auth::ConnectTo::IPv4;
+        }
+        else
+        {
+            memcpy(connectTo.Payload.Where.Address.V6.data(), v6.to_bytes().data(), 16);
+            connectTo.Payload.Where.Type = WorldPackets::Auth::ConnectTo::IPv6;
+        }
+    }
+    connectTo.Con = CONNECTION_TYPE_INSTANCE;
+
+    SendPacket(connectTo.Write());
+}
+
+/// 3.4.3: a freshly connected instance socket adopts this session if its key matches.
+void WorldSession::AddInstanceConnection(WorldSession* session, std::weak_ptr<WorldSocket> sockRef, ConnectToKey key)
+{
+    std::shared_ptr<WorldSocket> socket = sockRef.lock();
+    if (!socket || !socket->IsOpen())
+        return;
+
+    if (!session || session->GetConnectToInstanceKey() != key.Raw)
+    {
+        socket->SendAuthResponseError(AUTH_FAILED);
+        socket->DelayedCloseSocket();
+        return;
+    }
+
+    socket->SetWorldSession(session);
+    session->m_Socket[CONNECTION_TYPE_INSTANCE] = std::move(socket);
+    session->HandleContinuePlayerLogin();
 }
 
 /// Logging helper for unexpected opcodes
@@ -380,8 +459,8 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
     ///- Before we process anything:
     /// If necessary, kick the player because the client didn't send anything for too long
     /// (or they've been idling in character select)
-    if (m_Socket && IsConnectionIdle() && !HasPermission(rbac::RBAC_PERM_IGNORE_IDLE_CONNECTION))
-        m_Socket->CloseSocket();
+    if (m_Socket[CONNECTION_TYPE_REALM] && IsConnectionIdle() && !HasPermission(rbac::RBAC_PERM_IGNORE_IDLE_CONNECTION))
+        m_Socket[CONNECTION_TYPE_REALM]->CloseSocket();
 
     if (updater.ProcessUnsafe())
         UpdateTimeOutTime(diff);
@@ -398,7 +477,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
     constexpr uint32 MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE = 150;
 
-    while (m_Socket && _recvQueue.next(packet, updater))
+    while (m_Socket[CONNECTION_TYPE_REALM] && _recvQueue.next(packet, updater))
     {
         OpcodeClient opcode = static_cast<OpcodeClient>(packet->GetOpcode());
 
@@ -598,7 +677,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
     //logout procedure should happen only in World::UpdateSessions() method!!!
     if (updater.ProcessUnsafe())
     {
-        if (m_Socket && m_Socket->IsOpen() && _warden)
+        if (m_Socket[CONNECTION_TYPE_REALM] && m_Socket[CONNECTION_TYPE_REALM]->IsOpen() && _warden)
         {
             _warden->Update(diff);
         }
@@ -608,15 +687,15 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
             LogoutPlayer(true);
         }
 
-        if (m_Socket && !m_Socket->IsOpen())
+        if (m_Socket[CONNECTION_TYPE_REALM] && !m_Socket[CONNECTION_TYPE_REALM]->IsOpen())
         {
             if (GetPlayer() && _warden)
                 _warden->Update(diff);
 
-            m_Socket = nullptr;
+            m_Socket[CONNECTION_TYPE_REALM] = nullptr;
         }
 
-        if (!m_Socket)
+        if (!m_Socket[CONNECTION_TYPE_REALM])
         {
             return false;                                       //Will remove this session from the world session map
         }
@@ -627,9 +706,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
 bool WorldSession::HandleSocketClosed()
 {
-    if (m_Socket && !m_Socket->IsOpen() && !IsKicked() && GetPlayer() && !PlayerLogout() && GetPlayer()->m_taxi.empty() && GetPlayer()->IsInWorld() && !World::IsStopped())
+    if (m_Socket[CONNECTION_TYPE_REALM] && !m_Socket[CONNECTION_TYPE_REALM]->IsOpen() && !IsKicked() && GetPlayer() && !PlayerLogout() && GetPlayer()->m_taxi.empty() && GetPlayer()->IsInWorld() && !World::IsStopped())
     {
-        m_Socket = nullptr;
+        m_Socket[CONNECTION_TYPE_REALM] = nullptr;
         GetPlayer()->TradeCancel(false);
         return true;
     }
@@ -639,7 +718,7 @@ bool WorldSession::HandleSocketClosed()
 
 bool WorldSession::IsSocketClosed() const
 {
-    return !m_Socket || !m_Socket->IsOpen();
+    return !m_Socket[CONNECTION_TYPE_REALM] || !m_Socket[CONNECTION_TYPE_REALM]->IsOpen();
 }
 
 /// %Log the player out
@@ -736,7 +815,7 @@ void WorldSession::LogoutPlayer(bool save)
 
         // remove player from the group if he is:
         // a) in group; b) not in raid group; c) logging out normally (not being kicked or disconnected) d) LeaveGroupOnLogout is enabled
-        if (_player->GetGroup() && !_player->GetGroup()->isRaidGroup() && !_player->GetGroup()->isLFGGroup() && m_Socket && sWorld->getBoolConfig(CONFIG_LEAVE_GROUP_ON_LOGOUT))
+        if (_player->GetGroup() && !_player->GetGroup()->isRaidGroup() && !_player->GetGroup()->isLFGGroup() && m_Socket[CONNECTION_TYPE_REALM] && sWorld->getBoolConfig(CONFIG_LEAVE_GROUP_ON_LOGOUT))
             _player->RemoveFromGroup();
         // Remove player from active loot rolls in LFG groups (player stays in group but should not block rolls)
         else if (Group* group = _player->GetGroup())
@@ -829,12 +908,12 @@ void WorldSession::LogoutPlayer(bool save)
 /// Kick a player out of the World
 void WorldSession::KickPlayer(std::string const& reason, bool setKicked)
 {
-    if (m_Socket)
+    if (m_Socket[CONNECTION_TYPE_REALM])
     {
         LOG_INFO("network.kick", "Account: {} Character: '{}' {} kicked with reason: {}", GetAccountId(), _player ? _player->GetName() : "<none>",
             _player ? _player->GetGUID().ToString() : "", reason);
 
-        m_Socket->CloseSocket();
+        m_Socket[CONNECTION_TYPE_REALM]->CloseSocket();
     }
 
     if (setKicked)
@@ -1557,8 +1636,8 @@ void WorldSession::InitializeSessionCallback(CharacterDatabaseQueryHolder const&
 
 void WorldSession::SetPacketLogging(bool state)
 {
-    if (m_Socket)
-        m_Socket->SetPacketLogging(state);
+    if (m_Socket[CONNECTION_TYPE_REALM])
+        m_Socket[CONNECTION_TYPE_REALM]->SetPacketLogging(state);
 }
 
 void WorldSession::LoadPermissions()

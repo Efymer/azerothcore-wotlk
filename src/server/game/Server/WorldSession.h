@@ -26,6 +26,7 @@
 #include "AddonMgr.h"
 #include "AuthDefines.h"
 #include "CircularBuffer.h"
+#include "ClientBuildInfo.h"
 #include "Common.h"
 #include "DatabaseEnv.h"
 #include "GossipDef.h"
@@ -72,6 +73,11 @@ namespace lfg
 
 namespace WorldPackets
 {
+    namespace Auth
+    {
+        enum class ConnectToSerial : uint32;
+    }
+
     namespace LFG
     {
         class LFGJoin;
@@ -393,7 +399,7 @@ struct PacketCounter
 class WorldSession
 {
 public:
-    WorldSession(uint32 id, std::string&& name, uint32 accountFlags, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter, bool skipQueue, uint32 TotalTime);
+    WorldSession(uint32 id, std::string&& name, uint32 accountFlags, uint32 battlenetAccountId, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time, std::string os, Minutes timezoneOffset, uint32 build, ClientBuild::VariantId clientBuildVariant, LocaleConstant locale, uint32 recruiter, bool isARecruiter, bool skipQueue, uint32 TotalTime);
     ~WorldSession();
 
     uint32 GetAccountFlags() const { return _accountFlags; }
@@ -461,6 +467,11 @@ public:
     /// For unit testing - initializes RBAC data without database access
     void InitRBACDataForTest();
     uint32 GetAccountId() const { return _accountId; }
+    uint32 GetBattlenetAccountId() const { return _battlenetAccountId; }
+    std::string const& GetOS() const { return _os; }
+    Minutes GetTimezoneOffset() const { return _timezoneOffset; }
+    uint32 GetClientBuild() const { return _clientBuild; }
+    ClientBuild::VariantId const& GetClientBuildVariant() const { return _clientBuildVariant; }
     Player* GetPlayer() const { return _player; }
     std::string const& GetPlayerName() const;
     std::string GetPlayerInfo() const;
@@ -648,6 +659,12 @@ public:                                                 // opcodes handlers
     void HandleCharDeleteOpcode(WorldPacket& recvPacket);
     void HandleCharCreateOpcode(WorldPacket& recvPacket);
     void HandlePlayerLoginOpcode(WorldPacket& recvPacket);
+    // 3.4.3 two-socket login: mint a ConnectTo key and tell the client to open the instance connection
+    void SendConnectToInstance(WorldPackets::Auth::ConnectToSerial serial);
+    // resumes login on the instance socket once it is connected (driven by AddInstanceConnection)
+    void HandleContinuePlayerLogin();
+    // aborts an in-progress login, telling the client why
+    void AbortLogin(LoginFailureReason reason);
     void HandleCharEnum(PreparedQueryResult result);
     void HandlePlayerLoginFromDB(LoginQueryHolder const& holder);
     void HandlePlayerLoginToCharInWorld(Player* pCurrChar);
@@ -1165,6 +1182,23 @@ public:                                                 // opcodes handlers
     void SetKicked(bool val) { _kicked = val; }
     bool IsSocketClosed() const;
 
+    // 3.4.3 two-socket / ConnectTo model
+    union ConnectToKey
+    {
+        struct
+        {
+            uint64 AccountId : 32;
+            uint64 ConnectionType : 1;
+            uint64 Key : 31;
+        } Fields;
+
+        uint64 Raw;
+    };
+
+    uint64 GetConnectToInstanceKey() const { return _instanceConnectKey.Raw; }
+    // Called when the client opens the second (instance) socket; validates the key and resumes login.
+    static void AddInstanceConnection(WorldSession* session, std::weak_ptr<WorldSocket> sockRef, ConnectToKey key);
+
     /*
      * CALLBACKS
      */
@@ -1239,17 +1273,27 @@ private:
 
     ObjectGuid::LowType m_GUIDLow;                     // set logined or recently logout player (while m_playerRecentlyLogout set)
     Player* _player;
-    std::shared_ptr<WorldSocket> m_Socket;
+    // 3.4.3: a session owns both the realm socket and (after ConnectTo) the instance socket.
+    // m_Socket[CONNECTION_TYPE_REALM] is the legacy/primary socket.
+    std::shared_ptr<WorldSocket> m_Socket[MAX_CONNECTION_TYPES];
     std::string m_Address;
 
     AccountTypes _security;
     bool _skipQueue;
     uint32 _accountId;
+    uint32 _battlenetAccountId;
     rbac::RBACData* _RBACData;
     std::string _accountName;
     uint32 _accountFlags;
     uint8 m_expansion;
     uint32 m_total_time;
+    // 3.4.3 client/session metadata carried from the modern handshake
+    std::string _os;
+    Minutes _timezoneOffset;
+    uint32 _clientBuild;
+    ClientBuild::VariantId _clientBuildVariant;
+    // ConnectTo key minted for the pending instance connection
+    ConnectToKey _instanceConnectKey;
 
     typedef std::list<AddonInfo> AddonsList;
 

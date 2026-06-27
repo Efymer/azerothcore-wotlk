@@ -89,6 +89,11 @@ public:
     bool IsLoggingPackets() const { return _loggingPackets; }
     void SetPacketLogging(bool state) { _loggingPackets = state; }
 
+    // 3.4.3: lets a WorldSession adopt this socket as its second (instance) connection.
+    void SetWorldSession(WorldSession* session) { _worldSession = session; }
+    // public so WorldSession::AddInstanceConnection can reject a bad instance handshake
+    void SendAuthResponseError(uint8 code);
+
 protected:
     void OnClose() override;
     SocketReadCallbackResult ReadHandler() final;
@@ -116,7 +121,6 @@ private:
     void HandleAuthSession(WorldPacket& recvPacket);
     void HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> authSession, PreparedQueryResult result);
     void LoadSessionPermissionsCallback(PreparedQueryResult result);
-    void SendAuthResponseError(uint8 code);
 
     bool HandlePing(WorldPacket& recvPacket);
 

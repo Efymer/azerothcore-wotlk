@@ -708,8 +708,12 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
 
     sScriptMgr->OnLastIpUpdate(account.Id, address);
 
-    _worldSession = new WorldSession(account.Id, std::move(authSession->Account), account.Flags, shared_from_this(), account.Security,
-        account.Expansion, account.MuteTime, account.Locale, account.Recruiter, account.IsRectuiter, account.Security ? true : false, account.TotalTime);
+    // TODO(3.4.3 brick-E): real values from the modern handshake (battlenet account id, timezone
+    // offset, client build variant). For now the legacy SRP handshake supplies what it can and the
+    // rest are sensible placeholders so the modern WorldSession ctor compiles.
+    _worldSession = new WorldSession(account.Id, std::move(authSession->Account), account.Flags, 0 /*battlenetAccountId*/, shared_from_this(), account.Security,
+        account.Expansion, account.MuteTime, account.OS, Minutes(0) /*timezoneOffset*/, authSession->Build, ClientBuild::VariantId{} /*clientBuildVariant*/,
+        account.Locale, account.Recruiter, account.IsRectuiter, account.Security ? true : false, account.TotalTime);
 
     _worldSession->ReadAddonsInfo(authSession->AddonInfo);
 

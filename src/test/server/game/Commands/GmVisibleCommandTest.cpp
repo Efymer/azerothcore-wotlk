@@ -104,8 +104,8 @@ protected:
         ON_CALL(*worldMock, getFloatConfig(_)).WillByDefault(Return(0.0f));
         ON_CALL(*worldMock, GetPlayerSecurityLimit()).WillByDefault(Return(SEC_PLAYER));
 
-        session = new WorldSession(1, "gm", 0, nullptr, SEC_GAMEMASTER, EXPANSION_WRATH_OF_THE_LICH_KING,
-            0, LOCALE_enUS, 0, false, false, 0);
+        session = new WorldSession(1, "gm", 0, 0, nullptr, SEC_GAMEMASTER, EXPANSION_WRATH_OF_THE_LICH_KING,
+            0, "", Minutes(0), 0, ClientBuild::VariantId{}, LOCALE_enUS, 0, false, false, 0);
         session->InitRBACDataForTest();
 
         player = new TestPlayer(session);

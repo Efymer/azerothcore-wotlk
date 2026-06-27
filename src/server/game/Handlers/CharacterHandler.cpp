@@ -23,6 +23,7 @@
 #include "Battleground.h"
 #include "CalendarMgr.h"
 #include "CharacterCache.h"
+#include "AuthenticationPackets.h"
 #include "CharacterPackets.h"
 #include "Chat.h"
 #include "Common.h"
@@ -791,6 +792,36 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recvData)
     {
         HandlePlayerLoginFromDB(static_cast<LoginQueryHolder const&>(holder));
     });
+}
+
+// 3.4.3: resumes login on the instance socket once the client has opened the second connection.
+// TODO(3.4.3 brick-E): wire the full two-socket login sequence. Currently AC drives the whole
+// login from HandlePlayerLoginOpcode over the realm socket, so this only signals the client that
+// communications may resume on the instance connection. Brick E must split HandlePlayerLoginOpcode
+// so that it SendConnectToInstance()s and defers the LoginQueryHolder to here.
+void WorldSession::HandleContinuePlayerLogin()
+{
+    if (!PlayerLoading() || GetPlayer())
+    {
+        KickPlayer("WorldSession::HandleContinuePlayerLogin incorrect player state when logging in");
+        return;
+    }
+
+    SendPacket(WorldPackets::Auth::ResumeComms(CONNECTION_TYPE_INSTANCE).Write());
+}
+
+// 3.4.3: aborts an in-progress login and tells the client why.
+void WorldSession::AbortLogin(LoginFailureReason reason)
+{
+    if (!PlayerLoading() || GetPlayer())
+    {
+        KickPlayer("WorldSession::AbortLogin incorrect player state when logging in");
+        return;
+    }
+
+    // TODO(3.4.3 brick-E): reset m_playerLoading once it tracks the loading character GUID like TC.
+    m_playerLoading = false;
+    SendCharLoginFailed(reason);
 }
 
 void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
