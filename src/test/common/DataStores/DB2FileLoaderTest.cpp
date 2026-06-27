@@ -21,7 +21,7 @@
 #include <cstring>
 #include <vector>
 
-// In-memory DB2FileSource so the WDC5 header parser can be exercised without
+// In-memory DB2FileSource so the WDC4 header parser can be exercised without
 // touching the filesystem. The CASC-backed extractor (Task 0.4) provides the
 // equivalent runtime source for real client .db2 files.
 namespace
@@ -60,7 +60,7 @@ namespace
         std::size_t _pos;
     };
 
-    // Builds the on-disk byte image of a minimal WDC5 header. The struct is
+    // Builds the on-disk byte image of a minimal WDC4 header. The struct is
     // packed (#pragma pack(push, 1)) so its memory layout matches the file
     // layout the loader reads.
     std::vector<uint8> MakeHeaderBlob(DB2Header const& header)
@@ -73,8 +73,7 @@ namespace
     DB2Header MakeMinimalValidHeader()
     {
         DB2Header header{};
-        header.Signature = 0x35434457;  // 'WDC5' (little-endian on disk)
-        header.Version = 5;
+        header.Signature = 0x34434457;  // 'WDC4' (little-endian on disk)
         header.RecordCount = 3;
         header.FieldCount = 0;          // no in-file field metadata to read
         header.TotalFieldCount = 7;
@@ -90,9 +89,9 @@ namespace
     }
 }
 
-// Header parser smoke/contract test: feed a hand-built WDC5 header and confirm
+// Header parser smoke/contract test: feed a hand-built WDC4 header and confirm
 // the loader accepts it and reports the expected record/field counts and hashes.
-TEST(DB2FileLoaderTest, ParsesWdc5HeaderRecordAndFieldCounts)
+TEST(DB2FileLoaderTest, ParsesWdc4HeaderRecordAndFieldCounts)
 {
     MemoryDB2Source source(MakeHeaderBlob(MakeMinimalValidHeader()));
 
@@ -110,17 +109,6 @@ TEST(DB2FileLoaderTest, RejectsWrongSignature)
 {
     DB2Header header = MakeMinimalValidHeader();
     header.Signature = 0x32434457;  // 'WDC2' - not supported
-
-    MemoryDB2Source source(MakeHeaderBlob(header));
-
-    DB2FileLoader loader;
-    EXPECT_THROW(loader.LoadHeaders(&source, nullptr), DB2FileLoadException);
-}
-
-TEST(DB2FileLoaderTest, RejectsWrongVersion)
-{
-    DB2Header header = MakeMinimalValidHeader();
-    header.Version = 4;  // ported loader only handles WDC5 / version 5
 
     MemoryDB2Source source(MakeHeaderBlob(header));
 

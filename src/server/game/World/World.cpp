@@ -41,6 +41,7 @@
 #include "CreatureAIRegistry.h"
 #include "CreatureGroups.h"
 #include "CreatureTextMgr.h"
+#include "DB2Stores.h"
 #include "DBCStores.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
@@ -378,6 +379,10 @@ void World::SetInitialWorldSettings()
     LOG_INFO("server.loading", "Initialize Data Stores...");
     LoadDBCStores(_dataPath);
     DetectDBCLang();
+
+    // Load the DB2 store subset (3.4.3.54261). enUS is the extracted/authoritative locale for now;
+    // this should follow the configured DBC locale once non-enUS DB2 data is available.
+    LoadDB2Stores(_dataPath, LOCALE_enUS);
 
     // Load cinematic cameras
     LoadM2Cameras(_dataPath);

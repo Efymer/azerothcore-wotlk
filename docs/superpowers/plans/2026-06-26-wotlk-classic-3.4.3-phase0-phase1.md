@@ -37,6 +37,55 @@ cmake --build build --target <target> --config RelWithDebInfo
 
 ---
 
+## Progress log (reconstructed 2026-06-27)
+
+Checkboxes below were not maintained during the brick-based execution; actual state reconstructed from the
+code + git history:
+
+- **Phase 0** — ✅ done. Protobuf (`deps/protobuf`), CascLib (`deps/casc`), `extractor_common`, CASC+DB2
+  `map_extractor` all in place; **763 `.db2` files extracted for build 54261**. Loose ends (non-blocking):
+  `mmaps_generator` still on MPQ (0.5 explicitly defers correctness); `apps/dev/gen-bnet-cert.sh` helper never
+  created (its gate — patched client over TLS — passed live anyway).
+- **Phase 1a** — ✅ done. bnetserver login + realm list working live.
+- **Phase 1b** — ✅ done. Native world handshake → **stable empty character-select**, proven live
+  (`75410cbbb`, `271c8c5d2`). Opcode table is flat uint16 54261.
+- **Phase 1c** — 🟡 in progress.
+  - **1c.1 store layer** — DB2 *file-reader* (`src/common/DataStores/DB2FileLoader*`, `DB2Meta*`,
+    `DB2FileSystemSource*`) + unit test already existed. Added the **store layer on top**:
+    `src/server/shared/DataStores/{DBStorageIterator.h, DB2Store.{h,cpp}, DB2DatabaseLoader.{h,cpp}}` (ported from
+    TC `wotlk_classic` via the local `D:/Games/xian55-3.4.3_Source` clone), plus the two
+    `HOTFIX_*_STMT_OFFSET` constants in `HotfixDatabase.h`. ✅ **Verified: `shared.lib` compiles + links**
+    (RelWithDebInfo/MSVC), codestyle clean. Adaptations: TC `Field::GetUInt32()`/`setBool` → AC `Field::Get<T>()`/
+    `PreparedStatement::SetData`; `ABORT_MSG` → `ABORT` (`{}`-style); `LocalizedString::operator[]` →
+    `.Str[locale]` (AC's has no `operator[]`); added `Field.h`+`QueryResult.h` includes.
+  - **1c.2 (in progress)** — store layer + boot wiring done & building: `src/server/game/DataStores/`
+    `{DB2Structure.h, DB2LoadInfo.h, DB2Stores.{h,cpp}}` with a `LoadDB2Stores()` called after `LoadDBCStores`
+    in `World.cpp`. Proof store = `sLiquidMaterialStore` (DB2-only, no DBC name clash; verified 54261 metadata).
+    `game`+`worldserver` build clean; boot reaches `LoadDB2Stores`.
+  - **✅ BLOCKER RESOLVED (was a DB2 format bug, root cause confirmed vs xian55):** a prior revision wrongly
+    added `uint32 Version` + `std::array<char,128> Schema` to `DB2Header` (`src/common/DataStores/DB2FileLoader.h`)
+    modelling a speculative WDC5 preamble. The real 3.4.3.54261 client ships **WDC4 with no such preamble**
+    (verified: xian55's `DB2Header` has neither; it reads `Read(&_header, sizeof(DB2Header))` in one shot, magic
+    `WDC4` only). The phantom 132-byte preamble shifted every field and made `ExtractDB2File` emit corrupt,
+    body-less db2 files. **Fix:** removed `Version`+`Schema` from `DB2Header`; simplified `DB2FileLoader::LoadHeaders`
+    to a single-shot read + `WDC4` signature check (matching xian55); updated the WDC5 unit test to WDC4. **No
+    `ExtractDB2File` logic change needed** — the corrected struct makes the existing extractor faithful.
+    Re-extracted DB2 with `map_extractor -e 2` (763 files); `LiquidMaterial.db2` now 180 B with `LayoutHash`
+    `0x2CFFEA40` at offset 24. **Behavioral gate PASSED:** worldserver boot logs `>> DB2 LiquidMaterial.db2 loaded
+    3 records` (index-table size; 2 real rows at IDs 1-2), no layout-hash error. 1c.1 store layer + 1c.2 boot
+    wiring proven end-to-end.
+  - **1c.3–1c.5** — not started. ⚠️ Note for 1c.2: AC's `DB2Meta` is a 7-member *aggregate*, but TC's
+    `DB2Metadata.h` initializers rely on TC's `DB2Meta(fileDataId, indexField, fieldCount, fileFieldCount,
+    layoutHash, fields, parentIndexField)` **constructor** — AC's `DB2Meta` must be given that same constructor
+    before TC metadata ports verbatim.
+- **Phase 1d** — not started.
+
+> The separate `2026-06-27-...-phase2-handover.md` plan (nonce verification + char enum/create/world-entry
+> packet path) is owned by a **different agent**. Their uncommitted edits to `AuthHandler.cpp`, `WorldSession.*`,
+> `WorldPacketCrypt.h` are not part of this plan — do not touch them.
+
+---
+
 ## Phase 0 — Prerequisites, toolchain, and spike
 
 **Exit:** patched 3.4.3 client performs a TLS handshake against our stub REST endpoint; extracted DB2 + map data present on disk; Protobuf generates in-build.

@@ -59,8 +59,6 @@ struct LocalizedString
 struct DB2Header
 {
     uint32 Signature;
-    uint32 Version;
-    std::array<char, 128> Schema;
     uint32 RecordCount;
     uint32 FieldCount;
     uint32 RecordSize;

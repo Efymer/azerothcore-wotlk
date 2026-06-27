@@ -31,6 +31,11 @@ enum HotfixDatabaseStatements : uint32
     MAX_HOTFIXDATABASE_STATEMENTS
 };
 
+// Per-table statement layout: each DB2 store reserves consecutive enum slots. Given the base SEL statement
+// for a table, the max-id and locale variants are at these fixed offsets (see DB2DatabaseLoader).
+uint32 constexpr HOTFIX_MAX_ID_STMT_OFFSET = 1;
+uint32 constexpr HOTFIX_LOCALE_STMT_OFFSET = 2;
+
 class AC_DATABASE_API HotfixDatabaseConnection : public MySQLConnection
 {
 public:
