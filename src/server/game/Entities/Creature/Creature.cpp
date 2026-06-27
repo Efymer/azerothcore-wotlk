@@ -2638,8 +2638,18 @@ void Creature::UpdateMoveInLineOfSightState()
 
     bool nonHostile = true;
     if (FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(GetFaction()))
-        if (factionTemplate->EnemyGroup || factionTemplate->Enemies[0] || factionTemplate->Enemies[1] || factionTemplate->Enemies[2] || factionTemplate->Enemies[3])
+    {
+        bool hasEnemy = factionTemplate->EnemyGroup != 0;
+        for (uint16 enemy : factionTemplate->Enemies)
+            if (enemy)
+            {
+                hasEnemy = true;
+                break;
+            }
+
+        if (hasEnemy)
             nonHostile = false;
+    }
 
     if (nonHostile)
         m_moveInLineOfSightDisabled = true;
