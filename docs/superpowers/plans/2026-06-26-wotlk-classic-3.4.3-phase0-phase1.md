@@ -98,7 +98,14 @@ code + git history:
     mechanical repoints: `CurrencyTypes` (3.3.5 indexes by ItemId + player bitmask `BitIndex` → 3.4.3 indexes by
     currency ID, no item link), `ChrRaces` (race display models moved to a separate `ChrRaceXChrModel` store). So
     the remaining 1c.3 splits into: *clean mechanical* peripheral stores (do solo) vs *model-rework + coordinate*
-    world-entry stores (CurrencyTypes-style reworks + the other agent's char path).
+    world-entry stores (CurrencyTypes-style reworks + the other agent's char path). **Follow-up survey result:
+    clean mechanical repoints are essentially exhausted — PowerDisplay was the rare clean case.** The rest are all
+    model-changed and need rework, not a remap: `CinematicCamera` (DBC `Model` filename → DB2 `FileDataID`, breaks
+    M2Stores filename-based camera loading), `MapDifficulty` (DBC `(MapId,Difficulty)` composite key + `resetTime`
+    seconds → DB2 `ID` + `ResetInterval` enum), `WorldMapOverlay` (different struct; only an area-array rename is
+    salvageable), plus the already-noted `CurrencyTypes`/`ChrRaces`. **Recommendation:** stop the solo DB2 data-layer
+    grind here (foundation is solid: 13 stores + loader/extractor fix + the proven repoint pattern); sequence the
+    remaining model-rework stores deliberately alongside their gameplay consumers / the other agent's Phase 2.
   - **1c.4–1c.5** — not started. ⚠️ Note: AC's `DB2Meta` stays a designated-init aggregate (do NOT add TC's
     constructor — it would break the extractor's + runtime's designated-init metadata).
 - **Phase 1d** — not started.
