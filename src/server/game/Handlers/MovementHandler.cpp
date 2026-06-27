@@ -515,7 +515,7 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo, Unit* mover
     }
 }
 
-bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo, Player* plrMover, Unit* mover, Opcodes opcode) const
+bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo, Player* plrMover, Unit* mover, OpcodeClient opcode) const
 {
     if (!movementInfo.pos.IsPositionValid())
     {
