@@ -197,6 +197,10 @@ void LoginDatabaseConnection::DoPrepareStatements()
     // NOTE: AzerothCore's `account.session_key` is binary(40); the bnet join key is 64 bytes. The trailing
     // bytes are stored truncated until the auth schema gains a wider/dedicated column (see BnetRealmList::JoinRealm).
     PrepareStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_LOGIN_INFO, "UPDATE account SET session_key = ?, last_ip = ?, last_login = NOW(), locale = ?, failed_logins = 0, os = ? WHERE username = ?", CONNECTION_SYNCH);
+    // WotLK Classic 3.4.3 realm-join: persist the full 64-byte negotiated key blob (session_key_bnet),
+    // the client build and the timezone offset alongside last-login info. The worldserver later reads
+    // session_key_bnet to derive and validate the 40-byte world session key (see LOGIN_SEL_ACCOUNT_INFO_FOR_WORLD_AUTH).
+    PrepareStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_WORLD_HANDOFF, "UPDATE account SET session_key_bnet = ?, client_build = ?, timezone_offset = ?, last_ip = ?, last_login = NOW(), failed_logins = 0, locale = ?, os = ? WHERE username = ?", CONNECTION_SYNCH);
     // Battle.net per-realm character counts keyed by the bnet account.
     // Columns (matching bnetserver Session): gameAccountId, numChars, realmId, region, battlegroup(site).
     // AzerothCore realms use a single integer realm id, so region/battlegroup are reported as 1.
@@ -205,6 +209,21 @@ void LoginDatabaseConnection::DoPrepareStatements()
     // Columns: gameAccountId, region, battlegroup(site), realmId, characterName, characterGuid, lastPlayedTime.
     // STUB: AzerothCore has no per-bnet last-played-character store, so this intentionally returns no rows.
     PrepareStatement(LOGIN_SEL_BNET_LAST_PLAYER_CHARACTERS, "SELECT a.id, 1, 1, 0, '', 0, 0 FROM account a WHERE a.battlenet_account = ? AND 0", CONNECTION_ASYNC);
+
+    // WotLK Classic 3.4.3 world handshake: account info for the modern AUTH_SESSION/world auth path.
+    // Reads the 64-byte bnet key blob (session_key_bnet) plus client_build/timezone_offset persisted at
+    // realm-join; keyed by username and gated on the 64-byte blob still being present (LENGTH = 64).
+    // Columns: a.id, a.session_key_bnet, a.last_ip, a.locked, a.lock_country, a.expansion, a.Flags,
+    // a.mutetime, a.client_build, a.locale, a.recruiter, a.os, a.timezone_offset, aa.gmlevel (security level),
+    // ban active flag, recruiter id.
+    PrepareStatement(LOGIN_SEL_ACCOUNT_INFO_FOR_WORLD_AUTH, "SELECT a.id, a.session_key_bnet, a.last_ip, a.locked, a.lock_country, a.expansion, a.Flags, a.mutetime, a.client_build, a.locale, a.recruiter, a.os, a.timezone_offset, "
+        "aa.gmlevel, ab.unbandate > UNIX_TIMESTAMP() OR ab.unbandate = ab.bandate, r.id FROM account a LEFT JOIN account_access aa ON a.id = aa.id AND aa.RealmID IN (-1, ?) "
+        "LEFT JOIN account_banned ab ON a.id = ab.id AND ab.active = 1 LEFT JOIN account r ON a.id = r.recruiter WHERE a.username = ? "
+        "AND LENGTH(a.session_key_bnet) = 64 ORDER BY aa.RealmID DESC LIMIT 1", CONNECTION_ASYNC);
+    // Continued (already-authenticated) world session: the 40-byte derived world key by account id.
+    PrepareStatement(LOGIN_SEL_ACCOUNT_INFO_CONTINUED_SESSION, "SELECT username, session_key_bnet FROM account WHERE id = ? AND LENGTH(session_key_bnet) = 40", CONNECTION_ASYNC);
+    // Write the derived 40-byte world session key back over session_key_bnet (overwrites the 64-byte blob).
+    PrepareStatement(LOGIN_UPD_ACCOUNT_INFO_CONTINUED_SESSION, "UPDATE account SET session_key_bnet = ? WHERE id = ?", CONNECTION_SYNCH);
 
 #undef BnetAccountInfo
 #undef BnetGameAccountInfo

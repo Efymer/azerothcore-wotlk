@@ -236,21 +236,18 @@ uint32 JoinRealm(uint32 realmAddress, uint32 build, uint32 buildVariantPlatform,
     auto keyDestItr = std::copy(clientSecret.begin(), clientSecret.end(), keyData.begin());
     std::copy(serverSecret.begin(), serverSecret.end(), keyDestItr);
 
-    // STUB/LIMITATION: AzerothCore's `account.session_key` is binary(40); only the
-    // first 40 bytes of the 64-byte negotiated key are persisted here. A wider
-    // column (or a dedicated bnet session table) is required before the worldserver
-    // can validate the full key. Build/timezone offset are not persisted either.
-    // timezoneOffset is accepted for API parity with the bnet client request but is
-    // not persisted yet (no column in `account`); silence the unused warning.
-    (void)timezoneOffset;
-
-    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_LOGIN_INFO);
-    std::vector<uint8> sessionKey(keyData.begin(), keyData.begin() + 40);
-    stmt->SetData(0, sessionKey);
-    stmt->SetData(1, clientAddress.to_string());
-    stmt->SetData(2, uint8(locale));
-    stmt->SetData(3, os);
-    stmt->SetData(4, accountName);
+    // Persist the full 64-byte negotiated key blob (clientSecret || serverSecret) into the dedicated
+    // `account.session_key_bnet binary(64)` column, together with the client build and the timezone
+    // offset (stored as int16 minutes). The worldserver reads this blob at the modern handshake to
+    // derive and validate the 40-byte world session key (then overwrites session_key_bnet with it).
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_GAME_ACCOUNT_WORLD_HANDOFF);
+    stmt->SetData(0, keyData);
+    stmt->SetData(1, build);
+    stmt->SetData(2, int16(timezoneOffset.count()));
+    stmt->SetData(3, clientAddress.to_string());
+    stmt->SetData(4, uint8(locale));
+    stmt->SetData(5, os);
+    stmt->SetData(6, accountName);
     LoginDatabase.DirectExecute(stmt);
 
     JSON::RealmList::RealmJoinTicket joinTicket;
