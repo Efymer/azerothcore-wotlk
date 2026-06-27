@@ -97,6 +97,56 @@ struct ChrCustomizationReqEntry
     int32 ItemModifiedAppearanceID;
 };
 
+struct ItemEffectEntry
+{
+    uint32 ID;
+    uint8 LegacySlotIndex;
+    int8 TriggerType;
+    int16 Charges;
+    int32 CoolDownMSec;
+    int32 CategoryCoolDownMSec;
+    uint16 SpellCategoryID;
+    int32 SpellID;
+    uint16 ChrSpecializationID;
+    uint32 ParentItemID;
+};
+
+struct ItemAppearanceEntry
+{
+    uint32 ID;
+    uint8 DisplayType;
+    int32 ItemDisplayInfoID;
+    int32 DefaultIconFileDataID;
+    int32 UiOrder;
+};
+
+struct ItemModifiedAppearanceEntry
+{
+    uint32 ID;
+    int32 ItemID;
+    int32 ItemAppearanceModifierID;
+    int32 ItemAppearanceID;
+    int32 OrderIndex;
+    int32 TransmogSourceTypeEnum;
+};
+
+struct PowerTypeEntry
+{
+    uint32 ID;
+    char const* NameGlobalStringTag;
+    char const* CostGlobalStringTag;
+    int8 PowerTypeEnum;
+    int32 MinPower;
+    int32 MaxBasePower;
+    int32 CenterPower;
+    int32 DefaultPower;
+    int32 DisplayModifier;
+    int32 RegenInterruptTimeMS;
+    float RegenPeace;
+    float RegenCombat;
+    int16 Flags;
+};
+
 #pragma pack(pop)
 
 #endif // AC_DB2STRUCTURE_H

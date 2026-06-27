@@ -213,4 +213,145 @@ struct ChrCustomizationReqLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 9, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct ItemEffectLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[9] =
+    {
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 969941, .IndexField = -1, .ParentIndexField = 8,
+        .FieldCount = 9, .FileFieldCount = 8, .LayoutHash = 0xF2A2E644, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[10] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_BYTE, "LegacySlotIndex" },
+        { true, FT_BYTE, "TriggerType" },
+        { true, FT_SHORT, "Charges" },
+        { true, FT_INT, "CoolDownMSec" },
+        { true, FT_INT, "CategoryCoolDownMSec" },
+        { false, FT_SHORT, "SpellCategoryID" },
+        { true, FT_INT, "SpellID" },
+        { false, FT_SHORT, "ChrSpecializationID" },
+        { false, FT_INT, "ParentItemID" },                        // ParentIndexField -> unsigned
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 10, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct ItemAppearanceLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[4] =
+    {
+        { FT_BYTE, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 982462, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 4, .FileFieldCount = 4, .LayoutHash = 0xB7D37BC9, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[5] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_BYTE, "DisplayType" },
+        { true, FT_INT, "ItemDisplayInfoID" },
+        { true, FT_INT, "DefaultIconFileDataID" },
+        { true, FT_INT, "UiOrder" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 5, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct ItemModifiedAppearanceLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[6] =
+    {
+        { FT_INT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 982457, .IndexField = 0, .ParentIndexField = 1,
+        .FieldCount = 6, .FileFieldCount = 6, .LayoutHash = 0xF6BAD95D, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[6] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_INT, "ItemID" },                              // ParentIndexField -> unsigned
+        { true, FT_INT, "ItemAppearanceModifierID" },
+        { true, FT_INT, "ItemAppearanceID" },
+        { true, FT_INT, "OrderIndex" },
+        { true, FT_INT, "TransmogSourceTypeEnum" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 6, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct PowerTypeLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[12] =
+    {
+        { FT_STRING_NOT_LOCALIZED, 1, true },
+        { FT_STRING_NOT_LOCALIZED, 1, true },
+        { FT_BYTE, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_FLOAT, 1, true },
+        { FT_FLOAT, 1, true },
+        { FT_SHORT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1266022, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 12, .FileFieldCount = 12, .LayoutHash = 0xA1F55F15, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[13] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING_NOT_LOCALIZED, "NameGlobalStringTag" },
+        { false, FT_STRING_NOT_LOCALIZED, "CostGlobalStringTag" },
+        { true, FT_BYTE, "PowerTypeEnum" },
+        { true, FT_INT, "MinPower" },
+        { true, FT_INT, "MaxBasePower" },
+        { true, FT_INT, "CenterPower" },
+        { true, FT_INT, "DefaultPower" },
+        { true, FT_INT, "DisplayModifier" },
+        { true, FT_INT, "RegenInterruptTimeMS" },
+        { false, FT_FLOAT, "RegenPeace" },
+        { false, FT_FLOAT, "RegenCombat" },
+        { true, FT_SHORT, "Flags" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 13, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 #endif // AC_DB2LOADINFO_H

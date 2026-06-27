@@ -30,6 +30,10 @@ extern DB2Storage<CharacterLoadoutEntry> sCharacterLoadoutStore;
 extern DB2Storage<CharacterLoadoutItemEntry> sCharacterLoadoutItemStore;
 extern DB2Storage<ChrCustomizationOptionEntry> sChrCustomizationOptionStore;
 extern DB2Storage<ChrCustomizationReqEntry> sChrCustomizationReqStore;
+extern DB2Storage<ItemEffectEntry> sItemEffectStore;
+extern DB2Storage<ItemAppearanceEntry> sItemAppearanceStore;
+extern DB2Storage<ItemModifiedAppearanceEntry> sItemModifiedAppearanceStore;
+extern DB2Storage<PowerTypeEntry> sPowerTypeStore;
 
 // Loads the DB2 store subset from <dataPath>/dbc/<locale>/ at worldserver boot.
 void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale);

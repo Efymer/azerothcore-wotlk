@@ -29,6 +29,10 @@ DB2Storage<CharacterLoadoutEntry>       sCharacterLoadoutStore("CharacterLoadout
 DB2Storage<CharacterLoadoutItemEntry>   sCharacterLoadoutItemStore("CharacterLoadoutItem.db2", &CharacterLoadoutItemLoadInfo::Instance);
 DB2Storage<ChrCustomizationOptionEntry> sChrCustomizationOptionStore("ChrCustomizationOption.db2", &ChrCustomizationOptionLoadInfo::Instance);
 DB2Storage<ChrCustomizationReqEntry>    sChrCustomizationReqStore("ChrCustomizationReq.db2", &ChrCustomizationReqLoadInfo::Instance);
+DB2Storage<ItemEffectEntry>             sItemEffectStore("ItemEffect.db2", &ItemEffectLoadInfo::Instance);
+DB2Storage<ItemAppearanceEntry>         sItemAppearanceStore("ItemAppearance.db2", &ItemAppearanceLoadInfo::Instance);
+DB2Storage<ItemModifiedAppearanceEntry> sItemModifiedAppearanceStore("ItemModifiedAppearance.db2", &ItemModifiedAppearanceLoadInfo::Instance);
+DB2Storage<PowerTypeEntry>              sPowerTypeStore("PowerType.db2", &PowerTypeLoadInfo::Instance);
 
 // The DB2 loader produces packed records (stride = DB2Meta::GetRecordSize()), so a store's C++ struct must
 // have the identical packed size. Mirrors TrinityCore's GetCppRecordSize() structure check.
@@ -72,6 +76,10 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     LOAD_DB2(sCharacterLoadoutItemStore);
     LOAD_DB2(sChrCustomizationOptionStore);
     LOAD_DB2(sChrCustomizationReqStore);
+    LOAD_DB2(sItemEffectStore);
+    LOAD_DB2(sItemAppearanceStore);
+    LOAD_DB2(sItemModifiedAppearanceStore);
+    LOAD_DB2(sPowerTypeStore);
 
 #undef LOAD_DB2
 

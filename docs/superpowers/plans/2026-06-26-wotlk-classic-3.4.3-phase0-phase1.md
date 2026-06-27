@@ -61,7 +61,10 @@ code + git history:
   - **1c.2 (in progress)** — store layer + boot wiring in `src/server/game/DataStores/`
     `{DB2Structure.h, DB2LoadInfo.h, DB2Stores.{h,cpp}}`, `LoadDB2Stores()` called after `LoadDBCStores` in
     `World.cpp`. **6 DB2-only stores load live** (boot log, no errors): LiquidMaterial(3), SpellName(446921),
-    CharacterLoadout(1828), CharacterLoadoutItem(25516), ChrCustomizationOption(1932), ChrCustomizationReq(599).
+    CharacterLoadout(1828), CharacterLoadoutItem(25516), ChrCustomizationOption(1932), ChrCustomizationReq(599),
+    ItemEffect(181364), ItemAppearance(83055), ItemModifiedAppearance(194434), PowerType(139) — **10 stores live**.
+    Struct-name collisions with DBCStructure.h (SkillRaceClassInfo, Light, TaxiPathNode) and the giant ItemSparse
+    (73 fields) + PlayerCondition are deferred (the former to 1c.3, the latter to a focused follow-up pass).
     Method: xian55 == 54261 for these (LayoutHash in each extracted .db2 @offset 24 matches xian55 metadata
     exactly), so structs/metadata ported verbatim from xian55, hash-validated. Key correctness facts captured:
     DB2 structs MUST be `#pragma pack(push,1)` (loader produces packed records, stride = `GetRecordSize()`);
