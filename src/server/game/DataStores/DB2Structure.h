@@ -427,6 +427,28 @@ struct SkillLineEntry
     int32 SpellBookSpellID;
 };
 
+// Migrated from DBC (Task 1c.3). Field names match the DBC entry (SkillLine, Spell, RaceMask,
+// ClassMask, AcquireMethod, TrivialSkillLineRank*); only widths change. RaceMask is int64 now.
+struct SkillLineAbilityEntry
+{
+    int64 RaceMask;
+    uint32 ID;
+    int16 SkillLine;
+    int32 Spell;
+    int16 MinSkillLineRank;
+    int32 ClassMask;
+    int32 SupercedesSpell;
+    int8 AcquireMethod;
+    int16 TrivialSkillLineRankHigh;
+    int16 TrivialSkillLineRankLow;
+    int8 Flags;
+    int8 NumSkillUps;
+    int16 UniqueBit;
+    int16 TradeSkillCategoryID;
+    int16 SkillupSkillLineID;
+    std::array<int32, 2> CharacterPoints;
+};
+
 // Migrated from DBC (Task 1c.3): the DBC PowerDisplayEntry {Id, PowerType} maps to the
 // 54261 DB2 layout; the legacy `PowerType` field is `ActualType` here.
 struct PowerDisplayEntry

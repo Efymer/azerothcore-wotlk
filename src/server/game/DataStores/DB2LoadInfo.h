@@ -1081,6 +1081,58 @@ struct SkillLineLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 13, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct SkillLineAbilityLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[16] =
+    {
+        { FT_LONG, 1, true },
+        { FT_INT, 1, false },
+        { FT_SHORT, 1, true },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_BYTE, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_BYTE, 1, true },
+        { FT_BYTE, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_INT, 2, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1266278, .IndexField = 1, .ParentIndexField = 2,
+        .FieldCount = 16, .FileFieldCount = 16, .LayoutHash = 0x5DEA6909, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[17] =
+    {
+        { true, FT_LONG, "RaceMask" },
+        { false, FT_INT, "ID" },
+        { false, FT_SHORT, "SkillLine" },                          // ParentIndexField -> unsigned
+        { true, FT_INT, "Spell" },
+        { true, FT_SHORT, "MinSkillLineRank" },
+        { true, FT_INT, "ClassMask" },
+        { true, FT_INT, "SupercedesSpell" },
+        { true, FT_BYTE, "AcquireMethod" },
+        { true, FT_SHORT, "TrivialSkillLineRankHigh" },
+        { true, FT_SHORT, "TrivialSkillLineRankLow" },
+        { true, FT_BYTE, "Flags" },
+        { true, FT_BYTE, "NumSkillUps" },
+        { true, FT_SHORT, "UniqueBit" },
+        { true, FT_SHORT, "TradeSkillCategoryID" },
+        { true, FT_SHORT, "SkillupSkillLineID" },
+        { true, FT_INT, "CharacterPoints1" },
+        { true, FT_INT, "CharacterPoints2" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 17, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct PowerDisplayLoadInfo
 {
     static constexpr DB2MetaField MetaFields[5] =

@@ -27,6 +27,7 @@
 extern DB2Storage<ChrClassesEntry> sChrClassesStore;            // migrated from DBC (1c.3)
 extern DB2Storage<ChrRacesEntry> sChrRacesStore;                // migrated from DBC (1c.3)
 extern DB2Storage<SkillLineEntry> sSkillLineStore;             // migrated from DBC (1c.3)
+extern DB2Storage<SkillLineAbilityEntry> sSkillLineAbilityStore; // migrated from DBC (1c.3)
 extern DB2Storage<LiquidMaterialEntry> sLiquidMaterialStore;
 extern DB2Storage<SpellNameEntry> sSpellNameStore;
 extern DB2Storage<CharacterLoadoutEntry> sCharacterLoadoutStore;

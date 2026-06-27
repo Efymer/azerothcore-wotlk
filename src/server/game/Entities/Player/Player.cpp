@@ -12082,14 +12082,18 @@ void Player::learnSkillRewardedSpells(uint32 skill_id, uint32 skill_value)
         // need learn
         else
         {
-            //used to avoid double Seal of Righteousness on paladins, it's the only player spell which has both spell and forward spell in auto learn
-            if (pAbility->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN && pAbility->SupercededBySpell)
+            // Used to avoid double Seal of Righteousness on paladins (the only player spell with both a
+            // spell and a forward spell in auto-learn). 3.4.3: the DB2 SkillLineAbility has SupercedesSpell
+            // (this ability supercedes that spell) instead of the legacy SupercededBySpell forward pointer,
+            // so we look for the ability that supercedes the current spell instead of following a forward id.
+            if (pAbility->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
             {
                 bool skipCurrent = false;
-                auto bounds = sSpellMgr->GetSkillLineAbilityMapBounds(pAbility->SupercededBySpell);
-                for (auto itr = bounds.first; itr != bounds.second; ++itr)
+                for (SkillLineAbilityEntry const* superceder : sortedAbilities)
                 {
-                    if (itr->second->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN && skill_value >= itr->second->MinSkillLineRank)
+                    if (superceder->SupercedesSpell == int32(pAbility->Spell) &&
+                        superceder->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN &&
+                        skill_value >= superceder->MinSkillLineRank)
                     {
                         skipCurrent = true;
                         break;

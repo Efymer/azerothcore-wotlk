@@ -16,6 +16,7 @@
  */
 
 #include "SkillDiscovery.h"
+#include "DB2Stores.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
 #include "Player.h"

@@ -1533,22 +1533,7 @@ struct SkillRaceClassInfoEntry
 
 // SkillLineEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
-struct SkillLineAbilityEntry
-{
-    uint32 ID;                                              // 0
-    uint32 SkillLine;                                       // 1
-    uint32 Spell;                                           // 2
-    uint32 RaceMask;                                        // 3
-    uint32 ClassMask;                                       // 4
-    //uint32 ExcludeRace;                                   // 5
-    //uint32 ExcludeClass;                                  // 6
-    uint32 MinSkillLineRank;                                // 7
-    uint32 SupercededBySpell;                               // 8
-    uint32 AcquireMethod;                                   // 9
-    uint32 TrivialSkillLineRankHigh;                        // 10
-    uint32 TrivialSkillLineRankLow;                         // 11
-    //uint32 CharacterPoints[2];                            // 12-13
-};
+// SkillLineAbilityEntry migrated to DB2 (Task 1c.3) — see src/server/game/DataStores/DB2Structure.h
 
 struct SkillTiersEntry
 {

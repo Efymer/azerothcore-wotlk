@@ -16,6 +16,7 @@
  */
 
 #include "DBCStores.h"
+#include "DB2Stores.h"
 #include "BattlegroundMgr.h"
 #include "DBCFileLoader.h"
 #include "DBCfmt.h"
@@ -133,7 +134,6 @@ DBCStorage <RandomPropertiesPointsEntry> sRandomPropertiesPointsStore(RandomProp
 DBCStorage <ScalingStatDistributionEntry> sScalingStatDistributionStore(ScalingStatDistributionfmt);
 DBCStorage <ScalingStatValuesEntry> sScalingStatValuesStore(ScalingStatValuesfmt);
 
-DBCStorage <SkillLineAbilityEntry> sSkillLineAbilityStore(SkillLineAbilityfmt);
 SkillLineAbilityIndexBySkillLine sSkillLineAbilityIndexBySkillLine;
 DBCStorage <SkillRaceClassInfoEntry> sSkillRaceClassInfoStore(SkillRaceClassInfofmt);
 SkillRaceClassInfoMap SkillRaceClassInfoBySkill;
@@ -339,7 +339,6 @@ void LoadDBCStores(const std::string& dataPath)
     LOAD_DBC(sRandomPropertiesPointsStore,          "RandPropPoints.dbc",                   "randproppoints_dbc");
     LOAD_DBC(sScalingStatDistributionStore,         "ScalingStatDistribution.dbc",          "scalingstatdistribution_dbc");
     LOAD_DBC(sScalingStatValuesStore,               "ScalingStatValues.dbc",                "scalingstatvalues_dbc");
-    LOAD_DBC(sSkillLineAbilityStore,                "SkillLineAbility.dbc",                 "skilllineability_dbc");
     LOAD_DBC(sSkillRaceClassInfoStore,              "SkillRaceClassInfo.dbc",               "skillraceclassinfo_dbc");
     LOAD_DBC(sSkillTiersStore,                      "SkillTiers.dbc",                       "skilltiers_dbc");
     LOAD_DBC(sSoundEntriesStore,                    "SoundEntries.dbc",                     "soundentries_dbc");
@@ -411,11 +410,9 @@ void LoadDBCStores(const std::string& dataPath)
         if (i->Category)
             sSpellsByCategoryStore[i->Category].emplace(false, i->Id);
 
-    // SkillLine moved to DB2 (Task 1c.3); the legacy validity check against sSkillLineStore is dropped
-    // here to keep DBCStores.cpp free of the DB2 file-loader headers (FT_* enum clash). Entries whose
-    // SkillID has no SkillLine are harmless: they are never looked up by a valid skill id.
     for (SkillRaceClassInfoEntry const* entry : sSkillRaceClassInfoStore)
-        SkillRaceClassInfoBySkill.emplace(entry->SkillID, entry);
+        if (sSkillLineStore.LookupEntry(entry->SkillID))
+            SkillRaceClassInfoBySkill.emplace(entry->SkillID, entry);
 
     for (SkillLineAbilityEntry const* skillLine : sSkillLineAbilityStore)
     {

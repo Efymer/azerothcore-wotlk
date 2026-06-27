@@ -18,6 +18,7 @@
 #include "AchievementMgr.h"
 #include "AccountMgr.h"
 #include "ArenaTeam.h"
+#include "DB2Stores.h"
 #include "ArenaTeamMgr.h"
 #include "Battleground.h"
 #include "BattlegroundAB.h"

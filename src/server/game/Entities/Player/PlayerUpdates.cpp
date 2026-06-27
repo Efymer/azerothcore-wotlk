@@ -17,6 +17,7 @@
 
 #include "AchievementMgr.h"
 #include "BattlefieldMgr.h"
+#include "DB2Stores.h"
 #include "CellImpl.h"
 #include "Channel.h"
 #include "ChannelMgr.h"

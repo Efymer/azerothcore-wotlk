@@ -17,6 +17,7 @@
 
 #include "SpellInfo.h"
 #include "Chat.h"
+#include "DB2Stores.h"
 #include "ConditionMgr.h"
 #include "Corpse.h"
 #include "DBCStores.h"

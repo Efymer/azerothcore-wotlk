@@ -134,6 +134,17 @@ code + git history:
     Resolved an `FT_*` enum clash (DB2FileLoader's `DBCFormer` vs DBCFileLoader's `DbcFieldFormat`) by keeping
     `DBCStores.cpp` off the DB2 headers — dropped a redundant SkillRaceClassInfo validity check there. Verified
     live: full World Initialized, sSkillLineStore exercised across SpellMgr/ObjectMgr with no errors.
+  - **`FT_*` enum systemic unblock** (`e19b7f02f`): the DBC `DbcFieldFormat` and DB2 `DBCFormer` enums share
+    `FT_*` enumerators, so any TU pulling both fails — which blocked `DBCStores.cpp` (post-load) from referencing
+    *any* migrated DB2 store. Moved `DbcFieldFormat` to its own `DBCFieldFormat.h` (included only where `FT_*` is
+    used by name); `DBCStores.h` no longer leaks it. Unblocks all remaining DBC→DB2 stores.
+  - **`SkillLineAbility` migrated DBC→DB2 (no deferral).** Loads 50603 records; 17 DB2 stores live. DBC and DB2
+    field names match (SkillLine/Spell/RaceMask/ClassMask/AcquireMethod/TrivialSkillLineRank*), so most consumers
+    compiled unchanged (RaceMask is int64 now). Handled the one semantic inversion: DBC `SupercededBySpell`
+    (forward pointer) → DB2 `SupercedesSpell` (back pointer) — the paladin double-Seal guard in `Player.cpp` now
+    searches the skill's abilities for the one that supercedes the current spell. `DBCStores.cpp` post-load
+    (pet-family spells, ability index) now reads the DB2 store; `SkillLineAbilityEntry` forward-declared in
+    `DBCStores.h` (pointer-only use). Verified live: full World Initialized.
   - **1c.4–1c.5** — not started. ⚠️ Note: AC's `DB2Meta` stays a designated-init aggregate (do NOT add TC's
     constructor — it would break the extractor's + runtime's designated-init metadata).
 - **Phase 1d** — not started.
