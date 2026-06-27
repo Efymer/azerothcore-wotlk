@@ -2361,7 +2361,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
                         continue;
                     }
 
-                    AreaTableEntry const* zone = sAreaTableStore.LookupEntry(sMapMgr->GetZoneId(PHASEMASK_NORMAL, pathNode->mapid, pathNode->x, pathNode->y, pathNode->z));
+                    AreaTableEntry const* zone = sAreaTableStore.LookupEntry(sMapMgr->GetZoneId(PHASEMASK_NORMAL, pathNode->ContinentID, pathNode->Loc.X, pathNode->Loc.Y, pathNode->Loc.Z));
                     if (!zone)
                     {
                         FillTaxiMask(field, 0);

@@ -19,6 +19,7 @@
 #include "CellImpl.h"
 #include "CreatureTextMgr.h"
 #include "DatabaseEnv.h"
+#include "DB2Stores.h"
 #include "GameEventMgr.h"
 #include "GridDefines.h"
 #include "InstanceScript.h"

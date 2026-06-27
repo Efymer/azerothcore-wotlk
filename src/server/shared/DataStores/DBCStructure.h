@@ -1844,40 +1844,12 @@ struct TalentTabEntry
     //char const* internalname;                             // 23
 };
 
-struct TaxiNodesEntry
-{
-    uint32    ID;                                           // 0        m_ID
-    uint32    map_id;                                       // 1        m_ContinentID
-    float     x;                                            // 2        m_x
-    float     y;                                            // 3        m_y
-    float     z;                                            // 4        m_z
-    char const*     name[16];                               // 5-21     m_Name_lang
-    // 22 string flags
-    uint32    MountCreatureID[2];                           // 23-24    m_MountCreatureID[2]
-};
-
-struct TaxiPathEntry
-{
-    uint32    ID;                                           // 0        m_ID
-    uint32    from;                                         // 1        m_FromTaxiNode
-    uint32    to;                                           // 2        m_ToTaxiNode
-    uint32    price;                                        // 3        m_Cost
-};
-
-struct TaxiPathNodeEntry
-{
-    // 0        m_ID
-    uint32    path;                                         // 1        m_PathID
-    uint32    index;                                        // 2        m_NodeIndex
-    uint32    mapid;                                        // 3        m_ContinentID
-    float     x;                                            // 4        m_LocX
-    float     y;                                            // 5        m_LocY
-    float     z;                                            // 6        m_LocZ
-    uint32    actionFlag;                                   // 7        m_flags
-    uint32    delay;                                        // 8        m_delay
-    uint32    arrivalEventID;                               // 9        m_arrivalEventID
-    uint32    departureEventID;                             // 10       m_departureEventID
-};
+// TaxiNodesEntry / TaxiPathEntry / TaxiPathNodeEntry migrated to DB2 for build 3.4.3.54261;
+// the authoritative (54261-layout) definitions live in DataStores/DB2Structure.h. Forward-declared
+// here so the TaxiPath* typedefs below — and DBC-side consumers that only hold pointers — still compile.
+struct TaxiNodesEntry;
+struct TaxiPathEntry;
+struct TaxiPathNodeEntry;
 
 struct TeamContributionPointsEntry
 {

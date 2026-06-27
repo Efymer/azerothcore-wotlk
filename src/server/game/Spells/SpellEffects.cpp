@@ -23,6 +23,7 @@
 #include "Chat.h"
 #include "Common.h"
 #include "Creature.h"
+#include "DB2Stores.h"
 #include "DynamicObject.h"
 #include "Formulas.h"
 #include "GameObject.h"

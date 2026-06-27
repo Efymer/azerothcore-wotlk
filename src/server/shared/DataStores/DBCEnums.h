@@ -27,6 +27,12 @@ struct DBCPosition3D
     float Y;
     float Z;
 };
+
+struct DBCPosition2D
+{
+    float X;
+    float Y;
+};
 #pragma pack(pop)
 
 // Client expected level limitation, like as used in DBC item max levels for "until max player level"

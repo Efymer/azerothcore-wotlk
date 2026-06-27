@@ -179,8 +179,7 @@ extern DBCStorage <StableSlotPricesEntry>        sStableSlotPricesStore;
 extern DBCStorage <SummonPropertiesEntry>        sSummonPropertiesStore;
 extern DBCStorage <TalentEntry>                  sTalentStore;
 extern DBCStorage <TalentTabEntry>               sTalentTabStore;
-extern DBCStorage <TaxiNodesEntry>               sTaxiNodesStore;
-extern DBCStorage <TaxiPathEntry>                sTaxiPathStore;
+// sTaxiNodesStore / sTaxiPathStore / sTaxiPathNodeStore migrated to DB2 (declared in DB2Stores.h).
 extern TaxiMask                                  sTaxiNodesMask;
 extern TaxiMask                                  sOldContinentsNodesMask;
 extern TaxiMask                                  sHordeTaxiNodesMask;

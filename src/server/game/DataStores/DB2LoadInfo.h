@@ -1312,4 +1312,122 @@ struct PowerDisplayLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 6, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct TaxiNodesLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[14] =
+    {
+        { FT_STRING, 1, true },
+        { FT_FLOAT, 3, true },
+        { FT_FLOAT, 2, true },
+        { FT_FLOAT, 2, true },
+        { FT_INT, 1, false },
+        { FT_INT, 1, false },                                     // ContinentID -> ParentIndexField, must be unsigned
+        { FT_INT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_FLOAT, 1, true },
+        { FT_INT, 1, false },
+        { FT_INT, 1, false },
+        { FT_INT, 2, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1068100, .IndexField = 4, .ParentIndexField = 5,
+        .FieldCount = 14, .FileFieldCount = 14, .LayoutHash = 0x609F20BF, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[19] =
+    {
+        { false, FT_STRING, "Name" },
+        { false, FT_FLOAT, "PosX" },
+        { false, FT_FLOAT, "PosY" },
+        { false, FT_FLOAT, "PosZ" },
+        { false, FT_FLOAT, "MapOffsetX" },
+        { false, FT_FLOAT, "MapOffsetY" },
+        { false, FT_FLOAT, "FlightMapOffsetX" },
+        { false, FT_FLOAT, "FlightMapOffsetY" },
+        { false, FT_INT, "ID" },
+        { false, FT_INT, "ContinentID" },
+        { false, FT_INT, "ConditionID" },
+        { false, FT_SHORT, "CharacterBitNumber" },
+        { true, FT_INT, "Flags" },
+        { true, FT_INT, "UiTextureKitID" },
+        { false, FT_FLOAT, "Facing" },
+        { false, FT_INT, "SpecialIconConditionID" },
+        { false, FT_INT, "VisibilityConditionID" },
+        { true, FT_INT, "MountCreatureID1" },
+        { true, FT_INT, "MountCreatureID2" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 19, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct TaxiPathLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[4] =
+    {
+        { FT_INT, 1, false },
+        { FT_SHORT, 1, false },                                   // FromTaxiNode -> ParentIndexField, must be unsigned
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1067802, .IndexField = 0, .ParentIndexField = 1,
+        .FieldCount = 4, .FileFieldCount = 4, .LayoutHash = 0x9B67699C, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[4] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_SHORT, "FromTaxiNode" },
+        { false, FT_SHORT, "ToTaxiNode" },
+        { false, FT_INT, "Cost" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 4, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct TaxiPathNodeLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[9] =
+    {
+        { FT_FLOAT, 3, true },
+        { FT_INT, 1, false },
+        { FT_SHORT, 1, false },                                   // PathID -> ParentIndexField, must be unsigned
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, false },
+        { FT_INT, 1, false },
+        { FT_INT, 1, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1000437, .IndexField = 1, .ParentIndexField = 2,
+        .FieldCount = 9, .FileFieldCount = 9, .LayoutHash = 0xC38748B1, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[11] =
+    {
+        { false, FT_FLOAT, "LocX" },
+        { false, FT_FLOAT, "LocY" },
+        { false, FT_FLOAT, "LocZ" },
+        { false, FT_INT, "ID" },
+        { false, FT_SHORT, "PathID" },
+        { true, FT_INT, "NodeIndex" },
+        { false, FT_SHORT, "ContinentID" },
+        { true, FT_INT, "Flags" },
+        { false, FT_INT, "Delay" },
+        { false, FT_INT, "ArrivalEventID" },
+        { false, FT_INT, "DepartureEventID" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 11, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 #endif // AC_DB2LOADINFO_H

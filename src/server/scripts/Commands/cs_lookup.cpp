@@ -1284,7 +1284,7 @@ public:
         for (auto nodeEntry : sTaxiNodesStore)
         {
             int locale = handler->GetSessionDbcLocale();
-            std::string name = nodeEntry->name[locale];
+            std::string name = nodeEntry->Name.Str[locale];
 
             if (name.empty())
             {
@@ -1302,7 +1302,7 @@ public:
                         continue;
                     }
 
-                    name = nodeEntry->name[locale];
+                    name = nodeEntry->Name.Str[locale];
                     if (name.empty())
                     {
                         continue;
@@ -1327,12 +1327,12 @@ public:
                 if (handler->GetSession())
                 {
                     handler->PSendSysMessage(LANG_TAXINODE_ENTRY_LIST_CHAT, nodeEntry->ID, nodeEntry->ID, name, localeNames[locale],
-                                             nodeEntry->map_id, nodeEntry->x, nodeEntry->y, nodeEntry->z);
+                                             nodeEntry->ContinentID, nodeEntry->Pos.X, nodeEntry->Pos.Y, nodeEntry->Pos.Z);
                 }
                 else
                 {
                     handler->PSendSysMessage(LANG_TAXINODE_ENTRY_LIST_CONSOLE, nodeEntry->ID, name, localeNames[locale],
-                                             nodeEntry->map_id, nodeEntry->x, nodeEntry->y, nodeEntry->z);
+                                             nodeEntry->ContinentID, nodeEntry->Pos.X, nodeEntry->Pos.Y, nodeEntry->Pos.Z);
                 }
 
                 if (!found)

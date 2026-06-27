@@ -198,13 +198,13 @@ void MotionTransport::Update(uint32 diff)
 
         MoveToNextWaypoint();
 
-        sScriptMgr->OnRelocate(this, _currentFrame->Node->index, _currentFrame->Node->mapid, _currentFrame->Node->x, _currentFrame->Node->y, _currentFrame->Node->z);
+        sScriptMgr->OnRelocate(this, _currentFrame->Node->NodeIndex, _currentFrame->Node->ContinentID, _currentFrame->Node->Loc.X, _currentFrame->Node->Loc.Y, _currentFrame->Node->Loc.Z);
 
-        //LOG_DEBUG("entities.transport", "Transport {} ({}) moved to node {} {} {} {} {}", GetEntry(), GetName(), _currentFrame->Node->index, _currentFrame->Node->mapid, _currentFrame->Node->x, _currentFrame->Node->y, _currentFrame->Node->z);
+        //LOG_DEBUG("entities.transport", "Transport {} ({}) moved to node {} {} {} {} {}", GetEntry(), GetName(), _currentFrame->Node->NodeIndex, _currentFrame->Node->ContinentID, _currentFrame->Node->Loc.X, _currentFrame->Node->Loc.Y, _currentFrame->Node->Loc.Z);
 
         // Departure event
         if (_currentFrame->IsTeleportFrame())
-            if (TeleportTransport(_nextFrame->Node->mapid, _nextFrame->Node->x, _nextFrame->Node->y, _nextFrame->Node->z, _nextFrame->InitialOrientation))
+            if (TeleportTransport(_nextFrame->Node->ContinentID, _nextFrame->Node->Loc.X, _nextFrame->Node->Loc.Y, _nextFrame->Node->Loc.Z, _nextFrame->InitialOrientation))
                 return; // Update more in new map thread
     }
 
@@ -546,10 +546,10 @@ void MotionTransport::DelayedTeleportTransport()
 
     _delayedTeleport = false;
 
-    uint32 newMapId = _nextFrame->Node->mapid;
-    float x = _nextFrame->Node->x,
-          y = _nextFrame->Node->y,
-          z = _nextFrame->Node->z,
+    uint32 newMapId = _nextFrame->Node->ContinentID;
+    float x = _nextFrame->Node->Loc.X,
+          y = _nextFrame->Node->Loc.Y,
+          z = _nextFrame->Node->Loc.Z,
           o = _nextFrame->InitialOrientation;
 
     PassengerSet _passengersCopy = _passengers;
@@ -676,9 +676,9 @@ void MotionTransport::UpdatePassengerPositions(PassengerSet& passengers)
 
 void MotionTransport::DoEventIfAny(KeyFrame const& node, bool departure)
 {
-    if (uint32 eventid = departure ? node.Node->departureEventID : node.Node->arrivalEventID)
+    if (uint32 eventid = departure ? node.Node->DepartureEventID : node.Node->ArrivalEventID)
     {
-        //LOG_DEBUG("maps.script", "Taxi {} event {} of node {} of {} path", departure ? "departure" : "arrival", eventid, node.Node->index, GetName());
+        //LOG_DEBUG("maps.script", "Taxi {} event {} of node {} of {} path", departure ? "departure" : "arrival", eventid, node.Node->NodeIndex, GetName());
         GetMap()->ScriptsStart(sEventScripts, eventid, this, this);
         EventInform(eventid);
     }

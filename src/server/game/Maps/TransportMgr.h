@@ -18,6 +18,7 @@
 #ifndef TRANSPORTMGR_H
 #define TRANSPORTMGR_H
 
+#include "DB2Structure.h"
 #include "DBCStores.h"
 #include "ObjectGuid.h"
 #include "Spline.h"
@@ -64,7 +65,7 @@ struct KeyFrame
     uint32 NextArriveTime;
 
     bool IsTeleportFrame() const { return Teleport; }
-    bool IsStopFrame() const { return Node->actionFlag == 2; }
+    bool IsStopFrame() const { return Node->Flags == 2; }
 };
 
 struct TransportTemplate

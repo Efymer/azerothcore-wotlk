@@ -6450,11 +6450,11 @@ void ObjectMgr::LoadEventScripts()
         {
             TaxiPathNodeEntry const* node = sTaxiPathNodesByPath[path_idx][node_idx];
 
-            if (node->arrivalEventID)
-                evt_scripts.insert(node->arrivalEventID);
+            if (node->ArrivalEventID)
+                evt_scripts.insert(node->ArrivalEventID);
 
-            if (node->departureEventID)
-                evt_scripts.insert(node->departureEventID);
+            if (node->DepartureEventID)
+                evt_scripts.insert(node->DepartureEventID);
         }
     }
 
@@ -7430,7 +7430,7 @@ uint32 ObjectMgr::GetNearestTaxiNode(float x, float y, float z, uint32 mapid, ui
     {
         TaxiNodesEntry const* node = sTaxiNodesStore.LookupEntry(i);
 
-        if (!node || node->map_id != mapid || (!node->MountCreatureID[teamId == TEAM_ALLIANCE ? 1 : 0] && node->MountCreatureID[0] != 32981)) // dk flight
+        if (!node || node->ContinentID != mapid || (!node->MountCreatureID[teamId == TEAM_ALLIANCE ? 1 : 0] && node->MountCreatureID[0] != 32981)) // dk flight
             continue;
 
         uint8  field   = (uint8)((i - 1) / 32);
@@ -7442,7 +7442,7 @@ uint32 ObjectMgr::GetNearestTaxiNode(float x, float y, float z, uint32 mapid, ui
             continue;
         }
 
-        float dist2 = (node->x - x) * (node->x - x) + (node->y - y) * (node->y - y) + (node->z - z) * (node->z - z);
+        float dist2 = (node->Pos.X - x) * (node->Pos.X - x) + (node->Pos.Y - y) * (node->Pos.Y - y) + (node->Pos.Z - z) * (node->Pos.Z - z);
         if (found)
         {
             if (dist2 < dist)
@@ -7482,7 +7482,7 @@ void ObjectMgr::GetTaxiPath(uint32 source, uint32 destination, uint32& path, uin
         return;
     }
 
-    cost = dest_i->second->price;
+    cost = dest_i->second->Cost;
     path = dest_i->second->ID;
 }
 

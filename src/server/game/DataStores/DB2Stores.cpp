@@ -44,6 +44,9 @@ DB2Storage<PowerTypeEntry>              sPowerTypeStore("PowerType.db2", &PowerT
 DB2Storage<ItemSparseEntry>             sItemSparseStore("ItemSparse.db2", &ItemSparseLoadInfo::Instance);
 DB2Storage<PlayerConditionEntry>        sPlayerConditionStore("PlayerCondition.db2", &PlayerConditionLoadInfo::Instance);
 DB2Storage<PowerDisplayEntry>           sPowerDisplayStore("PowerDisplay.db2", &PowerDisplayLoadInfo::Instance);
+DB2Storage<TaxiNodesEntry>              sTaxiNodesStore("TaxiNodes.db2", &TaxiNodesLoadInfo::Instance);
+DB2Storage<TaxiPathEntry>               sTaxiPathStore("TaxiPath.db2", &TaxiPathLoadInfo::Instance);
+DB2Storage<TaxiPathNodeEntry>           sTaxiPathNodeStore("TaxiPathNode.db2", &TaxiPathNodeLoadInfo::Instance);
 
 // The DB2 loader produces packed records (stride = DB2Meta::GetRecordSize()), so a store's C++ struct must
 // have the identical packed size. Mirrors TrinityCore's GetCppRecordSize() structure check.
@@ -102,6 +105,9 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     LOAD_DB2(sItemSparseStore);
     LOAD_DB2(sPlayerConditionStore);
     LOAD_DB2(sPowerDisplayStore);
+    LOAD_DB2(sTaxiNodesStore);
+    LOAD_DB2(sTaxiPathStore);
+    LOAD_DB2(sTaxiPathNodeStore);
 
 #undef LOAD_DB2
 

@@ -164,20 +164,16 @@ DBCStorage <TalentTabEntry> sTalentTabStore(TalentTabEntryfmt);
 // store absolute bit position for first rank for talent inspect
 static uint32 sTalentTabPages[MAX_CLASSES][3];
 
-DBCStorage <TaxiNodesEntry> sTaxiNodesStore(TaxiNodesEntryfmt);
+// sTaxiNodesStore / sTaxiPathStore / sTaxiPathNodeStore are now DB2 stores (defined in DB2Stores.cpp,
+// loaded before DBC). The taxi graph below is built from those DB2 stores.
 TaxiMask sTaxiNodesMask;
 TaxiMask sOldContinentsNodesMask;
 TaxiMask sHordeTaxiNodesMask;
 TaxiMask sAllianceTaxiNodesMask;
 TaxiMask sDeathKnightTaxiNodesMask;
 
-// DBC used only for initialization sTaxiPathSetBySource at startup.
 TaxiPathSetBySource sTaxiPathSetBySource;
-DBCStorage <TaxiPathEntry> sTaxiPathStore(TaxiPathEntryfmt);
-
-// DBC used only for initialization sTaxiPathNodeStore at startup.
 TaxiPathNodesByPath sTaxiPathNodesByPath;
-static DBCStorage <TaxiPathNodeEntry> sTaxiPathNodeStore(TaxiPathNodeEntryfmt);
 
 DBCStorage <TeamContributionPointsEntry> sTeamContributionPointsStore(TeamContributionPointsfmt);
 DBCStorage <TotemCategoryEntry> sTotemCategoryStore(TotemCategoryEntryfmt);
@@ -352,9 +348,6 @@ void LoadDBCStores(const std::string& dataPath)
     LOAD_DBC(sSummonPropertiesStore,                "SummonProperties.dbc",                 "summonproperties_dbc");
     LOAD_DBC(sTalentStore,                          "Talent.dbc",                           "talent_dbc");
     LOAD_DBC(sTalentTabStore,                       "TalentTab.dbc",                        "talenttab_dbc");
-    LOAD_DBC(sTaxiNodesStore,                       "TaxiNodes.dbc",                        "taxinodes_dbc");
-    LOAD_DBC(sTaxiPathStore,                        "TaxiPath.dbc",                         "taxipath_dbc");
-    LOAD_DBC(sTaxiPathNodeStore,                    "TaxiPathNode.dbc",                     "taxipathnode_dbc");
     LOAD_DBC(sTeamContributionPointsStore,          "TeamContributionPoints.dbc",           "teamcontributionpoints_dbc");
     LOAD_DBC(sTotemCategoryStore,                   "TotemCategory.dbc",                    "totemcategory_dbc");
     LOAD_DBC(sTransportAnimationStore,              "TransportAnimation.dbc",               "transportanimation_dbc");
@@ -505,7 +498,7 @@ void LoadDBCStores(const std::string& dataPath)
 
     for (uint32 i = 1; i < sTaxiPathStore.GetNumRows(); ++i)
         if (TaxiPathEntry const* entry = sTaxiPathStore.LookupEntry(i))
-            sTaxiPathSetBySource[entry->from][entry->to] = entry;
+            sTaxiPathSetBySource[entry->FromTaxiNode][entry->ToTaxiNode] = entry;
 
     // Calculate path nodes count
     uint32 pathCount = sTaxiPathStore.GetNumRows();
@@ -514,8 +507,8 @@ void LoadDBCStores(const std::string& dataPath)
 
     for (uint32 i = 1; i < sTaxiPathNodeStore.GetNumRows(); ++i)
         if (TaxiPathNodeEntry const* entry = sTaxiPathNodeStore.LookupEntry(i))
-            if (pathLength[entry->path] < entry->index + 1)
-                pathLength[entry->path] = entry->index + 1;
+            if (pathLength[entry->PathID] < uint32(entry->NodeIndex + 1))
+                pathLength[entry->PathID] = entry->NodeIndex + 1;
 
     // Set path length
     sTaxiPathNodesByPath.resize(pathCount);                 // 0 and some other indexes not used
@@ -524,7 +517,7 @@ void LoadDBCStores(const std::string& dataPath)
 
     // fill data
     for (TaxiPathNodeEntry const* entry : sTaxiPathNodeStore)
-        sTaxiPathNodesByPath[entry->path][entry->index] = entry;
+        sTaxiPathNodesByPath[entry->PathID][entry->NodeIndex] = entry;
 
     // Initialize global taxinodes mask
     // include existed nodes that have at least single not spell base (scripted) path
@@ -554,7 +547,7 @@ void LoadDBCStores(const std::string& dataPath)
                 for (TaxiPathSetForSource::const_iterator dest_i = src_i->second.begin(); dest_i != src_i->second.end(); ++dest_i)
                 {
                     // not spell path
-                    if (dest_i->second->price || spellPaths.find(dest_i->second->ID) == spellPaths.end())
+                    if (dest_i->second->Cost || spellPaths.find(dest_i->second->ID) == spellPaths.end())
                     {
                         ok = true;
                         break;
@@ -580,7 +573,7 @@ void LoadDBCStores(const std::string& dataPath)
                 sDeathKnightTaxiNodesMask[field] |= submask;
 
             // old continent node (+ nodes virtually at old continents, check explicitly to avoid loading map files for zone info)
-            if (node->map_id < 2 || i == 82 || i == 83 || i == 93 || i == 94)
+            if (node->ContinentID < 2 || i == 82 || i == 83 || i == 93 || i == 94)
                 sOldContinentsNodesMask[field] |= submask;
 
             // fix DK node at Ebon Hold and Shadow Vault flight master

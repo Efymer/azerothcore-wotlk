@@ -10382,7 +10382,7 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
         m_taxi.ClearTaxiDestinations();
         ModifyMoney(-(int32)totalcost);
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GOLD_SPENT_FOR_TRAVELLING, totalcost);
-        TeleportTo(lastPathNode->map_id, lastPathNode->x, lastPathNode->y, lastPathNode->z, GetOrientation());
+        TeleportTo(lastPathNode->ContinentID, lastPathNode->Pos.X, lastPathNode->Pos.Y, lastPathNode->Pos.Z, GetOrientation());
         return false;
     }
     else
@@ -10405,8 +10405,8 @@ bool Player::ActivateTaxiPathTo(uint32 taxi_path_id, uint32 spellid /*= 1*/)
     std::vector<uint32> nodes;
 
     nodes.resize(2);
-    nodes[0] = entry->from;
-    nodes[1] = entry->to;
+    nodes[0] = entry->FromTaxiNode;
+    nodes[1] = entry->ToTaxiNode;
 
     return ActivateTaxiPathTo(nodes, nullptr, spellid);
 }
@@ -10448,9 +10448,9 @@ void Player::ContinueTaxiFlight()
     // the two nodes of the segment. Resume from the end node (i).
     float distPrev;
     float distNext =
-        (nodeList[0]->x - GetPositionX()) * (nodeList[0]->x - GetPositionX()) +
-        (nodeList[0]->y - GetPositionY()) * (nodeList[0]->y - GetPositionY()) +
-        (nodeList[0]->z - GetPositionZ()) * (nodeList[0]->z - GetPositionZ());
+        (nodeList[0]->Loc.X - GetPositionX()) * (nodeList[0]->Loc.X - GetPositionX()) +
+        (nodeList[0]->Loc.Y - GetPositionY()) * (nodeList[0]->Loc.Y - GetPositionY()) +
+        (nodeList[0]->Loc.Z - GetPositionZ()) * (nodeList[0]->Loc.Z - GetPositionZ());
 
     for (uint32 i = 1; i < nodeList.size(); ++i)
     {
@@ -10458,19 +10458,19 @@ void Player::ContinueTaxiFlight()
         TaxiPathNodeEntry const* prevNode = nodeList[i - 1];
 
         // skip nodes at another map
-        if (node->mapid != GetMapId())
+        if (node->ContinentID != GetMapId())
             continue;
 
         distPrev = distNext;
         distNext =
-            (node->x - GetPositionX()) * (node->x - GetPositionX()) +
-            (node->y - GetPositionY()) * (node->y - GetPositionY()) +
-            (node->z - GetPositionZ()) * (node->z - GetPositionZ());
+            (node->Loc.X - GetPositionX()) * (node->Loc.X - GetPositionX()) +
+            (node->Loc.Y - GetPositionY()) * (node->Loc.Y - GetPositionY()) +
+            (node->Loc.Z - GetPositionZ()) * (node->Loc.Z - GetPositionZ());
 
         float distNodes =
-            (node->x - prevNode->x) * (node->x - prevNode->x) +
-            (node->y - prevNode->y) * (node->y - prevNode->y) +
-            (node->z - prevNode->z) * (node->z - prevNode->z);
+            (node->Loc.X - prevNode->Loc.X) * (node->Loc.X - prevNode->Loc.X) +
+            (node->Loc.Y - prevNode->Loc.Y) * (node->Loc.Y - prevNode->Loc.Y) +
+            (node->Loc.Z - prevNode->Loc.Z) * (node->Loc.Z - prevNode->Loc.Z);
 
         if (distPrev + distNext < distNodes)
         {

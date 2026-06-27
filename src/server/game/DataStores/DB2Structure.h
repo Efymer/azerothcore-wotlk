@@ -517,6 +517,45 @@ struct PowerDisplayEntry
     uint8 Blue;
 };
 
+struct TaxiNodesEntry
+{
+    LocalizedString Name;
+    DBCPosition3D Pos;
+    DBCPosition2D MapOffset;
+    DBCPosition2D FlightMapOffset;
+    uint32 ID;
+    uint32 ContinentID;
+    uint32 ConditionID;
+    uint16 CharacterBitNumber;
+    int32 Flags;
+    int32 UiTextureKitID;
+    float Facing;
+    uint32 SpecialIconConditionID;
+    uint32 VisibilityConditionID;
+    std::array<int32, 2> MountCreatureID;
+};
+
+struct TaxiPathEntry
+{
+    uint32 ID;
+    uint16 FromTaxiNode;
+    uint16 ToTaxiNode;
+    uint32 Cost;
+};
+
+struct TaxiPathNodeEntry
+{
+    DBCPosition3D Loc;
+    uint32 ID;
+    uint16 PathID;
+    int32 NodeIndex;
+    uint16 ContinentID;
+    int32 Flags;
+    uint32 Delay;
+    uint32 ArrivalEventID;
+    uint32 DepartureEventID;
+};
+
 #pragma pack(pop)
 
 #endif // AC_DB2STRUCTURE_H

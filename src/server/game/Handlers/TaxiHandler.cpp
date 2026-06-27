@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "DB2Stores.h"
 #include "GameTime.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
@@ -225,7 +226,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recvData)
             TaxiNodesEntry const* curDestNode = sTaxiNodesStore.LookupEntry(curDest);
 
             // far teleport case
-            if (curDestNode && curDestNode->map_id != GetPlayer()->GetMapId() && GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE)
+            if (curDestNode && curDestNode->ContinentID != GetPlayer()->GetMapId() && GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE)
             {
                 if (FlightPathMovementGenerator* flight = dynamic_cast<FlightPathMovementGenerator*>(GetPlayer()->GetMotionMaster()->top()))
                 {
@@ -234,7 +235,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recvData)
                     TaxiPathNodeEntry const* node = flight->GetPath()[flight->GetCurrentNode()];
                     flight->SkipCurrentNode();
 
-                    GetPlayer()->TeleportTo(curDestNode->map_id, node->x, node->y, node->z, GetPlayer()->GetOrientation(), TELE_TO_NOT_LEAVE_TAXI);
+                    GetPlayer()->TeleportTo(curDestNode->ContinentID, node->Loc.X, node->Loc.Y, node->Loc.Z, GetPlayer()->GetOrientation(), TELE_TO_NOT_LEAVE_TAXI);
                 }
             }
 
