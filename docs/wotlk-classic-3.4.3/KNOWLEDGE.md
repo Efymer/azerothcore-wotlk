@@ -205,7 +205,20 @@ primary porting reference, but its build is not ours.
 ## 5. Key gotchas & lessons (read before resuming)
 
 1. **Build divergence (54261 vs 61581)** — the recurring tax of staying on 54261. Always verify
-   format/layout against the *real client*, not TC's build.
+   format/layout against the *real client*, not TC's build. **⚠ The biggest instance (proven live,
+   2026-06-27): OPCODES. The 54261 client uses FLAT uint16 opcodes (e.g. `CMSG_AUTH_SESSION = 14181 =
+   0x3765`, `SMSG_AUTH_CHALLENGE = 12360 = 0x3048`), NOT TC 61581's grouped `0xGGGGIIII` uint32 scheme
+   (`0x3B0001`).** The wire opcode is **2 bytes**, not 4. Bricks A/B were built on TC 61581 → wrong for
+   the 54261 wire. **Authoritative 54261 opcode source: HermesProxy-WOTLK's `World/Enums/V3_4_3_54261/
+   Opcode.cs`** (901 opcodes, flat `enum : uint`; saved at `extract-test/hermes_opcode_54261.cs`) —
+   **its values are byte-exact against the live client** (the recon that earlier "dismissed" them was
+   wrong; they ARE the wire format). The fix (brick B-redux): read/write the wire opcode as uint16,
+   re-value the opcode table to the 54261 flat set (name-matched to our existing TC names so the
+   handler/packet/call-site work survives), flat table indexing (not `GetOpcodeArrayIndex`), and a
+   no-op `CMSG_LOG_DISCONNECT` (14185/0x3769 — the client's *first* post-AuthChallenge packet) handler.
+   Discovered when the live client's first world packet read as garbage opcode `0x033769` (= uint16
+   `0x3769` + 2 payload bytes misread as a uint32). Header is `[int32 Size][12B GCM tag]`, body =
+   `[uint16 opcode][payload]` AES-GCM-encrypted; banner strings + crypto + framing were all correct.
 2. **Protobuf must be 2.6.1, vendored.** TC's `bgs.protocol` ships *pre-generated* `.pb.*` locked to
    protobuf 2.6.1 (only ~8 of ~100 services have `.proto` source). Modern protobuf 6.x is
    incompatible. We vendor TC's 2.6.1 and use the checked-in generated code (no `protoc`).
