@@ -17,6 +17,7 @@
 
 #include "OutdoorPvP.h"
 #include "CellImpl.h"
+#include "DB2Stores.h"
 #include "GridNotifiers.h"
 #include "Group.h"
 #include "Map.h"
@@ -721,7 +722,7 @@ void OutdoorPvP::SetMapFromZone(uint32 zone)
     AreaTableEntry const* areaTable = sAreaTableStore.LookupEntry(zone);
     ASSERT(areaTable);
 
-    Map* map = sMapMgr->CreateBaseMap(areaTable->mapid);
+    Map* map = sMapMgr->CreateBaseMap(areaTable->ContinentID);
     ASSERT(!map->Instanceable());
     _map = map;
 }

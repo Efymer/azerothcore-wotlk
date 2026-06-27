@@ -23,6 +23,7 @@
 #include "CellImpl.h"
 #include "Common.h"
 #include "ConditionMgr.h"
+#include "DB2Stores.h"
 #include "DisableMgr.h"
 #include "DynamicObject.h"
 #include "GameObjectAI.h"
@@ -6705,7 +6706,7 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
                     {
                         Battlefield* Bf = sBattlefieldMgr->GetBattlefieldToZoneId(m_originalCaster->GetZoneId());
                         if (AreaTableEntry const* pArea = sAreaTableStore.LookupEntry(m_originalCaster->GetAreaId()))
-                            if ((pArea->flags & AREA_FLAG_NO_FLY_ZONE) || (Bf && !Bf->CanFlyIn()))
+                            if ((pArea->Flags[0] & AREA_FLAG_NO_FLY_ZONE) || (Bf && !Bf->CanFlyIn()))
                                 return SPELL_FAILED_NOT_HERE;
                     }
                     break;

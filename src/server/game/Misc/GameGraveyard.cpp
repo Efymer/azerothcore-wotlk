@@ -17,6 +17,7 @@
 
 #include "GameGraveyard.h"
 #include "DBCStores.h"
+#include "DB2Stores.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
 #include "MapMgr.h"

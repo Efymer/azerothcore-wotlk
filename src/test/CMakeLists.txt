@@ -29,6 +29,10 @@ target_link_libraries(
         gtest_main
         gmock_main
         game-interface
+        # game links acore-core-interface PRIVATEly, so its standard MSVC flags (notably /utf-8, which fmt's
+        # FMT_UNICODE static_assert requires) don't propagate here. Link it directly so the test sources build
+        # with the same flags as the rest of the core (matches worldserver/authserver).
+        acore-core-interface
 )
 
 # Add module test sources if any modules registered tests

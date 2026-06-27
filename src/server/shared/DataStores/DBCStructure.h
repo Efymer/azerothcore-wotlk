@@ -515,33 +515,8 @@ struct AchievementCriteriaEntry
     //uint32 showOrder;                                     // 30 show order
 };
 
-struct AreaTableEntry
-{
-    uint32  ID;                                             // 0
-    uint32  mapid;                                          // 1
-    uint32  zone;                                           // 2 if 0 then it's zone, else it's zone id of this area
-    uint32  exploreFlag;                                    // 3, main index
-    uint32  flags;                                          // 4, unknown value but 312 for all cities
-    // 5-9 unused
-    int32   area_level;                                     // 10
-    char const*   area_name[16];                            // 11-26
-    // 27, string flags, unused
-    uint32  team;                                           // 28
-    uint32  LiquidTypeOverride[4];                          // 29-32 liquid override by type
-
-    // helpers
-    [[nodiscard]] bool IsSanctuary() const
-    {
-        if (mapid == MAP_EBON_HOLD)
-            return true;
-        return (flags & AREA_FLAG_SANCTUARY);
-    }
-
-    [[nodiscard]] bool IsFlyable() const
-    {
-        return flags & AREA_FLAG_OUTLAND;
-    }
-};
+// AreaTableEntry migrated to DB2 (build 3.4.3.54261): see
+// src/server/game/DataStores/DB2Structure.h and DB2Stores.h (sAreaTableStore).
 
 #define MAX_GROUP_AREA_IDS 6
 

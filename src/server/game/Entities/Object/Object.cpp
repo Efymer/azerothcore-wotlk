@@ -20,6 +20,7 @@
 #include "BattlefieldMgr.h"
 #include "CellImpl.h"
 #include "Chat.h"
+#include "DB2Stores.h"
 #include "Creature.h"
 #include "DynamicVisibility.h"
 #include "GameObjectAI.h"
@@ -1193,8 +1194,8 @@ void WorldObject::ProcessPositionDataChanged(PositionFullTerrainStatus const& da
     _zoneId = _areaId = data.areaId;
 
     if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(_areaId))
-        if (area->zone)
-            _zoneId = area->zone;
+        if (area->ParentAreaID)
+            _zoneId = area->ParentAreaID;
 
     _outdoors   = data.outdoors;
     _floorZ     = data.floorZ;

@@ -17,6 +17,7 @@
 
 #include "LootMgr.h"
 #include "Containers.h"
+#include "DB2Stores.h"
 #include "DisableMgr.h"
 #include "Group.h"
 #include "ItemEnchantmentMgr.h"

@@ -48,6 +48,7 @@ extern DB2Storage<PowerDisplayEntry> sPowerDisplayStore;        // migrated from
 extern DB2Storage<TaxiNodesEntry> sTaxiNodesStore;              // migrated from DBC (1c.3)
 extern DB2Storage<TaxiPathEntry> sTaxiPathStore;               // migrated from DBC (1c.3)
 extern DB2Storage<TaxiPathNodeEntry> sTaxiPathNodeStore;       // migrated from DBC (1c.3)
+extern DB2Storage<AreaTableEntry> sAreaTableStore;             // migrated from DBC
 extern DB2Storage<FactionEntry> sFactionStore;                 // migrated from DBC
 extern DB2Storage<FactionTemplateEntry> sFactionTemplateStore; // migrated from DBC
 

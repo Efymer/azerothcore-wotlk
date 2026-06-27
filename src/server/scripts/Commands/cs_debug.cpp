@@ -17,6 +17,7 @@
 
 #include "ArenaTeamMgr.h"
 #include "AuctionHouseMgr.h"
+#include "DB2Stores.h"
 #include "Bag.h"
 #include "BattlegroundMgr.h"
 #include "CellImpl.h"
@@ -1633,7 +1634,7 @@ public:
 
         uint32 zoneId = player->GetZoneId();
         AreaTableEntry const* zoneEntry = sAreaTableStore.LookupEntry(zoneId);
-        handler->PSendSysMessage("Player count in zone {} ({}): {}.", zoneId, (zoneEntry ? zoneEntry->area_name[LOCALE_enUS] : "<unknown>"), player->GetMap()->GetPlayerCountInZone(zoneId));
+        handler->PSendSysMessage("Player count in zone {} ({}): {}.", zoneId, (zoneEntry ? zoneEntry->AreaName.Str[LOCALE_enUS] : "<unknown>"), player->GetMap()->GetPlayerCountInZone(zoneId));
         return true;
     }
 
@@ -1657,7 +1658,7 @@ public:
         else if (type == "fishing")
         {
             if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(lootId))
-                return area->area_name[LOCALE_enUS];
+                return area->AreaName.Str[LOCALE_enUS];
         }
 
         return "";

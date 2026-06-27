@@ -17,6 +17,7 @@
 
 #include "ChatCommand.h"
 #include "AccountMgr.h"
+#include "DB2Stores.h"
 #include "Chat.h"
 #include "DBCStores.h"
 #include "DatabaseEnv.h"
@@ -168,12 +169,12 @@ static void LogCommandUsage(WorldSession const& session, std::string_view cmdStr
 
     if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(areaId))
     {
-        areaName = area->area_name[locale];
+        areaName = area->AreaName.Str[locale];
     }
 
     if (AreaTableEntry const* zone = sAreaTableStore.LookupEntry(zoneId))
     {
-        zoneName = zone->area_name[locale];
+        zoneName = zone->AreaName.Str[locale];
     }
 
     std::string logMessage = Acore::StringFormat("Command: {} [Player: {} ({}) (Account: {}) X: {} Y: {} Z: {} Map: {} ({}) Area: {} ({}) Zone: {} ({}) Selected: {} ({})]",

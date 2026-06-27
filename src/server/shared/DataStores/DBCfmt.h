@@ -21,7 +21,6 @@
 char constexpr Achievementfmt[] = "niixssssssssssssssssxxxxxxxxxxxxxxxxxxiixixxxxxxxxxxxxxxxxxxii";
 char constexpr AchievementCategoryfmt[] = "nixxxxxxxxxxxxxxxxxx";
 char constexpr AchievementCriteriafmt[] = "niiiiiiiixxxxxxxxxxxxxxxxxiiiix";
-char constexpr AreaTableEntryfmt[] = "niiiixxxxxissssssssssssssssxiiiiixxx";
 char constexpr AreaGroupEntryfmt[] = "niiiiiii";
 char constexpr AreaPOIEntryfmt[] = "niiiiiiiiiiifffixixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxix";
 char constexpr AuctionHouseEntryfmt[] = "niiixxxxxxxxxxxxxxxxx";

@@ -5304,10 +5304,10 @@ void SpellMgr::LoadSpellInfoCorrections()
         if (AreaTableEntry* areaEntry = const_cast<AreaTableEntry*>(sAreaTableStore.LookupEntry(i)))
         {
             if (areaEntry->ID == 3479)
-                areaEntry->flags |= AREA_FLAG_NO_FLY_ZONE;
+                areaEntry->Flags[0] |= AREA_FLAG_NO_FLY_ZONE;
             // Xinef: Dun Morogh, Kharanos tavern, missing resting flag
             else if (areaEntry->ID == 2102)
-                areaEntry->flags |= AREA_FLAG_REST_ZONE_ALLIANCE;
+                areaEntry->Flags[0] |= AREA_FLAG_REST_ZONE_ALLIANCE;
         }
 
     // Xinef: fix for something?

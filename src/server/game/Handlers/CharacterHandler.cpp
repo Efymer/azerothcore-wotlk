@@ -2368,7 +2368,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
                         continue;
                     }
 
-                    LFGDungeonEntry const* lfgDungeon = GetZoneLFGDungeonEntry(zone->area_name[GetSessionDbLocaleIndex()], GetSessionDbLocaleIndex());
+                    LFGDungeonEntry const* lfgDungeon = GetZoneLFGDungeonEntry(zone->AreaName.Str[GetSessionDbLocaleIndex()], GetSessionDbLocaleIndex());
                     if (!lfgDungeon)
                     {
                         FillTaxiMask(field, 0);

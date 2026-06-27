@@ -1430,6 +1430,78 @@ struct TaxiPathNodeLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 11, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct AreaTableLoadInfo
+{
+    // Build 3.4.3.54261 (xian55 AreaTableMeta, LayoutHash 0x19CA1DC6). IndexField -1 = ID is the
+    // implicit (non-inline) record id: present in the flattened Fields list but NOT in MetaFields.
+    static constexpr DB2MetaField MetaFields[23] =
+    {
+        { FT_STRING_NOT_LOCALIZED, 1, true },
+        { FT_STRING, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_FLOAT, 1, true },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_INT, 2, true },
+        { FT_SHORT, 4, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1353545, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 23, .FileFieldCount = 23, .LayoutHash = 0x19CA1DC6, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[28] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING_NOT_LOCALIZED, "ZoneName" },
+        { false, FT_STRING, "AreaName" },
+        { false, FT_SHORT, "ContinentID" },
+        { false, FT_SHORT, "ParentAreaID" },
+        { true, FT_SHORT, "AreaBit" },
+        { false, FT_BYTE, "SoundProviderPref" },
+        { false, FT_BYTE, "SoundProviderPrefUnderwater" },
+        { false, FT_SHORT, "AmbienceID" },
+        { false, FT_SHORT, "UwAmbience" },
+        { false, FT_SHORT, "ZoneMusic" },
+        { false, FT_SHORT, "UwZoneMusic" },
+        { true, FT_BYTE, "ExplorationLevel" },
+        { false, FT_SHORT, "IntroSound" },
+        { false, FT_INT, "UwIntroSound" },
+        { false, FT_BYTE, "FactionGroupMask" },
+        { false, FT_FLOAT, "AmbientMultiplier" },
+        { true, FT_INT, "MountFlags" },
+        { true, FT_SHORT, "PvpCombatWorldStateID" },
+        { false, FT_BYTE, "WildBattlePetLevelMin" },
+        { false, FT_BYTE, "WildBattlePetLevelMax" },
+        { false, FT_BYTE, "WindSettingsID" },
+        { true, FT_INT, "Flags1" },
+        { true, FT_INT, "Flags2" },
+        { false, FT_SHORT, "LiquidTypeID1" },
+        { false, FT_SHORT, "LiquidTypeID2" },
+        { false, FT_SHORT, "LiquidTypeID3" },
+        { false, FT_SHORT, "LiquidTypeID4" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 28, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct FactionLoadInfo
 {
     static constexpr DB2MetaField MetaFields[18] =

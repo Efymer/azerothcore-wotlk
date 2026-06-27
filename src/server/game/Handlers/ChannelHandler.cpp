@@ -16,6 +16,7 @@
  */
 
 #include "ChannelMgr.h"
+#include "DB2Stores.h"
 #include "ObjectMgr.h"                                      // for normalizePlayerName
 #include "Player.h"
 #include <cctype>

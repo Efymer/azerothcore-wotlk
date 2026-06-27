@@ -517,7 +517,7 @@ void Player::UpdateLocalChannels(uint32 newZone)
         return;
 
     std::string current_zone_name =
-        current_zone->area_name[GetSession()->GetSessionDbcLocale()];
+        current_zone->AreaName.Str[GetSession()->GetSessionDbcLocale()];
 
     for (uint32 i = 0; i < sChatChannelsStore.GetNumRows(); ++i)
     {
@@ -1226,7 +1226,7 @@ void Player::UpdateArea(uint32 newArea)
     m_areaUpdateId = newArea;
 
     AreaTableEntry const* area = sAreaTableStore.LookupEntry(newArea);
-    pvpInfo.IsInFFAPvPArea     = area && (area->flags & AREA_FLAG_ARENA);
+    pvpInfo.IsInFFAPvPArea     = area && (area->Flags[0] & AREA_FLAG_ARENA);
     UpdateFFAPvPState(false);
 
     UpdateAreaDependentAuras(newArea);
@@ -1245,7 +1245,7 @@ void Player::UpdateArea(uint32 newArea)
     uint32 const areaRestFlag = (GetTeamId(true) == TEAM_ALLIANCE)
                                     ? AREA_FLAG_REST_ZONE_ALLIANCE
                                     : AREA_FLAG_REST_ZONE_HORDE;
-    if (area && area->flags & areaRestFlag)
+    if (area && area->Flags[0] & areaRestFlag)
         SetRestFlag(REST_FLAG_IN_FACTION_AREA);
     else
         RemoveRestFlag(REST_FLAG_IN_FACTION_AREA);
@@ -1299,23 +1299,23 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea, bool force)
 
     // in PvP, any not controlled zone (except zone->team == 6, default case)
     // in PvE, only opposition team capital
-    switch (zone->team)
+    switch (zone->FactionGroupMask)
     {
     case AREATEAM_ALLY:
         pvpInfo.IsInHostileArea =
             GetTeamId(true) != TEAM_ALLIANCE &&
-            (sWorld->IsPvPRealm() || zone->flags & AREA_FLAG_CAPITAL);
+            (sWorld->IsPvPRealm() || zone->Flags[0] & AREA_FLAG_CAPITAL);
         break;
     case AREATEAM_HORDE:
         pvpInfo.IsInHostileArea =
             GetTeamId(true) != TEAM_HORDE &&
-            (sWorld->IsPvPRealm() || zone->flags & AREA_FLAG_CAPITAL);
+            (sWorld->IsPvPRealm() || zone->Flags[0] & AREA_FLAG_CAPITAL);
         break;
     case AREATEAM_NONE:
         // overwrite for battlegrounds, maybe batter some zone flags but current
         // known not 100% fit to this
         pvpInfo.IsInHostileArea = sWorld->IsPvPRealm() || InBattleground() ||
-                                  zone->flags & AREA_FLAG_WINTERGRASP;
+                                  zone->Flags[0] & AREA_FLAG_WINTERGRASP;
         break;
     default: // 6 in fact
         pvpInfo.IsInHostileArea = false;
@@ -1325,7 +1325,7 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea, bool force)
     // Treat players having a quest flagging for PvP as always in hostile area
     pvpInfo.IsHostile = pvpInfo.IsInHostileArea || HasPvPForcingQuest();
 
-    if (zone->flags & AREA_FLAG_CAPITAL) // Is in a capital city
+    if (zone->Flags[0] & AREA_FLAG_CAPITAL) // Is in a capital city
     {
         if (!pvpInfo.IsHostile || zone->IsSanctuary())
             SetRestFlag(REST_FLAG_IN_CITY);

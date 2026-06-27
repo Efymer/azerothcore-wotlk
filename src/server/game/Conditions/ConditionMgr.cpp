@@ -2075,7 +2075,7 @@ bool ConditionMgr::isConditionTypeValid(Condition* cond)
             return false;
         }
 
-        if (areaEntry->zone != 0)
+        if (areaEntry->ParentAreaID != 0)
         {
             LOG_ERROR("sql.sql", "ZoneID condition requires to be in area ({}) which is a subzone but zone expected, skipped", cond->ConditionValue1);
             return false;

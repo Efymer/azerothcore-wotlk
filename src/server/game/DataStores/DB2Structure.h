@@ -40,6 +40,51 @@
 
 #pragma pack(push, 1)
 
+// Migrated from DBC (3.4.3.54261). Legacy DBC field map:
+//   mapid->ContinentID, zone->ParentAreaID, exploreFlag->AreaBit, flags->Flags[0],
+//   area_level->ExplorationLevel, area_name[loc]->AreaName.Str[loc], team->FactionGroupMask,
+//   LiquidTypeOverride[i]->LiquidTypeID[i]. Legacy helpers IsSanctuary()/IsFlyable() preserved.
+struct AreaTableEntry
+{
+    uint32 ID;
+    char const* ZoneName;
+    LocalizedString AreaName;
+    uint16 ContinentID;
+    uint16 ParentAreaID;
+    int16 AreaBit;
+    uint8 SoundProviderPref;
+    uint8 SoundProviderPrefUnderwater;
+    uint16 AmbienceID;
+    uint16 UwAmbience;
+    uint16 ZoneMusic;
+    uint16 UwZoneMusic;
+    int8 ExplorationLevel;
+    uint16 IntroSound;
+    uint32 UwIntroSound;
+    uint8 FactionGroupMask;
+    float AmbientMultiplier;
+    int32 MountFlags;
+    int16 PvpCombatWorldStateID;
+    uint8 WildBattlePetLevelMin;
+    uint8 WildBattlePetLevelMax;
+    uint8 WindSettingsID;
+    std::array<int32, 2> Flags;
+    std::array<uint16, 4> LiquidTypeID;
+
+    // helpers (legacy API preserved; field names repointed to DB2)
+    [[nodiscard]] bool IsSanctuary() const
+    {
+        if (ContinentID == MAP_EBON_HOLD)
+            return true;
+        return (Flags[0] & AREA_FLAG_SANCTUARY) != 0;
+    }
+
+    [[nodiscard]] bool IsFlyable() const
+    {
+        return (Flags[0] & AREA_FLAG_OUTLAND) != 0;
+    }
+};
+
 struct LiquidMaterialEntry
 {
     uint32 ID;

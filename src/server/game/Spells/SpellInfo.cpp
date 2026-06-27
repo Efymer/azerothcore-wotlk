@@ -1528,7 +1528,7 @@ SpellCastResult SpellInfo::CheckLocation(uint32 map_id, uint32 zone_id, uint32 a
             areaEntry = sAreaTableStore.LookupEntry(zone_id);
         }
 
-        if (!areaEntry || !areaEntry->IsFlyable() || (strict && (areaEntry->flags & AREA_FLAG_NO_FLY_ZONE) != 0) || !player->canFlyInZone(map_id, zone_id, this))
+        if (!areaEntry || !areaEntry->IsFlyable() || (strict && (areaEntry->Flags[0] & AREA_FLAG_NO_FLY_ZONE) != 0) || !player->canFlyInZone(map_id, zone_id, this))
         {
             return SPELL_FAILED_INCORRECT_AREA;
         }

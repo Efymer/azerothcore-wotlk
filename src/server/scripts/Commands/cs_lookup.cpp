@@ -99,7 +99,7 @@ public:
         for (auto areaEntry : sAreaTableStore)
         {
             int locale = handler->GetSessionDbcLocale();
-            std::string name = areaEntry->area_name[locale];
+            std::string name = areaEntry->AreaName.Str[locale];
 
             if (name.empty())
             {
@@ -116,7 +116,7 @@ public:
                         continue;
                     }
 
-                    name = areaEntry->area_name[locale];
+                    name = areaEntry->AreaName.Str[locale];
                     if (name.empty())
                     {
                         continue;
