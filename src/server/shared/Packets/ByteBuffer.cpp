@@ -92,6 +92,23 @@ std::string ByteBuffer::ReadCString(bool requireValidUtf8 /*= true*/)
     return value;
 }
 
+std::string ByteBuffer::ReadString(uint32 length, bool requireValidUtf8 /*= true*/)
+{
+    if (_rpos + length > size())
+        throw ByteBufferPositionException(false, _rpos, length, size());
+
+    ResetBitPos();
+    if (!length)
+        return {};
+
+    std::string value(reinterpret_cast<char const*>(&_storage[_rpos]), length);
+    _rpos += length;
+    if (requireValidUtf8 && !utf8::is_valid(value.begin(), value.end()))
+        throw ByteBufferInvalidValueException("string", value.c_str());
+
+    return value;
+}
+
 uint32 ByteBuffer::ReadPackedTime()
 {
     auto packedDate = read<uint32>();

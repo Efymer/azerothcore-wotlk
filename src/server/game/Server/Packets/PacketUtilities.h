@@ -19,8 +19,11 @@
 #define PacketUtilities_h__
 
 #include "ByteBuffer.h"
+#include "Duration.h"
+#include "Optional.h"
 #include "StringFormat.h"
 #include "Tuples.h"
+#include <ctime>
 #include <string_view>
 
 namespace WorldPackets
@@ -294,6 +297,110 @@ namespace WorldPackets
 
         return data;
     }
+
+    template<typename Underlying = int64>
+    class Timestamp
+    {
+    public:
+        Timestamp() = default;
+        Timestamp(time_t value) : _value(value) { }
+        Timestamp(SystemTimePoint const& systemTime) : _value(std::chrono::system_clock::to_time_t(systemTime)) { }
+
+        Timestamp& operator=(time_t value)
+        {
+            _value = value;
+            return *this;
+        }
+
+        Timestamp& operator=(SystemTimePoint const& systemTime)
+        {
+            _value = std::chrono::system_clock::to_time_t(systemTime);
+            return *this;
+        }
+
+        operator time_t() const
+        {
+            return _value;
+        }
+
+        Underlying AsUnderlyingType() const
+        {
+            return static_cast<Underlying>(_value);
+        }
+
+        friend ByteBuffer& operator<<(ByteBuffer& data, Timestamp timestamp)
+        {
+            data << static_cast<Underlying>(timestamp._value);
+            return data;
+        }
+
+        friend ByteBuffer& operator>>(ByteBuffer& data, Timestamp& timestamp)
+        {
+            timestamp._value = static_cast<time_t>(data.read<Underlying>());
+            return data;
+        }
+
+    private:
+        time_t _value = time_t(0);
+    };
+
+    template<typename Underlying, typename T>
+    struct AsWriter
+    {
+        T const& Value;
+
+        friend inline ByteBuffer& operator<<(ByteBuffer& data, AsWriter const& opt)
+        {
+            data << Underlying(opt.Value);
+            return data;
+        }
+    };
+
+    template<typename Underlying, typename T>
+    struct AsReaderWriter : AsWriter<Underlying, T>
+    {
+        friend inline ByteBuffer& operator>>(ByteBuffer& data, AsReaderWriter const& opt)
+        {
+            Underlying temp;
+            data >> temp;
+            const_cast<T&>(opt.Value) = static_cast<T>(temp);
+            return data;
+        }
+    };
+
+    template<typename Underlying, typename T>
+    inline AsWriter<Underlying, T> As(T const& value) { return { value }; }
+
+    template<typename Underlying, typename T>
+    inline AsReaderWriter<Underlying, T> As(T& value) { return { value }; }
+
+    template<uint32 BitCount, typename T>
+    struct BitsWriter
+    {
+        T const& Value;
+
+        friend inline ByteBuffer& operator<<(ByteBuffer& data, BitsWriter const& bits)
+        {
+            data.WriteBits(static_cast<uint32>(bits.Value), BitCount);
+            return data;
+        }
+    };
+
+    template<uint32 BitCount, typename T>
+    struct BitsReaderWriter : BitsWriter<BitCount, T>
+    {
+        friend inline ByteBuffer& operator>>(ByteBuffer& data, BitsReaderWriter const& bits)
+        {
+            const_cast<T&>(bits.Value) = static_cast<T>(data.ReadBits(BitCount));
+            return data;
+        }
+    };
+
+    template<uint32 BitCount, typename T>
+    inline BitsWriter<BitCount, T> Bits(T const& value) { return { value }; }
+
+    template<uint32 BitCount, typename T>
+    inline BitsReaderWriter<BitCount, T> Bits(T& value) { return { value }; }
 }
 
 template<std::size_t MaxBytesWithoutNullTerminator, typename... Validators>

@@ -367,6 +367,32 @@ public:
         return operator<<(std::string_view(str ? str : ""));
     }
 
+    // Length-controlled string writers: append the raw string bytes WITHOUT a trailing null
+    // (used by the bit-packed packets that prefix the length themselves). Use operator<< for the null-terminated variant.
+    void WriteString(std::string const& str)
+    {
+        if (std::size_t len = str.length())
+        {
+            append(str.c_str(), len);
+        }
+    }
+
+    void WriteString(std::string_view str)
+    {
+        if (std::size_t len = str.length())
+        {
+            append(str.data(), len);
+        }
+    }
+
+    void WriteString(char const* str, std::size_t len)
+    {
+        if (len)
+        {
+            append(str, len);
+        }
+    }
+
     ByteBuffer& operator>>(bool& value)
     {
         value = read<char>() > 0;
@@ -563,6 +589,7 @@ public:
     }
 
     std::string ReadCString(bool requireValidUtf8 = true);
+    std::string ReadString(uint32 length, bool requireValidUtf8 = true);
     uint32 ReadPackedTime();
 
     ByteBuffer& ReadPackedTime(uint32& time)
