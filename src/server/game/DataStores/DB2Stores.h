@@ -22,9 +22,14 @@
 #include "DB2Store.h"
 #include "DB2Structure.h"
 
-// World-entry DB2 store subset for build 3.4.3.54261 (Phase 1c).
-// More stores are added here as the world-entry code paths are switched from DBC to DB2.
+// World-entry DB2 store subset for build 3.4.3.54261 (Phase 1c). DB2-only stores (no DBC twin)
+// live here now; DBC-colliding stores are added during the DBC->DB2 repoint (Task 1c.3).
 extern DB2Storage<LiquidMaterialEntry> sLiquidMaterialStore;
+extern DB2Storage<SpellNameEntry> sSpellNameStore;
+extern DB2Storage<CharacterLoadoutEntry> sCharacterLoadoutStore;
+extern DB2Storage<CharacterLoadoutItemEntry> sCharacterLoadoutItemStore;
+extern DB2Storage<ChrCustomizationOptionEntry> sChrCustomizationOptionStore;
+extern DB2Storage<ChrCustomizationReqEntry> sChrCustomizationReqStore;
 
 // Loads the DB2 store subset from <dataPath>/dbc/<locale>/ at worldserver boot.
 void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale);

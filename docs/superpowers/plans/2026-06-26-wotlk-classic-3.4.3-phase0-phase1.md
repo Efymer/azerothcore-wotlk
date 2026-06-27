@@ -58,10 +58,16 @@ code + git history:
     (RelWithDebInfo/MSVC), codestyle clean. Adaptations: TC `Field::GetUInt32()`/`setBool` → AC `Field::Get<T>()`/
     `PreparedStatement::SetData`; `ABORT_MSG` → `ABORT` (`{}`-style); `LocalizedString::operator[]` →
     `.Str[locale]` (AC's has no `operator[]`); added `Field.h`+`QueryResult.h` includes.
-  - **1c.2 (in progress)** — store layer + boot wiring done & building: `src/server/game/DataStores/`
-    `{DB2Structure.h, DB2LoadInfo.h, DB2Stores.{h,cpp}}` with a `LoadDB2Stores()` called after `LoadDBCStores`
-    in `World.cpp`. Proof store = `sLiquidMaterialStore` (DB2-only, no DBC name clash; verified 54261 metadata).
-    `game`+`worldserver` build clean; boot reaches `LoadDB2Stores`.
+  - **1c.2 (in progress)** — store layer + boot wiring in `src/server/game/DataStores/`
+    `{DB2Structure.h, DB2LoadInfo.h, DB2Stores.{h,cpp}}`, `LoadDB2Stores()` called after `LoadDBCStores` in
+    `World.cpp`. **6 DB2-only stores load live** (boot log, no errors): LiquidMaterial(3), SpellName(446921),
+    CharacterLoadout(1828), CharacterLoadoutItem(25516), ChrCustomizationOption(1932), ChrCustomizationReq(599).
+    Method: xian55 == 54261 for these (LayoutHash in each extracted .db2 @offset 24 matches xian55 metadata
+    exactly), so structs/metadata ported verbatim from xian55, hash-validated. Key correctness facts captured:
+    DB2 structs MUST be `#pragma pack(push,1)` (loader produces packed records, stride = `GetRecordSize()`);
+    added a boot-time `sizeof(T) == GetRecordSize()` guard in `DB2Stores.cpp`; `DB2Meta` written designated-init
+    (NOT TC's constructor — that would break the extractor's designated-init metadata); ParentIndexField's
+    LoadInfo field must be `IsSigned=false`. DBC-colliding subset stores deferred to 1c.3.
   - **✅ BLOCKER RESOLVED (was a DB2 format bug, root cause confirmed vs xian55):** a prior revision wrongly
     added `uint32 Version` + `std::array<char,128> Schema` to `DB2Header` (`src/common/DataStores/DB2FileLoader.h`)
     modelling a speculative WDC5 preamble. The real 3.4.3.54261 client ships **WDC4 with no such preamble**

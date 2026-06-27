@@ -17,12 +17,23 @@
 
 #include "DB2Stores.h"
 #include "DB2LoadInfo.h"
+#include "DB2Meta.h"
 #include "Log.h"
 #include "StringFormat.h"
 #include "Timer.h"
 #include <vector>
 
-DB2Storage<LiquidMaterialEntry> sLiquidMaterialStore("LiquidMaterial.db2", &LiquidMaterialLoadInfo::Instance);
+DB2Storage<LiquidMaterialEntry>         sLiquidMaterialStore("LiquidMaterial.db2", &LiquidMaterialLoadInfo::Instance);
+DB2Storage<SpellNameEntry>              sSpellNameStore("SpellName.db2", &SpellNameLoadInfo::Instance);
+DB2Storage<CharacterLoadoutEntry>       sCharacterLoadoutStore("CharacterLoadout.db2", &CharacterLoadoutLoadInfo::Instance);
+DB2Storage<CharacterLoadoutItemEntry>   sCharacterLoadoutItemStore("CharacterLoadoutItem.db2", &CharacterLoadoutItemLoadInfo::Instance);
+DB2Storage<ChrCustomizationOptionEntry> sChrCustomizationOptionStore("ChrCustomizationOption.db2", &ChrCustomizationOptionLoadInfo::Instance);
+DB2Storage<ChrCustomizationReqEntry>    sChrCustomizationReqStore("ChrCustomizationReq.db2", &ChrCustomizationReqLoadInfo::Instance);
+
+// The DB2 loader produces packed records (stride = DB2Meta::GetRecordSize()), so a store's C++ struct must
+// have the identical packed size. Mirrors TrinityCore's GetCppRecordSize() structure check.
+template<typename T>
+static constexpr std::size_t GetCppRecordSize(DB2Storage<T> const&) { return sizeof(T); }
 
 void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
 {
@@ -35,6 +46,14 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
 #define LOAD_DB2(store) \
     do \
     { \
+        std::size_t const cppSize = GetCppRecordSize(store); \
+        std::size_t const metaSize = (store).GetLoadInfo()->Meta->GetRecordSize(); \
+        if (cppSize != metaSize) \
+        { \
+            loadErrors.emplace_back(Acore::StringFormat("{}: C++ struct size {} != DB2 record size {} (packing/layout mismatch)", \
+                (store).GetFileName(), cppSize, metaSize)); \
+            break; \
+        } \
         try \
         { \
             (store).Load(db2Path + localeNames[defaultLocale] + '/', defaultLocale); \
@@ -48,6 +67,11 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     } while (false)
 
     LOAD_DB2(sLiquidMaterialStore);
+    LOAD_DB2(sSpellNameStore);
+    LOAD_DB2(sCharacterLoadoutStore);
+    LOAD_DB2(sCharacterLoadoutItemStore);
+    LOAD_DB2(sChrCustomizationOptionStore);
+    LOAD_DB2(sChrCustomizationReqStore);
 
 #undef LOAD_DB2
 

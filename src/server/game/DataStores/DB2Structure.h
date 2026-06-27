@@ -22,14 +22,22 @@
 #include "DB2FileLoader.h"
 #include <array>
 
-// Runtime DB2 record structures for build 3.4.3.54261. These are NOT packed: the
-// DB2 file loader (AutoProduceData) reproduces fields with natural C++ alignment, so
-// each struct must match TrinityCore's wotlk_classic layout byte-for-byte.
+// Runtime DB2 record structures for build 3.4.3.54261. The whole block is
+// #pragma pack(push, 1): the DB2 loader produces packed records (stride =
+// DB2Meta::GetRecordSize(), no inter-field padding) and LookupEntry()
+// reinterpret_casts each record pointer to T, so T must be packed and match
+// TrinityCore's wotlk_classic (xian55) field order byte-for-byte. The boot-time
+// sizeof(T) == GetRecordSize() check in DB2Stores.cpp guards against drift.
 //
 // NOTE: stores whose names collide with the legacy DBC set (MapEntry/sMapStore,
-// AreaTableEntry, ChrRacesEntry, ...) are added here as part of the DBC->DB2 repoint
-// (Task 1c.3), where the DBC version is removed in the same step. This file currently
-// carries DB2-only stores that have no DBC twin.
+// AreaTableEntry, ChrRacesEntry, ...) are added as part of the DBC->DB2 repoint
+// (Task 1c.3), where the DBC version is removed in the same step. This file
+// currently carries DB2-only stores that have no DBC twin.
+//
+// RaceMask fields are modelled as int64 (FT_LONG, 8 bytes) — the typed
+// Acore::RaceMask wrapper is unnecessary until a consumer needs the helpers.
+
+#pragma pack(push, 1)
 
 struct LiquidMaterialEntry
 {
@@ -37,5 +45,58 @@ struct LiquidMaterialEntry
     int8 Flags;
     int8 LVF;
 };
+
+struct SpellNameEntry
+{
+    uint32 ID;                                                     // SpellID
+    LocalizedString Name;
+};
+
+struct CharacterLoadoutEntry
+{
+    int64 RaceMask;
+    uint32 ID;
+    int8 ChrClassID;
+    int32 Purpose;
+    int8 ItemContext;
+};
+
+struct CharacterLoadoutItemEntry
+{
+    uint32 ID;
+    uint16 CharacterLoadoutID;
+    uint32 ItemID;
+};
+
+struct ChrCustomizationOptionEntry
+{
+    LocalizedString Name;
+    uint32 ID;
+    uint16 SecondaryID;
+    int32 Flags;
+    int32 ChrModelID;
+    int32 SortIndex;
+    int32 ChrCustomizationCategoryID;
+    int32 OptionType;
+    float BarberShopCostModifier;
+    int32 ChrCustomizationID;
+    int32 ChrCustomizationReqID;
+    int32 UiOrderIndex;
+};
+
+struct ChrCustomizationReqEntry
+{
+    int64 RaceMask;
+    LocalizedString ReqSource;
+    uint32 ID;
+    int32 Flags;
+    int32 ClassMask;
+    int32 AchievementID;
+    int32 QuestID;
+    int32 OverrideArchive;                                        // -1: allow any, else must match OverrideArchive cvar
+    int32 ItemModifiedAppearanceID;
+};
+
+#pragma pack(pop)
 
 #endif // AC_DB2STRUCTURE_H

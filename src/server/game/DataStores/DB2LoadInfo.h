@@ -58,4 +58,159 @@ struct LiquidMaterialLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 3, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct SpellNameLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[1] =
+    {
+        { FT_STRING, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1990283, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 1, .FileFieldCount = 1, .LayoutHash = 0xB0DD8F60, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[2] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING, "Name" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 2, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct CharacterLoadoutLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[5] =
+    {
+        { FT_LONG, 1, true },
+        { FT_INT, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_INT, 1, true },
+        { FT_BYTE, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1344281, .IndexField = 1, .ParentIndexField = -1,
+        .FieldCount = 5, .FileFieldCount = 5, .LayoutHash = 0xCA30C801, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[5] =
+    {
+        { true, FT_LONG, "RaceMask" },
+        { false, FT_INT, "ID" },
+        { true, FT_BYTE, "ChrClassID" },
+        { true, FT_INT, "Purpose" },
+        { true, FT_BYTE, "ItemContext" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 5, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct CharacterLoadoutItemLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[2] =
+    {
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1302846, .IndexField = -1, .ParentIndexField = 0,
+        .FieldCount = 2, .FileFieldCount = 2, .LayoutHash = 0x24843CD8, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[3] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_SHORT, "CharacterLoadoutID" },
+        { false, FT_INT, "ItemID" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 3, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct ChrCustomizationOptionLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[12] =
+    {
+        { FT_STRING, 1, true },
+        { FT_INT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_FLOAT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 3384247, .IndexField = 1, .ParentIndexField = 4,
+        .FieldCount = 12, .FileFieldCount = 12, .LayoutHash = 0x26DBFCD5, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[12] =
+    {
+        { false, FT_STRING, "Name" },
+        { false, FT_INT, "ID" },
+        { false, FT_SHORT, "SecondaryID" },
+        { true, FT_INT, "Flags" },
+        { false, FT_INT, "ChrModelID" },                          // ParentIndexField -> must be unsigned
+        { true, FT_INT, "SortIndex" },
+        { true, FT_INT, "ChrCustomizationCategoryID" },
+        { true, FT_INT, "OptionType" },
+        { false, FT_FLOAT, "BarberShopCostModifier" },
+        { true, FT_INT, "ChrCustomizationID" },
+        { true, FT_INT, "ChrCustomizationReqID" },
+        { true, FT_INT, "UiOrderIndex" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 12, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct ChrCustomizationReqLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[9] =
+    {
+        { FT_LONG, 1, true },
+        { FT_STRING, 1, true },
+        { FT_INT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 3450453, .IndexField = 2, .ParentIndexField = -1,
+        .FieldCount = 9, .FileFieldCount = 9, .LayoutHash = 0x9B25E739, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[9] =
+    {
+        { true, FT_LONG, "RaceMask" },
+        { false, FT_STRING, "ReqSource" },
+        { false, FT_INT, "ID" },
+        { true, FT_INT, "Flags" },
+        { true, FT_INT, "ClassMask" },
+        { true, FT_INT, "AchievementID" },
+        { true, FT_INT, "QuestID" },
+        { true, FT_INT, "OverrideArchive" },
+        { true, FT_INT, "ItemModifiedAppearanceID" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 9, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 #endif // AC_DB2LOADINFO_H
