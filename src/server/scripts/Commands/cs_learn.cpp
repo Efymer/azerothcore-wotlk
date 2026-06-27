@@ -16,6 +16,7 @@
  */
 
 #include "CommandScript.h"
+#include "DB2Stores.h"
 #include "Language.h"
 #include "ObjectMgr.h"
 #include "Pet.h"

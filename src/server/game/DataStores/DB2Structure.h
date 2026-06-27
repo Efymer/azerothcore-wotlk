@@ -310,6 +310,38 @@ struct PlayerConditionEntry
     std::array<int32, 2> MovementFlags;
 };
 
+// Migrated from DBC (Task 1c.3). Legacy DBC field -> DB2 field: powerType -> DisplayPower,
+// spellfamily -> SpellClassSet, CinematicSequence -> CinematicSequenceID. The DBC `expansion`
+// field has no DB2 equivalent (3.4.3 moves class-by-expansion gating to a DB table).
+struct ChrClassesEntry
+{
+    LocalizedString Name;
+    char const* Filename;
+    LocalizedString NameMale;
+    LocalizedString NameFemale;
+    char const* PetNameToken;
+    uint32 ID;
+    uint32 CreateScreenFileDataID;
+    uint32 SelectScreenFileDataID;
+    uint32 IconFileDataID;
+    uint32 LowResScreenFileDataID;
+    int32 Flags;
+    int32 StartingLevel;
+    uint32 ArmorTypeMask;
+    uint16 CinematicSequenceID;
+    uint16 DefaultSpec;
+    uint8 HasStrengthAttackBonus;
+    uint8 PrimaryStatPriority;
+    uint8 DisplayPower;
+    uint8 RangedAttackPowerPerAgility;
+    uint8 AttackPowerPerAgility;
+    uint8 AttackPowerPerStrength;
+    uint8 SpellClassSet;
+    uint8 RolesMask;
+    uint8 DamageBonusStat;
+    uint8 HasRelicSlot;
+};
+
 // Migrated from DBC (Task 1c.3): the DBC PowerDisplayEntry {Id, PowerType} maps to the
 // 54261 DB2 layout; the legacy `PowerType` field is `ActualType` here.
 struct PowerDisplayEntry

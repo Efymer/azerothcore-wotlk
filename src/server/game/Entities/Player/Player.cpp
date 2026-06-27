@@ -40,6 +40,7 @@
 #include "ConditionMgr.h"
 #include "Config.h"
 #include "CreatureAI.h"
+#include "DB2Stores.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
 #include "Formulas.h"
@@ -516,7 +517,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
 
     SetMap(sMapMgr->CreateMap(info->mapId, this));
 
-    uint8 powertype = cEntry->powerType;
+    uint8 powertype = cEntry->DisplayPower;
 
     SetObjectScale(1.0f);
 
@@ -10594,8 +10595,8 @@ void Player::InitDataForForm(bool reapplyMods)
         default:                                            // 0, for example
             {
                 ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(getClass());
-                if (cEntry && cEntry->powerType < MAX_POWERS && uint32(getPowerType()) != cEntry->powerType)
-                    setPowerType(Powers(cEntry->powerType));
+                if (cEntry && cEntry->DisplayPower < MAX_POWERS && uint32(getPowerType()) != cEntry->DisplayPower)
+                    setPowerType(Powers(cEntry->DisplayPower));
                 break;
             }
     }

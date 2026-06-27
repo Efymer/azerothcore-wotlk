@@ -18,6 +18,7 @@
 #include "AchievementMgr.h"
 #include "Chat.h"
 #include "CommandScript.h"
+#include "DB2Stores.h"
 #include "Language.h"
 #include "Pet.h"
 #include "Player.h"
@@ -109,7 +110,7 @@ public:
             return false;
         }
 
-        uint8 powerType = classEntry->powerType;
+        uint8 powerType = classEntry->DisplayPower;
 
         // reset m_form if no aura
         if (!player->HasShapeshiftAura())

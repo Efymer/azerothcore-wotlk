@@ -24,6 +24,7 @@
 
 // World-entry DB2 store subset for build 3.4.3.54261 (Phase 1c). DB2-only stores (no DBC twin)
 // live here now; DBC-colliding stores are added during the DBC->DB2 repoint (Task 1c.3).
+extern DB2Storage<ChrClassesEntry> sChrClassesStore;            // migrated from DBC (1c.3)
 extern DB2Storage<LiquidMaterialEntry> sLiquidMaterialStore;
 extern DB2Storage<SpellNameEntry> sSpellNameStore;
 extern DB2Storage<CharacterLoadoutEntry> sCharacterLoadoutStore;

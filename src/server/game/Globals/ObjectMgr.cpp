@@ -24,6 +24,7 @@
 #include "Config.h"
 #include "Containers.h"
 #include "CreatureAIFactory.h"
+#include "DB2Stores.h"
 #include "DBCStructure.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"

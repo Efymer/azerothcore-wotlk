@@ -27,6 +27,7 @@
 #include "CharacterPackets.h"
 #include "Chat.h"
 #include "Common.h"
+#include "DB2Stores.h"
 #include "DatabaseEnv.h"
 #include "GameTime.h"
 #include "GitRevision.h"
@@ -346,10 +347,14 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
     }
 
     // prevent character creating Expansion class without Expansion account
-    if (classEntry->expansion > Expansion())
+    // 3.4.3: ChrClasses.db2 has no `expansion` field (TC moves class-by-expansion gating to the
+    // class_expansion_requirement DB table). Death Knight is the only WotLK-gated class — keep the
+    // existing behaviour with a minimal mapping until the modern requirement table is ported.
+    uint8 const classExpansion = (createInfo->Class == CLASS_DEATH_KNIGHT) ? EXPANSION_WRATH_OF_THE_LICH_KING : EXPANSION_CLASSIC;
+    if (classExpansion > Expansion())
     {
         SendCharCreate(CHAR_CREATE_EXPANSION_CLASS);
-        LOG_ERROR("network.opcode", "Expansion {} account:[{}] tried to Create character with expansion {} class ({})", Expansion(), GetAccountId(), classEntry->expansion, createInfo->Class);
+        LOG_ERROR("network.opcode", "Expansion {} account:[{}] tried to Create character with expansion {} class ({})", Expansion(), GetAccountId(), classExpansion, createInfo->Class);
         return;
     }
 
@@ -932,8 +937,8 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
 
         if (ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(pCurrChar->getClass()))
         {
-            if (cEntry->CinematicSequence)
-                pCurrChar->GetCinematicMgr().StartCinematic(cEntry->CinematicSequence);
+            if (cEntry->CinematicSequenceID)
+                pCurrChar->GetCinematicMgr().StartCinematic(cEntry->CinematicSequenceID);
             else if (ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(pCurrChar->getRace()))
                 pCurrChar->GetCinematicMgr().StartCinematic(rEntry->CinematicSequence);
 

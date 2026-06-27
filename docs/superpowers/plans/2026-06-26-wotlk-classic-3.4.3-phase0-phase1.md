@@ -106,6 +106,13 @@ code + git history:
     salvageable), plus the already-noted `CurrencyTypes`/`ChrRaces`. **Recommendation:** stop the solo DB2 data-layer
     grind here (foundation is solid: 13 stores + loader/extractor fix + the proven repoint pattern); sequence the
     remaining model-rework stores deliberately alongside their gameplay consumers / the other agent's Phase 2.
+  - **1c.3 — first world-entry store migrated: `ChrClasses` (DBC→DB2).** 14 DB2 stores live; boots to full "World
+    Initialized" with Player-Create class validation clean. Field repoints: `powerType`→`DisplayPower`
+    (Player.cpp ×3, cs_reset.cpp), `CinematicSequence`→`CinematicSequenceID` (CharacterHandler.cpp). Model-change
+    handled: the DBC `expansion` field is gone in DB2 (3.4.3 uses a `class_expansion_requirement` DB table) — kept
+    a minimal Death-Knight-only stopgap at the char-create gate until that table is ported. Removed the DBC store
+    (DBCStructure/Stores/fmt) and added `DB2Stores.h` includes to the 5 consumers. CharacterHandler.cpp edits are
+    minimal/forced; the other agent's modern char-create will supersede them.
   - **1c.4–1c.5** — not started. ⚠️ Note: AC's `DB2Meta` stays a designated-init aggregate (do NOT add TC's
     constructor — it would break the extractor's + runtime's designated-init metadata).
 - **Phase 1d** — not started.

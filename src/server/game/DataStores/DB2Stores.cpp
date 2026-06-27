@@ -23,6 +23,7 @@
 #include "Timer.h"
 #include <vector>
 
+DB2Storage<ChrClassesEntry>             sChrClassesStore("ChrClasses.db2", &ChrClassesLoadInfo::Instance);
 DB2Storage<LiquidMaterialEntry>         sLiquidMaterialStore("LiquidMaterial.db2", &LiquidMaterialLoadInfo::Instance);
 DB2Storage<SpellNameEntry>              sSpellNameStore("SpellName.db2", &SpellNameLoadInfo::Instance);
 DB2Storage<CharacterLoadoutEntry>       sCharacterLoadoutStore("CharacterLoadout.db2", &CharacterLoadoutLoadInfo::Instance);
@@ -73,6 +74,7 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
         } \
     } while (false)
 
+    LOAD_DB2(sChrClassesStore);
     LOAD_DB2(sLiquidMaterialStore);
     LOAD_DB2(sSpellNameStore);
     LOAD_DB2(sCharacterLoadoutStore);
