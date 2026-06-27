@@ -16,6 +16,7 @@
  */
 
 #include "DBCDatabaseLoader.h"
+#include "DBCFieldFormat.h"
 #include "DatabaseEnv.h"
 #include "Errors.h"
 #include "QueryResult.h"

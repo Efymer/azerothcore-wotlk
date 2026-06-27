@@ -16,6 +16,7 @@
  */
 
 #include "DBCFileLoader.h"
+#include "DBCFieldFormat.h"
 #include "Errors.h"
 #include <string.h>
 
