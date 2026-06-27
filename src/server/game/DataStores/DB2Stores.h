@@ -35,6 +35,7 @@ extern DB2Storage<ItemAppearanceEntry> sItemAppearanceStore;
 extern DB2Storage<ItemModifiedAppearanceEntry> sItemModifiedAppearanceStore;
 extern DB2Storage<PowerTypeEntry> sPowerTypeStore;
 extern DB2Storage<ItemSparseEntry> sItemSparseStore;
+extern DB2Storage<PlayerConditionEntry> sPlayerConditionStore;
 
 // Loads the DB2 store subset from <dataPath>/dbc/<locale>/ at worldserver boot.
 void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale);

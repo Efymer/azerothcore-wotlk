@@ -64,9 +64,13 @@ code + git history:
     CharacterLoadout(1828), CharacterLoadoutItem(25516), ChrCustomizationOption(1932), ChrCustomizationReq(599),
     ItemEffect(181364), ItemAppearance(83055), ItemModifiedAppearance(194434), PowerType(139), ItemSparse(211852,
     73 fields/130 entries) — **11 stores live**. The boot-time `sizeof(T)==GetRecordSize()` + LayoutHash + sign
-    checks make even large transcriptions self-validating. Remaining subset: struct-name collisions with
-    DBCStructure.h (SkillRaceClassInfo, Light, TaxiPathNode) → Task 1c.3; PlayerCondition (huge) + the DBC-colliding
-    stores (Map, ChrRaces, AreaTable, Faction, SkillLine, CurrencyTypes, CharTitles, ...) → 1c.3 repoint.
+    checks make even large transcriptions self-validating. **All DB2-only subset stores done — 12 live**
+    (added PlayerCondition: 122129, 81 fields/147 entries). **Remaining subset is entirely DBC-colliding** (store
+    or struct name clashes with DBC: Map, ChrRaces, ChrClasses, AreaTable, Faction, FactionTemplate, SkillLine,
+    SkillLineAbility, SkillRaceClassInfo, CurrencyTypes, CharTitles, CinematicCamera, CinematicSequences,
+    PowerDisplay, MapDifficulty, WorldMapOverlay, TaxiNodes, TaxiPath, TaxiPathNode, Light, Item) → **Task 1c.3**:
+    each added while removing its DBC twin and repointing consumers (overlaps the other agent's world-entry path —
+    coordinate).
     Method: xian55 == 54261 for these (LayoutHash in each extracted .db2 @offset 24 matches xian55 metadata
     exactly), so structs/metadata ported verbatim from xian55, hash-validated. Key correctness facts captured:
     DB2 structs MUST be `#pragma pack(push,1)` (loader produces packed records, stride = `GetRecordSize()`);
