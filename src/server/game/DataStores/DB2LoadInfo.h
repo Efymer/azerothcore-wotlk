@@ -1570,6 +1570,48 @@ struct MapLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 25, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct MapDifficultyLoadInfo
+{
+    // Build 3.4.3.54261 (xian55 MapDifficultyMeta, LayoutHash 0x0387F43D). IndexField -1 = ID is the
+    // implicit (non-inline) record id. ParentIndexField 9 = MapID (appended, not in the file fields).
+    static constexpr DB2MetaField MetaFields[10] =
+    {
+        { FT_STRING, 1, true },
+        { FT_INT, 1, false },
+        { FT_INT, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 1367868, .IndexField = -1, .ParentIndexField = 9,
+        .FieldCount = 10, .FileFieldCount = 9, .LayoutHash = 0x0387F43D, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[11] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING, "Message" },
+        { false, FT_INT, "ItemContextPickerID" },
+        { true, FT_INT, "ContentTuningID" },
+        { false, FT_BYTE, "DifficultyID" },
+        { false, FT_BYTE, "LockID" },
+        { false, FT_BYTE, "ResetInterval" },
+        { false, FT_BYTE, "MaxPlayers" },
+        { false, FT_BYTE, "ItemContext" },
+        { false, FT_BYTE, "Flags" },
+        { false, FT_INT, "MapID" },                               // ParentIndexField -> unsigned
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 11, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct FactionLoadInfo
 {
     static constexpr DB2MetaField MetaFields[18] =

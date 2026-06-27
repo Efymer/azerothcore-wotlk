@@ -1153,17 +1153,7 @@ struct MailTemplateEntry
 
 // MapEntry migrated to DB2 (3.4.3.54261) — see src/server/game/DataStores/DB2Structure.h
 
-struct MapDifficultyEntry
-{
-    //uint32      Id;                                       // 0
-    uint32      MapId;                                      // 1
-    uint32      Difficulty;                                 // 2 (for arenas: arena slot)
-    char const*       areaTriggerText;                      // 3-18 text showed when transfer to map failed (missing requirements)
-    //uint32      textFlags;                                // 19
-    uint32      resetTime;                                  // 20
-    uint32      maxPlayers;                                 // 21
-    //char const*       difficultyString;                         // 22
-};
+// MapDifficultyEntry migrated to DB2 (3.4.3.54261) — see src/server/game/DataStores/DB2Structure.h
 
 struct MovieEntry
 {

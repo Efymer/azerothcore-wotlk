@@ -111,8 +111,8 @@ DBCStorage <LockEntry> sLockStore(LockEntryfmt);
 DBCStorage <MailTemplateEntry> sMailTemplateStore(MailTemplateEntryfmt);
 // sMapStore migrated to DB2 (3.4.3.54261) — see DataStores/DB2Stores.cpp
 
-// DBC used only for initialization sMapDifficultyMap at startup.
-DBCStorage <MapDifficultyEntry> sMapDifficultyStore(MapDifficultyEntryfmt); // only for loading
+// sMapDifficultyStore migrated to DB2 (3.4.3.54261) — see DataStores/DB2Stores.cpp.
+// sMapDifficultyMap (keyed by MAKE_PAIR32(MapID, DifficultyID)) is still built at startup from the DB2 store.
 MapDifficultyMap sMapDifficultyMap;
 
 DBCStorage <MovieEntry> sMovieStore(MovieEntryfmt);
@@ -311,7 +311,6 @@ void LoadDBCStores(const std::string& dataPath)
     LOAD_DBC(sLiquidTypeStore,                      "LiquidType.dbc",                       "liquidtype_dbc");
     LOAD_DBC(sLockStore,                            "Lock.dbc",                             "lock_dbc");
     LOAD_DBC(sMailTemplateStore,                    "MailTemplate.dbc",                     "mailtemplate_dbc");
-    LOAD_DBC(sMapDifficultyStore,                   "MapDifficulty.dbc",                    "mapdifficulty_dbc");
     LOAD_DBC(sMovieStore,                           "Movie.dbc",                            "movie_dbc");
     LOAD_DBC(sNamesReservedStore,                   "NamesReserved.dbc",                    "namesreserved_dbc");
     LOAD_DBC(sNamesProfanityStore,                  "NamesProfanity.dbc",                   "namesprofanity_dbc");
@@ -379,7 +378,21 @@ void LoadDBCStores(const std::string& dataPath)
 
     // fill data
     for (MapDifficultyEntry const* entry : sMapDifficultyStore)
-        sMapDifficultyMap[MAKE_PAIR32(entry->MapId, entry->Difficulty)] = MapDifficulty(entry->resetTime, entry->maxPlayers, entry->areaTriggerText[0] != '\0');
+    {
+        // The 3.4.3 MapDifficulty.db2 replaced the raw reset-time-in-seconds column with a ResetInterval
+        // enum; convert it back to the seconds value the legacy MapDifficulty/InstanceSaveMgr period math expects.
+        uint32 resetTime;
+        switch (entry->ResetInterval)
+        {
+            case 1:  resetTime = DAY;     break;            // daily
+            case 2:  resetTime = WEEK;    break;            // weekly
+            case 3:  resetTime = 3 * DAY; break;            // every 3 days
+            case 4:  resetTime = 5 * DAY; break;            // every 5 days
+            default: resetTime = 0;       break;            // anytime / no reset schedule
+        }
+
+        sMapDifficultyMap[MAKE_PAIR32(entry->MapID, entry->DifficultyID)] = MapDifficulty(resetTime, entry->MaxPlayers, entry->Message.HasString());
+    }
 
     for (PvPDifficultyEntry const* entry : sPvPDifficultyStore)
         if (entry->bracketId > MAX_BATTLEGROUND_BRACKETS)

@@ -769,6 +769,25 @@ struct MapEntry
     [[nodiscard]] bool IsDynamicDifficultyMap() const { return (Flags[0] & MAP_FLAG_DYNAMIC_DIFFICULTY) != 0; }
 };
 
+// Migrated from DBC (3.4.3.54261). Legacy DBC MapDifficulty.dbc field map:
+//   MapId->MapID, Difficulty->DifficultyID, areaTriggerText->Message, resetTime/maxPlayers
+//   are now derived (ResetInterval enum / MaxPlayers). AzerothCore looks this store up by the
+//   composite (MapID, DifficultyID) via sMapDifficultyMap, not by its own ID.
+struct MapDifficultyEntry
+{
+    uint32 ID;
+    LocalizedString Message;                                // text shown when transfer to map failed (missing requirements)
+    uint32 ItemContextPickerID;
+    int32 ContentTuningID;
+    uint8 DifficultyID;
+    uint8 LockID;
+    uint8 ResetInterval;                                    // 0 anytime, 1 daily, 2 weekly, 3 every-3-days, 4 every-5-days
+    uint8 MaxPlayers;
+    uint8 ItemContext;
+    uint8 Flags;
+    uint32 MapID;                                           // ParentIndexField
+};
+
 #pragma pack(pop)
 
 #endif // AC_DB2STRUCTURE_H

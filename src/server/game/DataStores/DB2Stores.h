@@ -52,6 +52,7 @@ extern DB2Storage<AreaTableEntry> sAreaTableStore;             // migrated from 
 extern DB2Storage<FactionEntry> sFactionStore;                 // migrated from DBC
 extern DB2Storage<FactionTemplateEntry> sFactionTemplateStore; // migrated from DBC
 extern DB2Storage<MapEntry> sMapStore;                         // migrated from DBC
+extern DB2Storage<MapDifficultyEntry> sMapDifficultyStore;     // migrated from DBC
 
 // Loads the DB2 store subset from <dataPath>/dbc/<locale>/ at worldserver boot.
 void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale);
