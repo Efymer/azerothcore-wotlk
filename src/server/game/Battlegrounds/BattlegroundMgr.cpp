@@ -249,7 +249,8 @@ void BattlegroundMgr::BuildBattlegroundStatusPacket(WorldPacket* data, Battlegro
 
 void BattlegroundMgr::BuildGroupJoinedBattlegroundPacket(WorldPacket* data, GroupJoinBattlegroundResult result)
 {
-    data->Initialize(SMSG_BATTLEFIELD_STATUS_NEED_CONFIRMATION, 4);
+    // 3.4.3: a join error is delivered as a failed battlefield status, not the queue-pop confirmation
+    data->Initialize(SMSG_BATTLEFIELD_STATUS_FAILED, 4);
     *data << int32(result);
     if (result == ERR_BATTLEGROUND_JOIN_TIMED_OUT || result == ERR_BATTLEGROUND_JOIN_FAILED)
         *data << uint64(0);                                 // player guid

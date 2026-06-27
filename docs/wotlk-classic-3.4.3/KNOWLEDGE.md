@@ -274,11 +274,22 @@ game and require the enormous `game` build):
   the 3.3.5 wire/DoS boundaries — `WorldSession.cpp` AntiDos+throttle (`:1363`/`:1372`) and
   `WorldSocket.cpp` `ServerPktHeader` (`:176`); brick B (modern wire header + opcode table) must
   widen these. AntiDos/throttle maps are keyed by `uint16` and will need widening too.
-- **B — modern opcode table + 3.4.3 opcode enum** (`IsValid`, `ClientOpcodeHandler`): now the next
-  brick — replace `enum Opcodes : uint16` with sparse `OpcodeClient`/`OpcodeServer : uint32`
-  (packed `0xGGGGIIII`), the `GetOpcodeArrayIndex` switch, split `ClientOpcodeHandler` (free-fn
-  `Call`) / `ServerOpcodeHandler` (`ConnectionType`), and the two `unique_ptr` handler arrays.
-  Touches every handler; the handshake opcodes (AUTH_SESSION, ENTER_ENCRYPTED_MODE, …) land here.
+- ✅ **B — modern opcode table + 3.4.3 opcode enum (done):** replaced `enum Opcodes : uint16` with
+  sparse `OpcodeClient`/`OpcodeServer : uint32` (packed `0xGGGGIIII`, full TC 61581 set verbatim —
+  values to be empirically confirmed for 54261 at brick E), the two `GetOpcodeArrayIndex` switches +
+  split `_internalTable{Client,Server}` + `IsValid` (kept AC's virtual `PacketHandler::Call` design,
+  not TC's free-fn). `Initialize` registers the handshake + essentials real and **everything else
+  STATUS_UNHANDLED (CMSG) / server-side (SMSG)** — AC's ~400 handlers are NOT rebound (deferred to
+  per-feature tasks). Then migrated **all ~2,494 opcode-name call sites** across game+scripts to the
+  3.4.3 names (full fork & replace, the user's chosen path); `game` compiles green. Plan + decomposition:
+  `docs/superpowers/plans/2026-06-27-wotlk-classic-brick-b-opcodes.md`. Commits: `b8deffe1f` (enum+table),
+  `a2fe41795` (PCH), `71a2ddb98` (Packets), `75e1a4c1c` (movement), `21cff25d0` (rest), + review fixes.
+  ⚠ **Deferred (compiles, runtime-correctness owed to feature tasks):** ~45 removed opcodes stubbed to
+  `UNKNOWN_OPCODE` with `TODO(3.4.3 brick-B)` (Warden, GM-ticket, `SMSG_DESTROY_OBJECT`, vehicle-data,
+  battlefield-mgr, …); movement protocol-redesign TODOs (force-ack/spline/`SMSG_MOVE_UPDATE` broadcasts,
+  Phase-1d); a few coarse-but-directional renames (item-query→`SMSG_DB_REPLY`, quests-completed→
+  `SMSG_ALL_ACHIEVEMENT_DATA`, combo→`SMSG_AURA_UPDATE`). Opcode VALUES are TC-61581; **the ~10 handshake
+  opcodes must be verified against the real 54261 client at brick E** (HermesProxy values are not wire-format).
 - **C — `AuthenticationPackets.{h,cpp}`** (AuthChallenge/AuthSession/EnterEncryptedMode/AuthResponse/…),
   depends on A. (`HMAC_SHA512` already done.)
 - **D — modern `WorldSession`** ctor/fields + `SendConnectToInstance`/`AbortLogin`/`ConnectToKey`/

@@ -1173,7 +1173,9 @@ void WorldSession::HandleRealmSplitOpcode(WorldPacket& recv_data)
     std::string split_date = "01/01/01";
     recv_data >> unk;
 
-    WorldPacket data(SMSG_REALM_QUERY_RESPONSE, 4 + 4 + split_date.size() + 1);
+    // TODO(3.4.3 brick-B): CMSG_REALM_SPLIT was removed in 3.4.3 so this handler never fires; the old
+    // response opcode is gone. Stubbed to UNKNOWN_OPCODE to avoid aliasing the unrelated realm-name query.
+    WorldPacket data(static_cast<OpcodeServer>(UNKNOWN_OPCODE), 4 + 4 + split_date.size() + 1);
     data << unk;
     data << uint32(0x00000000);                             // realm split state
     // split states:
