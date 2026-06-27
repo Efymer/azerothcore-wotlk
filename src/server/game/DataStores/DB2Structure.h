@@ -198,6 +198,31 @@ struct PowerTypeEntry
     int16 Flags;
 };
 
+struct ItemEntry
+{
+    uint32 ID;
+    uint8 ClassID;
+    uint8 SubclassID;
+    uint8 Material;
+    int8 InventoryType;
+    int32 RequiredLevel;
+    uint8 SheatheType;
+    uint16 RandomSelect;
+    uint16 ItemRandomSuffixGroupID;
+    int8 SoundOverrideSubclassID;
+    uint16 ScalingStatDistributionID;
+    int32 IconFileDataID;                                       // 54261: was DisplayInfoID in 3.3.5a DBC; now an icon FileDataID
+    uint8 ItemGroupSoundsID;
+    int32 ContentTuningID;
+    uint32 MaxDurability;
+    uint8 AmmunitionType;
+    int32 ScalingStatValue;
+    std::array<uint8, 5> DamageType;
+    std::array<int16, 7> Resistances;
+    std::array<uint16, 5> MinDamage;
+    std::array<uint16, 5> MaxDamage;
+};
+
 struct ItemSparseEntry
 {
     uint32 ID;

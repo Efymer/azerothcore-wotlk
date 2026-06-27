@@ -3523,11 +3523,9 @@ void ObjectMgr::LoadItemTemplates()
                 LOG_ERROR("sql.sql", "Item (Entry: {}) has wrong InventoryType value ({}), must be {}.", entry, itemTemplate.InventoryType, dbcitem->InventoryType);
                 itemTemplate.InventoryType = dbcitem->InventoryType;
             }
-            if (itemTemplate.DisplayInfoID != dbcitem->DisplayInfoID)
-            {
-                LOG_ERROR("sql.sql", "Item (Entry: {}) does not have a correct display id ({}), must be {}.", entry, itemTemplate.DisplayInfoID, dbcitem->DisplayInfoID);
-                itemTemplate.DisplayInfoID = dbcitem->DisplayInfoID;
-            }
+            // 54261: Item.db2 no longer carries DisplayInfoID (the field is now IconFileDataID, an icon
+            // FileDataID with different semantics), so the DB-supplied DisplayInfoID can no longer be
+            // validated/corrected against the data store. The item_template value is kept authoritative.
             if (itemTemplate.Sheath != dbcitem->SheatheType)
             {
                 LOG_ERROR("sql.sql", "Item (Entry: {}) has wrong Sheath ({}), must be {}.", entry, itemTemplate.Sheath, dbcitem->SheatheType);

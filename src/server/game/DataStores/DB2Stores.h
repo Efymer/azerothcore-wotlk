@@ -42,6 +42,7 @@ extern DB2Storage<ItemEffectEntry> sItemEffectStore;
 extern DB2Storage<ItemAppearanceEntry> sItemAppearanceStore;
 extern DB2Storage<ItemModifiedAppearanceEntry> sItemModifiedAppearanceStore;
 extern DB2Storage<PowerTypeEntry> sPowerTypeStore;
+extern DB2Storage<ItemEntry> sItemStore;                       // migrated from DBC
 extern DB2Storage<ItemSparseEntry> sItemSparseStore;
 extern DB2Storage<PlayerConditionEntry> sPlayerConditionStore;
 extern DB2Storage<PowerDisplayEntry> sPowerDisplayStore;        // migrated from DBC (1c.3)

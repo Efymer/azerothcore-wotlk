@@ -41,6 +41,7 @@ DB2Storage<ItemEffectEntry>             sItemEffectStore("ItemEffect.db2", &Item
 DB2Storage<ItemAppearanceEntry>         sItemAppearanceStore("ItemAppearance.db2", &ItemAppearanceLoadInfo::Instance);
 DB2Storage<ItemModifiedAppearanceEntry> sItemModifiedAppearanceStore("ItemModifiedAppearance.db2", &ItemModifiedAppearanceLoadInfo::Instance);
 DB2Storage<PowerTypeEntry>              sPowerTypeStore("PowerType.db2", &PowerTypeLoadInfo::Instance);
+DB2Storage<ItemEntry>                   sItemStore("Item.db2", &ItemLoadInfo::Instance);
 DB2Storage<ItemSparseEntry>             sItemSparseStore("ItemSparse.db2", &ItemSparseLoadInfo::Instance);
 DB2Storage<PlayerConditionEntry>        sPlayerConditionStore("PlayerCondition.db2", &PlayerConditionLoadInfo::Instance);
 DB2Storage<PowerDisplayEntry>           sPowerDisplayStore("PowerDisplay.db2", &PowerDisplayLoadInfo::Instance);
@@ -107,6 +108,7 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     LOAD_DB2(sItemAppearanceStore);
     LOAD_DB2(sItemModifiedAppearanceStore);
     LOAD_DB2(sPowerTypeStore);
+    LOAD_DB2(sItemStore);
     LOAD_DB2(sItemSparseStore);
     LOAD_DB2(sPlayerConditionStore);
     LOAD_DB2(sPowerDisplayStore);

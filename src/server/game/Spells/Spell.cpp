@@ -4941,10 +4941,16 @@ void Spell::WriteAmmoToPacket(WorldPacket* data)
                 {
                     if (itemEntry->ClassID == ITEM_CLASS_WEAPON)
                     {
+                        // 54261: Item.db2 no longer carries DisplayInfoID (the field is now IconFileDataID with
+                        // different semantics), so source the item's display id from the item_template instead.
+                        uint32 itemDisplayId = 0;
+                        if (ItemTemplate const* itemProto = sObjectMgr->GetItemTemplate(item_id))
+                            itemDisplayId = itemProto->DisplayInfoID;
+
                         switch (itemEntry->SubclassID)
                         {
                             case ITEM_SUBCLASS_WEAPON_THROWN:
-                                ammoDisplayID = itemEntry->DisplayInfoID;
+                                ammoDisplayID = itemDisplayId;
                                 ammoInventoryType = itemEntry->InventoryType;
                                 break;
                             case ITEM_SUBCLASS_WEAPON_BOW:
@@ -4957,7 +4963,7 @@ void Spell::WriteAmmoToPacket(WorldPacket* data)
                                 ammoInventoryType = INVTYPE_AMMO;
                                 break;
                             default:
-                                nonRangedAmmoDisplayID = itemEntry->DisplayInfoID;
+                                nonRangedAmmoDisplayID = itemDisplayId;
                                 nonRangedAmmoInventoryType = itemEntry->InventoryType;
                                 break;
                         }

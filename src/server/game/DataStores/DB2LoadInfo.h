@@ -354,6 +354,86 @@ struct PowerTypeLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 13, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct ItemLoadInfo
+{
+    // Build 3.4.3.54261 (xian55 ItemMeta, LayoutHash 0x72A6F1C2). IndexField -1 = ID is the
+    // implicit (non-inline) record id: present in the flattened Fields list but NOT in MetaFields.
+    static constexpr DB2MetaField MetaFields[20] =
+    {
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_INT, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_BYTE, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+        { FT_BYTE, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, false },
+        { FT_BYTE, 1, false },
+        { FT_INT, 1, true },
+        { FT_BYTE, 5, false },
+        { FT_SHORT, 7, true },
+        { FT_SHORT, 5, false },
+        { FT_SHORT, 5, false },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 841626, .IndexField = -1, .ParentIndexField = -1,
+        .FieldCount = 20, .FileFieldCount = 20, .LayoutHash = 0x72A6F1C2, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[39] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_BYTE, "ClassID" },
+        { false, FT_BYTE, "SubclassID" },
+        { false, FT_BYTE, "Material" },
+        { true, FT_BYTE, "InventoryType" },
+        { true, FT_INT, "RequiredLevel" },
+        { false, FT_BYTE, "SheatheType" },
+        { false, FT_SHORT, "RandomSelect" },
+        { false, FT_SHORT, "ItemRandomSuffixGroupID" },
+        { true, FT_BYTE, "SoundOverrideSubclassID" },
+        { false, FT_SHORT, "ScalingStatDistributionID" },
+        { true, FT_INT, "IconFileDataID" },
+        { false, FT_BYTE, "ItemGroupSoundsID" },
+        { true, FT_INT, "ContentTuningID" },
+        { false, FT_INT, "MaxDurability" },
+        { false, FT_BYTE, "AmmunitionType" },
+        { true, FT_INT, "ScalingStatValue" },
+        { false, FT_BYTE, "DamageType1" },
+        { false, FT_BYTE, "DamageType2" },
+        { false, FT_BYTE, "DamageType3" },
+        { false, FT_BYTE, "DamageType4" },
+        { false, FT_BYTE, "DamageType5" },
+        { true, FT_SHORT, "Resistances1" },
+        { true, FT_SHORT, "Resistances2" },
+        { true, FT_SHORT, "Resistances3" },
+        { true, FT_SHORT, "Resistances4" },
+        { true, FT_SHORT, "Resistances5" },
+        { true, FT_SHORT, "Resistances6" },
+        { true, FT_SHORT, "Resistances7" },
+        { false, FT_SHORT, "MinDamage1" },
+        { false, FT_SHORT, "MinDamage2" },
+        { false, FT_SHORT, "MinDamage3" },
+        { false, FT_SHORT, "MinDamage4" },
+        { false, FT_SHORT, "MinDamage5" },
+        { false, FT_SHORT, "MaxDamage1" },
+        { false, FT_SHORT, "MaxDamage2" },
+        { false, FT_SHORT, "MaxDamage3" },
+        { false, FT_SHORT, "MaxDamage4" },
+        { false, FT_SHORT, "MaxDamage5" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 39, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct ItemSparseLoadInfo
 {
     static constexpr DB2MetaField MetaFields[73] =

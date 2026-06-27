@@ -20,6 +20,7 @@
 
 #include "Common.h"
 #include "Creature.h"
+#include "DB2Stores.h"
 #include "DBCStores.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
