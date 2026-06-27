@@ -18,9 +18,16 @@
 #include "Ed25519.h"
 #include "Memory.h"
 #include <openssl/core_names.h>
+#include <openssl/opensslv.h>
 #include <openssl/params.h>
 #include <openssl/pem.h>
 #include <memory>
+
+// SignWithContext (Ed25519ctx) selects RFC 8032 ctx mode via the OSSL_SIGNATURE_PARAM_INSTANCE /
+// CONTEXT_STRING params, which OpenSSL only honours from 3.2 onward. On older OpenSSL those params are
+// silently ignored, producing a plain-Ed25519 signature the WoW client rejects — fail the build instead.
+static_assert(OPENSSL_VERSION_NUMBER >= 0x30200000L,
+    "Ed25519::SignWithContext requires OpenSSL >= 3.2 for the instance/context-string signature params");
 
 namespace Acore::Crypto
 {

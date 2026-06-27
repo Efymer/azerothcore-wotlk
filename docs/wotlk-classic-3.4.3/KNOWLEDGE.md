@@ -290,8 +290,19 @@ game and require the enormous `game` build):
   Phase-1d); a few coarse-but-directional renames (item-query→`SMSG_DB_REPLY`, quests-completed→
   `SMSG_ALL_ACHIEVEMENT_DATA`, combo→`SMSG_AURA_UPDATE`). Opcode VALUES are TC-61581; **the ~10 handshake
   opcodes must be verified against the real 54261 client at brick E** (HermesProxy values are not wire-format).
-- **C — `AuthenticationPackets.{h,cpp}`** (AuthChallenge/AuthSession/EnterEncryptedMode/AuthResponse/…),
-  depends on A. (`HMAC_SHA512` already done.)
+- ✅ **C — `AuthenticationPackets.{h,cpp}` (done):** ported TC's full `WorldPackets::Auth` set
+  (Ping/Pong, AuthChallenge, AuthSession, AuthContinuedSession, ConnectTo, EnterEncryptedMode,
+  AuthResponse, WaitQueue*, ResumeComms, ConnectToFailed, QueuedMessagesEnd) byte-faithfully; `game`
+  compiles. **New crypto wrappers** (C1): `Acore::Crypto::RsaSignature` (RSA-2048/SHA-256, for
+  `SMSG_CONNECT_TO`) + `Acore::Crypto::Ed25519` (`SignWithContext` = Ed25519ctx, for
+  `SMSG_ENTER_ENCRYPTED_MODE`); `HMAC_SHA512` already existed. Added `PacketUtilities` `Bits<N>`/`As<T>`/
+  `Timestamp<T>` + `ByteBuffer::WriteString`/`ReadString`. RSA PEM + Ed25519 key + EnableEncryption
+  seed(32)/context(16) constants copied **verbatim** from TC (pair with the patched client's embedded
+  keys). Commits `ef16cf8aa` (C1), `daa629cbd` (C2), + Ed25519 OpenSSL≥3.2 guard. **Ed25519ctx KAT:**
+  validated `SignWithContext` against the RFC 8032 §7.2 vector — **byte-exact PASS** (the one
+  re-implemented, not-transcribed crypto path; de-risks the EnterEncryptedMode handshake). ⚠ AuthResponse
+  game-data (class/template/virtual-realm arrays) is stubbed empty — populate at brick D / login-sequence.
+  ⚠ Ed25519ctx uses OpenSSL 3.2+ EVP params (build is 3.6.3), guarded by `static_assert`.
 - **D — modern `WorldSession`** ctor/fields + `SendConnectToInstance`/`AbortLogin`/`ConnectToKey`/
   `AddInstanceSocket`, and **account schema** (64-byte `session_key`, `client_build`, `timezone_offset`).
 - **E — the `WorldSocket` + `WorldSocketMgr`/`Main` on `Acore::Net`** (depends on A–D), including the
