@@ -18,32 +18,35 @@
 #ifndef __WORLDSOCKET_H__
 #define __WORLDSOCKET_H__
 
-#include "AuthCrypt.h"
 #include "Common.h"
 #include "MPSCQueue.h"
 #include "Socket.h"
 #include "Util.h"
 #include "WorldPacket.h"
+#include "WorldPacketCrypt.h"
 #include "WorldSession.h"
+#include <array>
 #include <boost/asio/ip/tcp.hpp>
+#include <mutex>
 
 using boost::asio::ip::tcp;
 
-class EncryptableAndCompressiblePacket : public WorldPacket
+typedef struct z_stream_s z_stream;
+
+// brick E1: migrated to the modern Acore::Net stack with the 3.4.3 V2 banner exchange and
+// AES-256-GCM packet framing. The auth-handshake crypto (digest check + session/encrypt key
+// derivation) is stubbed for brick E2 - see HandleAuthSession.
+class EncryptablePacket : public WorldPacket
 {
 public:
-    EncryptableAndCompressiblePacket(WorldPacket const& packet, bool encrypt) : WorldPacket(packet), _encrypt(encrypt)
+    EncryptablePacket(WorldPacket const& packet, bool encrypt) : WorldPacket(packet), _encrypt(encrypt)
     {
         SocketQueueLink.store(nullptr, std::memory_order_relaxed);
     }
 
     bool NeedsEncryption() const { return _encrypt; }
 
-    bool NeedsCompression() const { return GetOpcode() == SMSG_UPDATE_OBJECT && size() > 100; }
-
-    void CompressIfNeeded();
-
-    std::atomic<EncryptableAndCompressiblePacket*> SocketQueueLink;
+    std::atomic<EncryptablePacket*> SocketQueueLink;
 
 private:
     bool _encrypt;
@@ -55,34 +58,48 @@ namespace WorldPackets
 }
 
 #pragma pack(push, 1)
-struct ClientPktHeader
-{
-    uint16 size;
-    uint32 cmd;
 
-    bool IsValidSize() const { return size >= 4 && size < 10240; }
-    // brick B: opcodes are uint32 (OpcodeClient) for the 3.4.3 wire protocol
-    bool IsValidOpcode() const { return opcodeTable.IsValid(static_cast<OpcodeClient>(cmd)); }
+// 3.4.3 modern wire header (outbound, 16 bytes). Size is the encrypted payload length
+// ({opcode||data}); Tag is the AES-256-GCM authentication tag.
+struct PacketHeader
+{
+    uint32 Size;
+    uint8 Tag[12];
+
+    bool IsValidSize() const { return Size < 0x10000; }
 };
+
+// 3.4.3 modern wire header (inbound, 20 bytes). EncryptedOpcode is the first 4 bytes of the
+// encrypted payload, peeked forward so the body decrypt stays contiguous.
+struct IncomingPacketHeader : PacketHeader
+{
+    uint32 EncryptedOpcode;
+};
+
 #pragma pack(pop)
 
 struct ClientAuthSession;
+struct ClientAuthContinuedSession;
 
-class AC_GAME_API WorldSocket final : public Socket<WorldSocket>
+class AC_GAME_API WorldSocket final : public Acore::Net::Socket<>
 {
-    typedef Socket<WorldSocket> BaseSocket;
+    static uint32 const MinSizeForCompression;
+
+    using BaseSocket = Acore::Net::Socket<>;
 
 public:
-    WorldSocket(IoContextTcpSocket&& socket);
+    WorldSocket(Acore::Net::IoContextTcpSocket&& socket);
     ~WorldSocket();
 
     WorldSocket(WorldSocket const& right) = delete;
     WorldSocket& operator=(WorldSocket const& right) = delete;
 
     void Start() override;
-    bool Update() final;
+    bool Update() override;
 
     void SendPacket(WorldPacket const& packet);
+
+    ConnectionType GetConnectionType() const { return _type; }
 
     void SetSendBufferSize(std::size_t sendBufferSize) { _sendBufferSize = sendBufferSize; }
 
@@ -90,13 +107,20 @@ public:
     void SetPacketLogging(bool state) { _loggingPackets = state; }
 
     // 3.4.3: lets a WorldSession adopt this socket as its second (instance) connection.
-    void SetWorldSession(WorldSession* session) { _worldSession = session; }
+    void SetWorldSession(WorldSession* session);
     // public so WorldSession::AddInstanceConnection can reject a bad instance handshake
     void SendAuthResponseError(uint8 code);
 
-protected:
     void OnClose() override;
-    SocketReadCallbackResult ReadHandler() final;
+    Acore::Net::SocketReadCallbackResult ReadHandler() override;
+
+    void QueueQuery(QueryCallback&& queryCallback);
+
+    // V2 banner / handshake setup (called from the connection-initializer chain)
+    void SendAuthSession();
+    bool InitializeCompression();
+
+protected:
     bool ReadHeaderHandler();
 
     enum class ReadDataHandlerResult
@@ -109,23 +133,32 @@ protected:
     ReadDataHandlerResult ReadDataHandler();
 
 private:
-    void CheckIpCallback(PreparedQueryResult result);
-
     /// writes network.opcode log
     /// accessing WorldSession is not threadsafe, only do it when holding _worldSessionLock
     void LogOpcodeText(OpcodeClient opcode, std::unique_lock<std::mutex> const& guard) const;
 
     /// sends and logs network.opcode without accessing WorldSession
     void SendPacketAndLogOpcode(WorldPacket const& packet);
-    void HandleSendAuthSession();
+    void WritePacketToBuffer(EncryptablePacket const& packet, MessageBuffer& buffer);
+    uint32 CompressPacket(uint8* buffer, WorldPacket const& packet);
+
     void HandleAuthSession(WorldPacket& recvPacket);
     void HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> authSession, PreparedQueryResult result);
     void LoadSessionPermissionsCallback(PreparedQueryResult result);
+    void HandleAuthContinuedSession(WorldPacket& recvPacket);
+    void HandleAuthContinuedSessionCallback(std::shared_ptr<ClientAuthContinuedSession> authSession, PreparedQueryResult result);
+    void HandleConnectToFailed(WorldPacket& recvPacket);
+    void HandleEnterEncryptedModeAck();
 
     bool HandlePing(WorldPacket& recvPacket);
 
-    std::array<uint8, 4> _authSeed;
-    AuthCrypt _authCrypt;
+    ConnectionType _type;
+    uint64 _key;
+
+    std::array<uint8, 32> _serverChallenge;
+    WorldPacketCrypt _authCrypt;
+    SessionKey _sessionKey;
+    std::array<uint8, 32> _encryptKey;
 
     TimePoint _LastPingTime;
     uint32 _OverSpeedPings;
@@ -133,11 +166,14 @@ private:
     std::mutex _worldSessionLock;
     WorldSession* _worldSession;
     bool _authed;
+    bool _canRequestHotfixes;
 
     MessageBuffer _headerBuffer;
     MessageBuffer _packetBuffer;
-    MPSCQueue<EncryptableAndCompressiblePacket, &EncryptableAndCompressiblePacket::SocketQueueLink> _bufferQueue;
+    MPSCQueue<EncryptablePacket, &EncryptablePacket::SocketQueueLink> _bufferQueue;
     std::size_t _sendBufferSize;
+
+    z_stream* _compressionStream;
 
     QueryCallbackProcessor _queryProcessor;
     std::string _ipCountry;

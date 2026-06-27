@@ -162,6 +162,17 @@ foreach(APPLICATION_NAME ${APPLICATIONS_BUILD_LIST})
         readline
         gperftools)
 
+    # brick E1: the worldserver now talks to clients over the modern Acore::Net stack
+    # (WorldSocket/WorldSocketMgr in src/common/network). Prepend the modern include roots so the
+    # Acore::Net headers win bare-name resolution. The Remote Access (RA) bits still use the legacy
+    # src/server/shared/Network stack and reach it via explicit "Network/..." subpath includes.
+    target_include_directories(${APP_PROJECT_NAME}
+      BEFORE
+      PUBLIC
+        ${CMAKE_SOURCE_DIR}/src/common/network
+        ${CMAKE_SOURCE_DIR}/src/common/network/ConnectionInitializers
+        ${CMAKE_SOURCE_DIR}/src/server/shared/Networking/ConnectionInitializers)
+
     if (UNIX AND NOT NOJEM)
       set(${APP_PROJECT_NAME}_LINK_FLAGS "-pthread -lncurses ${${APP_PROJECT_NAME}_LINK_FLAGS}")
     endif()

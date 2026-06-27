@@ -38,7 +38,9 @@ struct LogHeader
     uint32 OptionalDataSize;
 };
 
-struct PacketHeader
+// Renamed from PacketHeader (brick E1) to avoid clashing with the wire-protocol PacketHeader in
+// WorldSocket.h, which is now pulled in globally via the game PCH.
+struct PktLogPacketHeader
 {
     // used to uniquely identify a connection
     struct OptionalData
@@ -115,7 +117,7 @@ void PacketLog::LogPacket(WorldPacket const& packet, Direction direction, boost:
 {
     std::lock_guard<std::mutex> lock(_logPacketLock);
 
-    PacketHeader header;
+    PktLogPacketHeader header;
     header.Direction = direction == CLIENT_TO_SERVER ? 0x47534d43 : 0x47534d53;
     header.ConnectionId = 0;
     header.ArrivalTicks = getMSTime();

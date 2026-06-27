@@ -22,7 +22,7 @@
 #include "WorldSocket.h"
 #include <boost/system/error_code.hpp>
 
-class WorldSocketThread : public NetworkThread<WorldSocket>
+class WorldSocketThread : public Acore::Net::NetworkThread<WorldSocket>
 {
 public:
     void SocketAdded(std::shared_ptr<WorldSocket> const& sock) override
@@ -65,10 +65,16 @@ bool WorldSocketMgr::StartWorldNetwork(Acore::Asio::IoContext& ioContext, std::s
         return false;
     }
 
+    // NOTE(3.4.3 brick-N3): proxy-protocol support is intentionally omitted here. It lived on the
+    // legacy NetworkThread (EnableProxyProtocol) and is off by default; parity on the modern
+    // Acore::Net thread is a separate task.
     if (!BaseSocketMgr::StartNetwork(ioContext, bindIp, port, threadCount))
         return false;
 
-    _acceptor->AsyncAcceptWithCallback<&WorldSocketMgr::OnSocketAccept>();
+    _acceptor->AsyncAccept([this](Acore::Net::IoContextTcpSocket&& sock, uint32 threadIndex)
+    {
+        OnSocketOpen(std::move(sock), threadIndex);
+    });
 
     sScriptMgr->OnNetworkStart(ioContext);
     return true;
@@ -81,7 +87,7 @@ void WorldSocketMgr::StopNetwork()
     sScriptMgr->OnNetworkStop();
 }
 
-void WorldSocketMgr::OnSocketOpen(IoContextTcpSocket&& sock, uint32 threadIndex)
+void WorldSocketMgr::OnSocketOpen(Acore::Net::IoContextTcpSocket&& sock, uint32 threadIndex)
 {
     // set some options here
     if (_socketSystemSendBufferSize >= 0)
@@ -112,15 +118,7 @@ void WorldSocketMgr::OnSocketOpen(IoContextTcpSocket&& sock, uint32 threadIndex)
     BaseSocketMgr::OnSocketOpen(std::move(sock), threadIndex);
 }
 
-NetworkThread<WorldSocket>* WorldSocketMgr::CreateThreads() const
+Acore::Net::NetworkThread<WorldSocket>* WorldSocketMgr::CreateThreads() const
 {
-
-    NetworkThread<WorldSocket>* threads = new WorldSocketThread[GetNetworkThreadCount()];
-
-    bool proxyProtocolEnabled = sConfigMgr->GetOption<bool>("Network.EnableProxyProtocol", false, true);
-    if (proxyProtocolEnabled)
-        for (int i = 0; i < GetNetworkThreadCount(); i++)
-            threads[i].EnableProxyProtocol();
-
-    return threads;
+    return new WorldSocketThread[GetNetworkThreadCount()];
 }

@@ -28,9 +28,10 @@
 class WorldSocket;
 
 /// Manages all sockets connected to peers and network threads
-class AC_GAME_API WorldSocketMgr : public SocketMgr<WorldSocket>
+/// brick E1: migrated onto the modern Acore::Net::SocketMgr stack.
+class AC_GAME_API WorldSocketMgr : public Acore::Net::SocketMgr<WorldSocket>
 {
-    typedef SocketMgr<WorldSocket> BaseSocketMgr;
+    typedef Acore::Net::SocketMgr<WorldSocket> BaseSocketMgr;
 
 public:
     static WorldSocketMgr& Instance();
@@ -41,19 +42,14 @@ public:
     /// Stops all network threads, It will wait for all running threads .
     void StopNetwork() override;
 
-    void OnSocketOpen(IoContextTcpSocket&& sock, uint32 threadIndex) override;
+    void OnSocketOpen(Acore::Net::IoContextTcpSocket&& sock, uint32 threadIndex) override;
 
     std::size_t GetApplicationSendBufferSize() const { return _socketApplicationSendBufferSize; }
 
 protected:
     WorldSocketMgr();
 
-    NetworkThread<WorldSocket>* CreateThreads() const override;
-
-    static void OnSocketAccept(IoContextTcpSocket&& sock, uint32 threadIndex)
-    {
-        Instance().OnSocketOpen(std::move(sock), threadIndex);
-    }
+    Acore::Net::NetworkThread<WorldSocket>* CreateThreads() const override;
 
 private:
     int32 _socketSystemSendBufferSize;

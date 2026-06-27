@@ -46,6 +46,18 @@ add_library(game STATIC
 
 add_dependencies(game revision.h)
 
+# brick E1: WorldSocket/WorldSocketMgr build on the modern Acore::Net networking stack
+# (src/common/network). Those headers share bare file names (Socket.h, SocketMgr.h, NetworkThread.h,
+# AsyncAcceptor.h, SocketConnectionInitializer.h) with the legacy global-namespace stack in
+# src/server/shared/Network pulled in transitively via `shared`. Prepend the modern roots so the
+# Acore::Net versions win bare-name resolution for game's own translation units.
+target_include_directories(game
+  BEFORE
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/common/network
+    ${CMAKE_SOURCE_DIR}/src/common/network/ConnectionInitializers
+    ${CMAKE_SOURCE_DIR}/src/server/shared/Networking/ConnectionInitializers)
+
 target_include_directories(game
   PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR})

@@ -21,7 +21,6 @@
 
 #include "ACSoap.h"
 #include "AppenderDB.h"
-#include "AsyncAcceptor.h"
 #include "Banner.h"
 #include "BattlegroundMgr.h"
 #include "BigNumber.h"
@@ -40,7 +39,7 @@
 #include "OpenSSLCrypto.h"
 #include "OutdoorPvPMgr.h"
 #include "ProcessPriority.h"
-#include "RASession.h"
+#include "RAAcceptor.h"
 #include "RealmList.h"
 #include "Resolver.h"
 #include "ScriptLoader.h"
@@ -111,7 +110,6 @@ void ClearOnlineAccounts();
 bool StartDB();
 void StopDB();
 bool LoadRealmInfo(Acore::Asio::IoContext& ioContext);
-AsyncAcceptor* StartRaSocketAcceptor(Acore::Asio::IoContext& ioContext);
 void ShutdownCLIThread(std::thread* cliThread);
 void WorldUpdateLoop();
 variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, [[maybe_unused]] std::string& cfg_service);
@@ -319,10 +317,10 @@ int main(int argc, char** argv)
     });
 
     // Start the Remote Access port (acceptor) if enabled
-    std::unique_ptr<AsyncAcceptor> raAcceptor;
+    std::shared_ptr<void> raAcceptor;
     if (sConfigMgr->GetOption<bool>("Ra.Enable", false))
     {
-        raAcceptor.reset(StartRaSocketAcceptor(*ioContext));
+        raAcceptor = StartRaSocketAcceptor(*ioContext);
     }
 
     // Start soap serving thread if enabled
@@ -640,23 +638,6 @@ void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, bo
             freezeDetector->_timer.async_wait(std::bind(&FreezeDetector::Handler, freezeDetectorRef, std::placeholders::_1));
         }
     }
-}
-
-AsyncAcceptor* StartRaSocketAcceptor(Acore::Asio::IoContext& ioContext)
-{
-    uint16 raPort = uint16(sConfigMgr->GetOption<int32>("Ra.Port", 3443));
-    std::string raListener = sConfigMgr->GetOption<std::string>("Ra.IP", "0.0.0.0");
-
-    AsyncAcceptor* acceptor = new AsyncAcceptor(ioContext, raListener, raPort);
-    if (!acceptor->Bind())
-    {
-        LOG_ERROR("server.worldserver", "Failed to bind RA socket acceptor");
-        delete acceptor;
-        return nullptr;
-    }
-
-    acceptor->AsyncAccept<RASession>();
-    return acceptor;
 }
 
 bool LoadRealmInfo(Acore::Asio::IoContext& ioContext)

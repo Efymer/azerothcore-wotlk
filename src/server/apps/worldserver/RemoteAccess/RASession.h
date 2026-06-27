@@ -18,7 +18,9 @@
 #ifndef __RASESSION_H__
 #define __RASESSION_H__
 
-#include "Socket.h"
+// brick E1: RA stays on the legacy src/server/shared/Network stack. The worldserver app now
+// prepends the modern Acore::Net include roots, so reach the legacy Socket.h by explicit subpath.
+#include "Network/Socket.h"
 #include <boost/asio/streambuf.hpp>
 #include <future>
 
