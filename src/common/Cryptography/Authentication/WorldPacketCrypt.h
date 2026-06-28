@@ -34,9 +34,6 @@ public:
 
     bool IsInitialized() const { return _initialized; }
 
-    // The maximum forward jump tolerated in the client->server GCM nonce sequence (see DecryptRecv).
-    static constexpr uint64 MaxRecvCounterSkip = 8;
-
 protected:
     Acore::Crypto::AES _clientDecrypt;
     Acore::Crypto::AES _serverEncrypt;

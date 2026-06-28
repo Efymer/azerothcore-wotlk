@@ -940,12 +940,11 @@ void WorldSocket::LoadSessionPermissionsCallback(PreparedQueryResult result)
     _worldSession->GetRBACData()->LoadFromDBCallback(result);
 
     // 3.4.3: arm AES-128-GCM only after the client acks. Send SMSG_ENTER_ENCRYPTED_MODE here and defer
-    // AddSession to HandleEnterEncryptedModeAck.
+    // AddSession to HandleEnterEncryptedModeAck. Do NOT post another AsyncRead here: HandleAuthSessionCallback
+    // already resumed the read loop (one outstanding read), so the pending read picks up the client's
+    // CMSG_ENTER_ENCRYPTED_MODE_ACK. Posting a second AsyncRead would leave two concurrent reads racing for the
+    // TCP byte stream, splitting packet framing and desyncing the per-packet GCM counter (matches Xian55).
     SendPacketAndLogOpcode(*WorldPackets::Auth::EnterEncryptedMode(_encryptKey, true).Write());
-
-    // The auth-session read returned WaitingForQuery (read loop paused); resume reading now so we
-    // receive the client's CMSG_ENTER_ENCRYPTED_MODE_ACK that completes the handshake.
-    AsyncRead(Acore::Net::InvokeReadHandlerCallback<WorldSocket>{ .Socket = this });
 }
 
 void WorldSocket::HandleAuthContinuedSession(std::shared_ptr<WorldPackets::Auth::AuthContinuedSession> authSession)

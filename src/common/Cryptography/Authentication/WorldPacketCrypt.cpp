@@ -18,7 +18,6 @@
 #include "WorldPacketCrypt.h"
 #include <array>
 #include <cstring>
-#include <vector>
 
 WorldPacketCrypt::WorldPacketCrypt() : _clientDecrypt(false, 128), _serverEncrypt(true, 128), _clientCounter(0), _serverCounter(0), _initialized(false)
 {
@@ -56,36 +55,21 @@ bool WorldPacketCrypt::PeekDecryptRecv(uint8* data, std::size_t length)
 
 bool WorldPacketCrypt::DecryptRecv(uint8* data, std::size_t length, Acore::Crypto::AES::Tag& tag)
 {
-    if (!_initialized)
+    // Strict sequential client->server GCM nonce: [counter(8)][magic "CLNT"(4)]. The GCM tag authenticates each
+    // packet. The counter stays in lockstep with the client because the read loop keeps exactly one outstanding
+    // AsyncRead (see WorldSocket::LoadSessionPermissionsCallback) - two concurrent reads would split the byte
+    // stream and desync this counter. Matches the 3.4.3 reference (Xian55/Hermes).
+    if (_initialized)
     {
+        WorldPacketCryptIV iv{ _clientCounter, 0x544E4C43 };
+        if (!_clientDecrypt.Process(iv.Value, data, length, tag))
+            return false;
+    }
+    else
         memset(tag, 0, sizeof(tag));
-        ++_clientCounter;
-        return true;
-    }
 
-    // The 3.4.3.54261 client can advance its outgoing GCM nonce counter without transmitting a packet:
-    // it encrypts a queued request (e.g. a Battle.net store query), then drops the send after a server
-    // reply, leaving a forward gap in the client->server counter sequence. Strict sequential decryption
-    // would then mismatch every following packet and tear down the session. Probe a small forward window
-    // so a skipped counter resyncs us. The GCM tag still authenticates each packet, and the counter only
-    // ever moves forward, so this opens no replay/forgery window. `data` is decrypted in place, so retries
-    // restore the ciphertext from a saved copy and verify against an untouched copy of the tag.
-    std::vector<uint8> cipher(data, data + length);
-    for (uint64 candidate = _clientCounter; candidate <= _clientCounter + MaxRecvCounterSkip; ++candidate)
-    {
-        memcpy(data, cipher.data(), length);
-        Acore::Crypto::AES::Tag tagCopy;
-        memcpy(tagCopy, tag, sizeof(tagCopy));
-
-        WorldPacketCryptIV iv{ candidate, 0x544E4C43 };
-        if (_clientDecrypt.Process(iv.Value, data, length, tagCopy))
-        {
-            _clientCounter = candidate + 1;
-            return true;
-        }
-    }
-
-    return false;
+    ++_clientCounter;
+    return true;
 }
 
 bool WorldPacketCrypt::EncryptSend(uint8* data, std::size_t length, Acore::Crypto::AES::Tag& tag)
