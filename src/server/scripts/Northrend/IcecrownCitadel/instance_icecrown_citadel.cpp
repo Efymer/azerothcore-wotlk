@@ -30,6 +30,7 @@
 #include "WorldSession.h"
 #include "WorldStateDefines.h"
 #include "icecrown_citadel.h"
+#include <cstring>
 
 enum EventIds
 {
@@ -814,15 +815,27 @@ public:
                         go->SetGoState(GO_STATE_ACTIVE);
                     break;
                 case GO_ARTHAS_PLATFORM:
+                {
                     // this enables movement at The Frozen Throne, when printed this value is 0.000000f
                     // however, when represented as integer client will accept only this value
-                    // [1c.4] TODO: ParentRotation is now QuaternionData; legacy packed-uint32 index-0 hack (5535469) cannot be set via SetParentRotation alone
+                    // ParentRotation is now QuaternionData; reinterpret the legacy packed-uint32 index-0 value as the x float component
+                    QuaternionData parentRotation = go->GetParentRotation();
+                    uint32 const packedX = 5535469;
+                    std::memcpy(&parentRotation.x, &packedX, sizeof(float));
+                    go->SetParentRotation(parentRotation);
                     ArthasPlatformGUID = go->GetGUID();
                     break;
+                }
                 case GO_ARTHAS_PRECIPICE:
-                    // [1c.4] TODO: ParentRotation is now QuaternionData; legacy packed-uint32 index-0 hack (4178312) cannot be set via SetParentRotation alone
+                {
+                    // ParentRotation is now QuaternionData; reinterpret the legacy packed-uint32 index-0 value as the x float component
+                    QuaternionData parentRotation = go->GetParentRotation();
+                    uint32 const packedX = 4178312;
+                    std::memcpy(&parentRotation.x, &packedX, sizeof(float));
+                    go->SetParentRotation(parentRotation);
                     ArthasPrecipiceGUID = go->GetGUID();
                     break;
+                }
                 case GO_DOODAD_ICECROWN_THRONEFROSTYEDGE01:
                     FrozenThroneEdgeGUID = go->GetGUID();
                     break;

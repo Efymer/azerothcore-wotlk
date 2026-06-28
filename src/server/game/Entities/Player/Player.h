@@ -493,6 +493,27 @@ enum PlayerFlags : uint32
 
 DEFINE_ENUM_FLAG(PlayerFlags);
 
+enum PlayerLocalFlags
+{
+    PLAYER_LOCAL_FLAG_CONTROLLING_PET               = 0x00000001,   // Displays "You have an active summon already" when trying to tame new pet
+    PLAYER_LOCAL_FLAG_TRACK_STEALTHED               = 0x00000002,
+    PLAYER_LOCAL_FLAG_RELEASE_TIMER                 = 0x00000008,   // Display time till auto release spirit
+    PLAYER_LOCAL_FLAG_NO_RELEASE_WINDOW             = 0x00000010,   // Display no "release spirit" window at all
+    PLAYER_LOCAL_FLAG_NO_PET_BAR                    = 0x00000020,   // CGPetInfo::IsPetBarUsed
+    PLAYER_LOCAL_FLAG_OVERRIDE_CAMERA_MIN_HEIGHT    = 0x00000040,
+    PLAYER_LOCAL_FLAG_NEWLY_BOOSTED_CHARACTER       = 0x00000080,
+    PLAYER_LOCAL_FLAG_USING_PARTY_GARRISON          = 0x00000100,
+    PLAYER_LOCAL_FLAG_CAN_USE_OBJECTS_MOUNTED       = 0x00000200,
+    PLAYER_LOCAL_FLAG_CAN_VISIT_PARTY_GARRISON      = 0x00000400,
+    PLAYER_LOCAL_FLAG_WAR_MODE                      = 0x00000800,
+    PLAYER_LOCAL_FLAG_ACCOUNT_SECURED               = 0x00001000,   // Script_IsAccountSecured
+    PLAYER_LOCAL_FLAG_OVERRIDE_TRANSPORT_SERVER_TIME= 0x00008000,
+    PLAYER_LOCAL_FLAG_MENTOR_RESTRICTED             = 0x00020000,
+    PLAYER_LOCAL_FLAG_WEEKLY_REWARD_AVAILABLE       = 0x00040000,
+};
+
+DEFINE_ENUM_FLAG(PlayerLocalFlags);
+
 enum PlayerBytesOffsets //@todo: Implement
 {
     PLAYER_BYTES_OFFSET_SKIN_ID         = 0,
@@ -1152,6 +1173,37 @@ public:
     [[nodiscard]] uint32 GetBuybackPrice(uint32 slot) const { return m_activePlayerData->BuybackPrice[slot]; }
     void SetBuybackTimestamp(uint32 slot, uint64 timestamp) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::BuybackTimestamp, slot), int64(timestamp)); }
     [[nodiscard]] uint64 GetBuybackTimestamp(uint32 slot) const { return m_activePlayerData->BuybackTimestamp[slot]; }
+
+    // [1c.4] Native gender. xian55 declares these as Unit overrides; AC's Unit has no such virtual, so plain Player methods.
+    [[nodiscard]] Gender GetNativeGender() const { return Gender(*m_playerData->NativeSex); }
+    void SetNativeGender(Gender gender) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::NativeSex), gender); }
+
+    // [1c.4] xian55 takes flag128; AC's spell class mask is flag96 (NoReagentCostMask is uint32[4], 4th word always 0).
+    void SetNoRegentCostMask(flag96 mask)
+    {
+        for (uint8 i = 0; i < 4; ++i)
+            SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::NoReagentCostMask, i), i < 3 ? mask[i] : 0u);
+    }
+    void SetOverrideSpellsId(int32 overrideSpellsId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::OverrideSpellsID), overrideSpellsId); }
+    void ApplyModTargetResistance(int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModTargetResistance), mod, apply); }
+    void ApplyModTargetPhysicalResistance(int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModTargetPhysicalResistance), mod, apply); }
+    void ApplyModDamageDonePos(SpellSchools school, int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModDamageDonePos, school), mod, apply); }
+    void ApplyModDamageDoneNeg(SpellSchools school, int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModDamageDoneNeg, school), mod, apply); }
+    void SetModDamageDonePercent(uint8 school, float pct) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModDamageDonePercent, school), pct); }
+    void SetPetSpellPower(uint32 spellPower) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::PetSpellPower), spellPower); }
+    void ApplyModFakeInebriation(int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::FakeInebriation), mod, apply); }
+    void AddAuraVision(PlayerFieldByte2Flags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AuraVision), flags); }
+    void RemoveAuraVision(PlayerFieldByte2Flags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AuraVision), flags); }
+
+    bool HasPlayerLocalFlag(PlayerLocalFlags flags) const { return (*m_activePlayerData->LocalFlags & flags) != 0; }
+    void SetPlayerLocalFlag(PlayerLocalFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LocalFlags), flags); }
+    void RemovePlayerLocalFlag(PlayerLocalFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LocalFlags), flags); }
+    void ReplaceAllPlayerLocalFlags(PlayerLocalFlags flags) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LocalFlags), flags); }
+
+    void AddExploredZones(uint32 pos, uint64 mask) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ExploredZones, pos), mask); }
+    void RemoveExploredZones(uint32 pos, uint64 mask) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ExploredZones, pos), mask); }
+
+    void SetKnownTitles(uint32 index, uint64 mask) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::KnownTitles, index), mask); }
 
     static bool BuildEnumData(PreparedQueryResult result, WorldPacket* data);
 
