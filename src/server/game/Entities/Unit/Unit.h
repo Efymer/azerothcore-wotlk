@@ -761,6 +761,7 @@ public:
     void RemoveUnitFlag2(UnitFlags2 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags2), flags); }
     void ReplaceAllUnitFlags2(UnitFlags2 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags2), flags); }
 
+    Emote GetEmoteState() const { return Emote(*m_unitData->EmoteState); }  /// @brief Gets emote state (looping emote). Emotes available in SharedDefines.h
     void SetEmoteState(Emote emoteState) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::EmoteState), emoteState); }  /// @brief Sets emote state (looping emote). Emotes available in SharedDefines.h
     void ClearEmoteState() { SetEmoteState(EMOTE_ONESHOT_NONE); }  /// @brief Clears emote state (looping emote)
 
@@ -1195,6 +1196,8 @@ public:
 
     [[nodiscard]] uint32 GetCreateMana() const { return m_unitData->BaseMana; }
     void SetCreateMana(uint32 val) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::BaseMana), val); }
+    void ApplyModPowerCostPCT(SpellSchools school, float amount, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerCostMultiplier, school), amount, apply); }
+    void ApplyModManaCostModifier(SpellSchools school, int32 amount, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerCostModifier, school), amount, apply); }
     [[nodiscard]] bool CanRestoreMana(SpellInfo const* spellInfo) const;
     void SetLastManaUse(uint32 spellCastTime) { m_lastManaUse = spellCastTime; }
     [[nodiscard]] bool IsUnderLastManaUseEffect() const;
@@ -1633,6 +1636,19 @@ public:
 
     void SetInstantCast(bool set) { _instantCast = set; }
     [[nodiscard]] bool CanInstantCast() const { return _instantCast; }
+
+    // Channeled-spell client fields (3.4.3 UnitData::ChannelData / ChannelObjects)
+    uint32 GetChannelSpellId() const { return m_unitData->ChannelData->SpellID; }
+    void SetChannelSpellId(uint32 channelSpellId)
+    {
+        SetUpdateFieldValue(m_values
+            .ModifyValue(&Unit::m_unitData)
+            .ModifyValue(&UF::UnitData::ChannelData)
+            .ModifyValue(&UF::UnitChannel::SpellID), channelSpellId);
+    }
+    void AddChannelObject(ObjectGuid guid) { AddDynamicUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects)) = guid; }
+    void SetChannelObject(uint32 slot, ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects, slot), guid); }
+    void ClearChannelObjects() { ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects)); }
 
     // set withDelayed to true to account delayed spells as casted
     // delayed+channeled spells are always accounted as casted
