@@ -17,6 +17,7 @@
 
 #include "DBCStores.h"
 #include "GameObjectAI.h"
+#include "Guild.h"
 #include "Log.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
@@ -767,14 +768,11 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
     if (creator->IsPlayer())
     {
         Player* player = creator->ToPlayer();
-        // [1c.4] TODO: legacy PLAYER_BYTES skin/face/hair/haircolor/facialhair are gone in 3.4.3 (replaced by ChrCustomization choices). Send 0 until a customization accessor exists.
-        data << uint8(0); // skin
-        data << uint8(0); // face
-        data << uint8(0); // hair
-        data << uint8(0); // haircolor
-        data << uint8(0); // facialhair
-        data << uint32(player->GetGuildId());                   // unk
 
+        // [1c.4] 3.4.3 replaces the legacy PLAYER_BYTES (skin/face/hair/haircolor/facialhair) with a
+        // ChrCustomizationChoice list. Wire layout per xian55 MirrorImageComponentedData::Write():
+        // customization count, GuildGUID (ObjectGuid), item count, then the customization entries
+        // {OptionID, ChoiceID} and finally the item display ids.
         static EquipmentSlots const itemSlots[] =
         {
             EQUIPMENT_SLOT_HEAD,
@@ -786,10 +784,24 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
             EQUIPMENT_SLOT_FEET,
             EQUIPMENT_SLOT_WRISTS,
             EQUIPMENT_SLOT_HANDS,
-            EQUIPMENT_SLOT_BACK,
             EQUIPMENT_SLOT_TABARD,
+            EQUIPMENT_SLOT_BACK,
             EQUIPMENT_SLOT_END
         };
+
+        auto const& customizations = player->m_playerData->Customizations;
+
+        data << uint32(customizations.size());                  // customization count
+        // [1c.4] GuildGUID: AC uses 32-bit guild ids and has no HighGuid::Guild, so no real guild ObjectGuid
+        // exists — send Empty (the guild tabard still renders via the EQUIPMENT_SLOT_TABARD item below).
+        data << ObjectGuid::Empty;                              // GuildGUID
+        data << uint32(sizeof(itemSlots) / sizeof(itemSlots[0]) - 1); // item count (excludes END terminator)
+
+        for (auto const& customization : customizations)
+        {
+            data << uint32(customization.ChrCustomizationOptionID);
+            data << uint32(customization.ChrCustomizationChoiceID);
+        }
 
         // Display items in visible slots
         for (EquipmentSlots const* itr = &itemSlots[0]; *itr != EQUIPMENT_SLOT_END; ++itr)

@@ -384,7 +384,7 @@ bool Map::AddToMap(Transport* obj, bool /*checkTransport*/)
             UpdateData data(obj->GetMapId());
             obj->BuildCreateUpdateBlockForPlayer(&data, itr->GetSource());
             WorldPacket packet;
-            data.BuildPacket(packet);
+            data.BuildPacket(&packet);
             itr->GetSource()->SendDirectMessage(&packet);
         }
     }
@@ -761,7 +761,7 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
         UpdateData data(obj->GetMapId());
         obj->BuildOutOfRangeUpdateBlock(&data);
         WorldPacket packet;
-        data.BuildPacket(packet);
+        data.BuildPacket(&packet);
         for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
             if (itr->GetSource()->GetTransport() != obj)
                 itr->GetSource()->SendDirectMessage(&packet);
@@ -1629,7 +1629,7 @@ void Map::SendInitSelf(Player* player)
     player->BuildCreateUpdateBlockForPlayer(&data, player);
 
     // build and send self update packet before sending to player his own auras
-    data.BuildPacket(packet);
+    data.BuildPacket(&packet);
     player->SendDirectMessage(&packet);
 
     // send to player his own auras (this is needed here for timely initialization of some fields on client)
@@ -1645,7 +1645,7 @@ void Map::SendInitSelf(Player* player)
             if (player != (*itr) && player->HaveAtClient(*itr))
                 (*itr)->BuildCreateUpdateBlockForPlayer(&data, player);
 
-    data.BuildPacket(packet);
+    data.BuildPacket(&packet);
     player->SendDirectMessage(&packet);
 }
 
@@ -1675,7 +1675,7 @@ void Map::SendInitTransports(Player* player)
         return;
 
     WorldPacket packet;
-    transData.BuildPacket(packet);
+    transData.BuildPacket(&packet);
     player->SendDirectMessage(&packet);
 }
 
@@ -1694,7 +1694,7 @@ void Map::SendRemoveTransports(Player* player)
         return;
 
     WorldPacket packet;
-    transData.BuildPacket(packet);
+    transData.BuildPacket(&packet);
     player->SendDirectMessage(&packet);
 }
 
@@ -1714,7 +1714,7 @@ void Map::SendObjectUpdates()
     WorldPacket packet;                                     // here we allocate a std::vector with a size of 0x10000
     for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
     {
-        iter->second.BuildPacket(packet);
+        iter->second.BuildPacket(&packet);
         iter->first->SendDirectMessage(&packet);
         packet.clear();                                     // clean the string
     }
@@ -3048,7 +3048,7 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
         bones->SetSex(corpse->m_corpseData->Sex);
         bones->SetClass(corpse->m_corpseData->Class);
         bones->SetFactionTemplate(corpse->m_corpseData->FactionTemplate);
-        // [1c.4] TODO: copy corpse->m_corpseData->Customizations (DynamicUpdateField) once a Corpse::SetCustomizations wrapper exists
+        bones->SetCustomizations(Acore::Containers::MakeIteratorPair(corpse->m_corpseData->Customizations.begin(), corpse->m_corpseData->Customizations.end()));
 
         bones->SetCellCoord(corpse->GetCellCoord());
         bones->Relocate(corpse->GetPositionX(), corpse->GetPositionY(), corpse->GetPositionZ(), corpse->GetOrientation());
@@ -3459,6 +3459,30 @@ void Map::LoadCorpseData()
     if (!result)
         return;
 
+    // Bulk-load all corpse customizations for this map/instance, keyed by ownerGuid (corpse.guid)
+    std::unordered_map<uint32, std::vector<UF::ChrCustomizationChoice>> customizations;
+
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CORPSE_CUSTOMIZATIONS);
+    stmt->SetData(0, GetId());
+    stmt->SetData(1, GetInstanceId());
+
+    //        0             1                            2
+    // SELECT cc.ownerGuid, cc.chrCustomizationOptionID, cc.chrCustomizationChoiceID FROM corpse_customizations cc LEFT JOIN corpse c ON cc.ownerGuid = c.guid WHERE c.mapId = ? AND c.instanceId = ?
+    if (PreparedQueryResult customizationResult = CharacterDatabase.Query(stmt))
+    {
+        do
+        {
+            Field* fields = customizationResult->Fetch();
+            uint32 ownerGuid = fields[0].Get<uint32>();
+            std::vector<UF::ChrCustomizationChoice>& customizationsForCorpse = customizations[ownerGuid];
+
+            customizationsForCorpse.emplace_back();
+            UF::ChrCustomizationChoice& choice = customizationsForCorpse.back();
+            choice.ChrCustomizationOptionID = fields[1].Get<uint32>();
+            choice.ChrCustomizationChoiceID = fields[2].Get<uint32>();
+        } while (customizationResult->NextRow());
+    }
+
     do
     {
         Field* fields = result->Fetch();
@@ -3477,6 +3501,8 @@ void Map::LoadCorpseData()
             delete corpse;
             continue;
         }
+
+        corpse->SetCustomizations(Acore::Containers::MakeIteratorPair(customizations[guid].begin(), customizations[guid].end()));
 
         AddCorpse(corpse);
 

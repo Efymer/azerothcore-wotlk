@@ -1727,7 +1727,7 @@ void Spell::SelectImplicitTargetDestTargets(SpellEffIndex effIndex, SpellImplici
 
             if (targetType.GetTarget() == TARGET_DEST_TARGET_BACK)
             {
-                dist += target->m_unitData->BoundingRadius;
+                dist += target->GetObjectSize();
             }
 
             Position pos = dest._position;

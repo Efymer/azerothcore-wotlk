@@ -929,7 +929,7 @@ public:
 
         // Set gender
         target->SetSex(gender);
-        // [1c.4] TODO: NativeSex setter missing (was PLAYER_BYTES_3 byte0 gender)
+        target->SetNativeGender(gender);
 
         // Change display ID
         target->InitDisplayIds();

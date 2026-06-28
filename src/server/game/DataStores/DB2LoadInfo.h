@@ -213,6 +213,122 @@ struct ChrCustomizationReqLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 9, &MetaInstance, HotfixDatabaseStatements(0) };
 };
 
+struct ChrCustomizationChoiceLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[11] =
+    {
+        { FT_STRING, 1, true },
+        { FT_INT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_SHORT, 1, false },
+        { FT_SHORT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 2, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 3450554, .IndexField = 1, .ParentIndexField = 2,
+        .FieldCount = 11, .FileFieldCount = 11, .LayoutHash = 0xAA548AE1, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[12] =
+    {
+        { false, FT_STRING, "Name" },
+        { false, FT_INT, "ID" },
+        { false, FT_INT, "ChrCustomizationOptionID" },            // ParentIndexField -> must be unsigned
+        { true, FT_INT, "ChrCustomizationReqID" },
+        { true, FT_INT, "ChrCustomizationVisReqID" },
+        { false, FT_SHORT, "SortOrder" },
+        { false, FT_SHORT, "UiOrderIndex" },
+        { true, FT_INT, "Flags" },
+        { true, FT_INT, "AddedInPatch" },
+        { true, FT_INT, "SoundKitID" },
+        { true, FT_INT, "SwatchColor1" },
+        { true, FT_INT, "SwatchColor2" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 12, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct ChrCustomizationDisplayInfoLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[5] =
+    {
+        { FT_INT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_FLOAT, 1, true },
+        { FT_FLOAT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 3593032, .IndexField = 0, .ParentIndexField = -1,
+        .FieldCount = 5, .FileFieldCount = 5, .LayoutHash = 0x6C319AFC, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[5] =
+    {
+        { false, FT_INT, "ID" },
+        { true, FT_INT, "ShapeshiftFormID" },
+        { true, FT_INT, "DisplayID" },
+        { false, FT_FLOAT, "BarberShopMinCameraDistance" },
+        { false, FT_FLOAT, "BarberShopHeightOffset" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 5, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
+struct ChrCustomizationElementLoadInfo
+{
+    static constexpr DB2MetaField MetaFields[13] =
+    {
+        { FT_INT, 1, false },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta MetaInstance =
+    {
+        .FileDataId = 3512765, .IndexField = 0, .ParentIndexField = -1,
+        .FieldCount = 13, .FileFieldCount = 13, .LayoutHash = 0x53892C8D, .Fields = MetaFields
+    };
+
+    static constexpr DB2FieldMeta Fields[13] =
+    {
+        { false, FT_INT, "ID" },
+        { true, FT_INT, "ChrCustomizationChoiceID" },
+        { true, FT_INT, "RelatedChrCustomizationChoiceID" },
+        { true, FT_INT, "ChrCustomizationGeosetID" },
+        { true, FT_INT, "ChrCustomizationSkinnedModelID" },
+        { true, FT_INT, "ChrCustomizationMaterialID" },
+        { true, FT_INT, "ChrCustomizationBoneSetID" },
+        { true, FT_INT, "ChrCustomizationCondModelID" },
+        { true, FT_INT, "ChrCustomizationDisplayInfoID" },
+        { true, FT_INT, "ChrCustItemGeoModifyID" },
+        { true, FT_INT, "ChrCustomizationVoiceID" },
+        { true, FT_INT, "AnimKitID" },
+        { true, FT_INT, "ParticleColorID" },
+    };
+
+    static constexpr DB2LoadInfo Instance{ Fields, 13, &MetaInstance, HotfixDatabaseStatements(0) };
+};
+
 struct ItemEffectLoadInfo
 {
     static constexpr DB2MetaField MetaFields[9] =

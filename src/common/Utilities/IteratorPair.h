@@ -49,6 +49,18 @@ namespace Acore
         {
             return { map.equal_range(key) };
         }
+
+        template<class iterator>
+        constexpr IteratorPair<iterator> MakeIteratorPair(iterator first, iterator second)
+        {
+            return { first, second };
+        }
+
+        template<class iterator>
+        constexpr IteratorPair<iterator> MakeIteratorPair(std::pair<iterator, iterator> pair)
+        {
+            return { pair };
+        }
     }
     //! namespace Containers
 }

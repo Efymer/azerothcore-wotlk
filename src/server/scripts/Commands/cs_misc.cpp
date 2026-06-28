@@ -1706,14 +1706,16 @@ public:
             return false;
         }
 
-        int32 offset = area->AreaBit / 32;
+        int32 offset = area->AreaBit / 64;
         if (offset >= PLAYER_EXPLORED_ZONES_SIZE)
         {
             handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
-        // [1c.4] TODO: ExploredZones is now a uint64[] array with no public per-bit setter (was PLAYER_EXPLORED_ZONES_1 + offset)
+        uint64 val = UI64LIT(1) << (area->AreaBit % 64);
+        playerTarget->AddExploredZones(offset, val);
+
         handler->SendSysMessage(LANG_EXPLORE_AREA);
         return true;
     }
@@ -1734,14 +1736,16 @@ public:
             return false;
         }
 
-        int32 offset = area->AreaBit / 32;
+        int32 offset = area->AreaBit / 64;
         if (offset >= PLAYER_EXPLORED_ZONES_SIZE)
         {
             handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
-        // [1c.4] TODO: ExploredZones is now a uint64[] array with no public per-bit setter (was PLAYER_EXPLORED_ZONES_1 + offset)
+        uint64 val = UI64LIT(1) << (area->AreaBit % 64);
+        playerTarget->RemoveExploredZones(offset, val);
+
         handler->SendSysMessage(LANG_UNEXPLORE_AREA);
         return true;
     }

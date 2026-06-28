@@ -27,6 +27,7 @@
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
+#include "Trainer.h"
 #include "World.h"
 #include "WorldSession.h"
 
@@ -113,7 +114,7 @@ public:
                         dynFlags |= GO_DYNFLAG_LO_SPARKLE;
                     break;
                 case GAMEOBJECT_TYPE_TRANSPORT:
-                case GAMEOBJECT_TYPE_MAP_OBJ_TRANSPORT:
+                case GAMEOBJECT_TYPE_MO_TRANSPORT:
                 {
                     dynFlags = dynamicFlags & 0xFFFF;
                     pathProgress = dynamicFlags >> 16;
@@ -276,12 +277,13 @@ public:
                 npcFlag &= ~UNIT_NPC_FLAG_SPELLCLICK;
 
             // alistar: don't show training icon for non class trainers
+            // [1c.4] AC has no CreatureTemplate::trainer_class; the trainer's class/race/spell requirement lives in
+            // the `trainer` table. Trainer::IsTrainerValidForPlayer() is the correct AC equivalent of the old
+            // class-trainer filter (and also covers race/spell trainers).
             if (unit->IsTrainer())
-            {
-                uint32 trainer_class = unit->ToCreature()->GetCreatureTemplate()->trainer_class;
-                if (trainer_class && trainer_class != receiver->getClass())
-                    npcFlag &= ~(UNIT_NPC_FLAG_TRAINER_CLASS | UNIT_NPC_FLAG_TRAINER);
-            }
+                if (Trainer::Trainer const* trainer = sObjectMgr->GetTrainer(unit->GetEntry()))
+                    if (!trainer->IsTrainerValidForPlayer(receiver))
+                        npcFlag &= ~(UNIT_NPC_FLAG_TRAINER_CLASS | UNIT_NPC_FLAG_TRAINER);
         }
 
         return npcFlag;

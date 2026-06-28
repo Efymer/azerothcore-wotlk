@@ -1892,11 +1892,193 @@ void ObjectMgr::LoadPlayerShapeshiftModels()
 
 uint32 ObjectMgr::GetModelForShapeshift(ShapeshiftForm form, Player* player) const
 {
-    uint8 customizationID;
+    // [1c.4] 3.4.3: legacy PLAYER_BYTES hair/skin color are gone; the equivalent data now lives in the
+    // player's ChrCustomizationChoice ids. Mirror xian55's per-form/race/gender resolution, where the
+    // shapeshift model is keyed by the skin (Customizations[0]) or hair (Customizations[3]) choice id.
+    auto const& customizations = player->m_playerData->Customizations;
+    if (customizations.size() > 3)
+    {
+        uint32 const skinColor = customizations[0].ChrCustomizationChoiceID;
+        uint32 const hairColor = customizations[3].ChrCustomizationChoiceID;
 
-    // [1c.4] TODO: legacy PLAYER_BYTES hair/skin color are gone in 3.4.3 (ChrCustomization choices).
-    // No customization accessor yet, so fall through to the wildcard (255) lookups below.
-    customizationID = 255;
+        switch (form)
+        {
+            case FORM_CAT:
+                // Based on Hair color
+                if (player->getRace() == RACE_NIGHTELF)
+                {
+                    switch (hairColor)
+                    {
+                        case 17554: // Violet
+                        case 17555:
+                            return 29405;
+                        case 17550: // Light Blue
+                            return 29406;
+                        case 17547: // Green
+                        case 17548: // Light Green
+                        case 17549: // Dark Green
+                            return 29407;
+                        case 17551: // White
+                            return 29408;
+                        default: // original - Dark Blue
+                            return 892;
+                    }
+                }
+                // Based on Skin color
+                else if (player->getRace() == RACE_TAUREN)
+                {
+                    // Male
+                    if (player->getGender() == GENDER_MALE)
+                    {
+                        switch (skinColor)
+                        {
+                            case 17674: // White
+                            case 17675:
+                            case 17676:
+                            case 17677: // Completly White
+                                return 29409;
+                            case 17671: // Light Brown
+                            case 17672:
+                            case 17673:
+                                return 29410;
+                            case 17668: // Brown
+                            case 17669:
+                            case 17670:
+                                return 29411;
+                            case 17662: // Dark
+                            case 17663:
+                            case 17664:
+                            case 17665: // Dark Grey
+                            case 17666:
+                            case 17667:
+                                return 29412;
+                            default: // original - Grey
+                                return 8571;
+                        }
+                    }
+                    // Female
+                    else
+                    {
+                        switch (skinColor)
+                        {
+                            case 17714: // White
+                                return 29409;
+                            case 17710: // Light Brown
+                            case 17711:
+                                return 29410;
+                            case 17708: // Brown
+                            case 17709:
+                                return 29411;
+                            case 17704: // Dark
+                            case 17705:
+                            case 17706:
+                            case 17707:
+                                return 29412;
+                            default: // original - Grey
+                                return 8571;
+                        }
+                    }
+                }
+                else if (Player::TeamIdForRace(player->getRace()) == TEAM_ALLIANCE)
+                    return 892;
+                else
+                    return 8571;
+            case FORM_DIREBEAR:
+            case FORM_BEAR:
+                // Based on Hair color
+                if (player->getRace() == RACE_NIGHTELF)
+                {
+                    switch (hairColor)
+                    {
+                        case 17547: // Green
+                        case 17548: // Light Green
+                        case 17549: // Dark Green
+                            return 29413; // 29415?
+                        case 17553: // Dark Blue
+                            return 29414;
+                        case 17551: // White
+                            return 29416;
+                        case 17550: // Light Blue
+                            return 29417;
+                        default: // original - Violet
+                            return 2281;
+                    }
+                }
+                // Based on Skin color
+                else if (player->getRace() == RACE_TAUREN)
+                {
+                    // Male
+                    if (player->getGender() == GENDER_MALE)
+                    {
+                        switch (skinColor)
+                        {
+                            case 17662: // Dark (Black)
+                            case 17663:
+                            case 17664:
+                                return 29418;
+                            case 17665: // White
+                            case 17666:
+                            case 17667:
+                            case 17674:
+                            case 17675:
+                            case 17676:
+                                return 29419;
+                            case 17671: // Light Brown/Grey
+                            case 17672:
+                            case 17673:
+                            case 17677:
+                            case 17678:
+                            case 17679:
+                                return 29420;
+                            case 17680: // Completly White
+                                return 29421;
+                            default: // original - Brown
+                                return 2289;
+                        }
+                    }
+                    // Female
+                    else
+                    {
+                        switch (skinColor)
+                        {
+                            case 17704: // Dark (Black)
+                            case 17705:
+                                return 29418;
+                            case 17706: // White
+                            case 17707:
+                                return 29419;
+                            case 17710: // Light Brown/Grey
+                            case 17711:
+                            case 17712:
+                            case 17713:
+                                return 29420;
+                            case 17714: // Completly White
+                                return 29421;
+                            default: // original - Brown
+                                return 2289;
+                        }
+                    }
+                }
+                else if (Player::TeamIdForRace(player->getRace()) == TEAM_ALLIANCE)
+                    return 2281;
+                else
+                    return 2289;
+            case FORM_FLIGHT:
+                if (Player::TeamIdForRace(player->getRace()) == TEAM_ALLIANCE)
+                    return 20857;
+                return 20872;
+            case FORM_FLIGHT_EPIC:
+                if (Player::TeamIdForRace(player->getRace()) == TEAM_ALLIANCE)
+                    return 21243;
+                return 21244;
+            default:
+                break;
+        }
+    }
+
+    // Fallback: data-driven `player_shapeshift_model` lookup for any form/race not handled above.
+    // The legacy customization byte no longer exists, so only the wildcard (255) rows can match.
+    uint8 const customizationID = 255;
 
     uint8 gender = player->getGender();
 

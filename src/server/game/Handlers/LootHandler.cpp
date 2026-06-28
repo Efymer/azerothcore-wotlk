@@ -407,7 +407,7 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
                     group->SendLooter(creature, nullptr);
             }
             // force dynflag update to update looter and lootable info
-            creature->ForceValuesUpdateAtIndex(UNIT_DYNAMIC_FLAGS);
+            creature->ForceUpdateFieldChange(creature->m_values.ModifyValue(&Object::m_objectData).ModifyValue(&UF::ObjectData::DynamicFlags));
         }
     }
 

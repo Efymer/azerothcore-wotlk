@@ -34,6 +34,7 @@
 #include "Channel.h"
 #include "CharacterCache.h"
 #include "CharacterDatabaseCleaner.h"
+#include "CharacterPackets.h"
 #include "Chat.h"
 #include "CombatLogPackets.h"
 #include "Common.h"
@@ -488,7 +489,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     // should check that skin, face, hair* are valid via DBC per race/class
     // also do it in Player::BuildEnumData, Player::LoadFromDB
 
-    Object::_Create(guidlow, 0, HighGuid::Player);
+    Object::_Create(ObjectGuid::Create<HighGuid::Player>(guidlow));
 
     m_name = createInfo->Name;
 
@@ -531,9 +532,10 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         return false;
     }
 
-    uint32 RaceClassGender = (createInfo->Race) | (createInfo->Class << 8) | (createInfo->Gender << 16);
-
-    SetUInt32Value(UNIT_FIELD_BYTES_0, (RaceClassGender | (powertype << 24)));
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Race), createInfo->Race);
+    SetClass(createInfo->Class);
+    SetSex(createInfo->Gender);
+    SetDisplayPower(powertype);
     InitDisplayIds();
     if (sWorld->getIntConfig(CONFIG_GAME_TYPE) == REALM_TYPE_PVP || sWorld->getIntConfig(CONFIG_GAME_TYPE) == REALM_TYPE_RPPVP)
     {
@@ -541,32 +543,27 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
     }
     SetUnitFlag2(UNIT_FLAG2_REGENERATE_POWER);
-    SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);               // fix cast time showed in spell tooltip on client
-    SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 1.0f);            // default for players in 3.0.3
+    SetModCastingSpeed(1.0f);                               // fix cast time showed in spell tooltip on client
+    SetHoverHeight(1.0f);                                   // default for players in 3.0.3
 
     // -1 is default value
-    SetInt32Value(PLAYER_FIELD_WATCHED_FACTION_INDEX, uint32(-1));
+    SetWatchedFactionIndex(-1);
 
-    SetUInt32Value(PLAYER_BYTES, (createInfo->Skin | (createInfo->Face << 8) | (createInfo->HairStyle << 16) | (createInfo->HairColor << 24)));
-    SetUInt32Value(PLAYER_BYTES_2, (createInfo->FacialHair |
-                                    (0x00 << 8) |
-                                    (0x00 << 16) |
-                                    (((GetSession()->IsARecruiter() || GetSession()->GetRecruiterId() != 0) ? REST_STATE_RAF_LINKED : REST_STATE_NOT_RAF_LINKED) << 24)));
-    SetByteValue(PLAYER_BYTES_3, 0, createInfo->Gender);
-    SetByteValue(PLAYER_BYTES_3, 3, 0);                     // BattlefieldArenaFaction (0 or 1)
+    // [1c.4] 3.4.3 native appearance: skin/face/hair/facialhair packed bytes are gone; appearance is the
+    // ChrCustomizationChoice list. Rest-state, native gender and arena-faction were also part of the old
+    // PLAYER_BYTES* packing and now map to dedicated structured UF fields. (xian55 Player::Create ~465-467)
+    SetCustomizations(Acore::Containers::MakeIteratorPair(createInfo->Customizations.begin(), createInfo->Customizations.end()));
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::RestInfo, 0).ModifyValue(&UF::RestInfo::StateID),
+        uint8((GetSession()->IsARecruiter() || GetSession()->GetRecruiterId() != 0) ? REST_STATE_RAF_LINKED : REST_STATE_NOT_RAF_LINKED));
+    SetNativeGender(Gender(createInfo->Gender));            // UnitData::Sex already set above via SetSex()
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::ArenaFaction), uint8(0)); // BattlefieldArenaFaction (0 or 1)
 
-    SetUInt32Value(PLAYER_GUILDID, 0);
-    SetUInt32Value(PLAYER_GUILDRANK, 0);
-    SetUInt32Value(PLAYER_GUILD_TIMESTAMP, 0);
-
-    for (int i = 0; i < KNOWN_TITLES_SIZE; ++i)
-        SetUInt64Value(PLAYER__FIELD_KNOWN_TITLES + i, 0);  // 0=disabled
-    SetUInt32Value(PLAYER_CHOSEN_TITLE, 0);
-
-    SetUInt32Value(PLAYER_FIELD_KILLS, 0);
-    SetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 0);
-    SetUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION, 0);
-    SetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION, 0);
+    // [1c.4] TODO: 3.4.3 (per xian55 Player::Create) drops these zero-inits; the structured UF
+    // already defaults them. Guild fields restructured (PlayerData::GuildGUID is an ObjectGuid,
+    // GuildRankID/GuildTimeStamp default 0); KnownTitles is now a DynamicUpdateField (empty by
+    // default); PvP kills map to ActivePlayerData::TodayHonorableKills / LifetimeHonorableKills
+    // (default 0); TodayContribution has NO 3.4.3 field; YesterdayContribution defaults 0;
+    // chosen title (PlayerData::PlayerTitle) defaults 0.
 
     // set starting level
     uint32 start_level = !IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_INIT)
@@ -580,13 +577,13 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
             start_level = gm_level;
     }
 
-    SetUInt32Value(UNIT_FIELD_LEVEL, start_level);
+    SetLevel(uint8(start_level));
 
     InitRunes();
 
-    SetUInt32Value(PLAYER_FIELD_COINAGE, !IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_INIT)
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Coinage), uint64(!IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_INIT)
                                          ? sWorld->getIntConfig(CONFIG_START_PLAYER_MONEY)
-                                         : sWorld->getIntConfig(CONFIG_START_HEROIC_PLAYER_MONEY));
+                                         : sWorld->getIntConfig(CONFIG_START_HEROIC_PLAYER_MONEY)));
     SetHonorPoints(sWorld->getIntConfig(CONFIG_START_HONOR_POINTS));
     SetArenaPoints(sWorld->getIntConfig(CONFIG_START_ARENA_POINTS));
 
@@ -993,7 +990,7 @@ void Player::SetDrunkValue(uint8 newDrunkValue, uint32 itemId /*= 0*/)
     uint32 oldDrunkenState = Player::GetDrunkenstateByValue(GetDrunkValue());
     uint32 newDrunkenState = Player::GetDrunkenstateByValue(newDrunkValue);
 
-    SetByteValue(PLAYER_BYTES_3, PLAYER_BYTES_3_OFFSET_INEBRIATION, newDrunkValue);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::Inebriation), newDrunkValue);
     UpdateInvisibilityDrunkDetect();
 
     m_drunkTimer = 0; // reset sobering timer
@@ -1313,7 +1310,10 @@ bool Player::IsClass(Classes unitClass, ClassContext context) const
 
 void Player::ToggleAFK()
 {
-    ToggleFlag(PLAYER_FLAGS, PLAYER_FLAGS_AFK);
+    if (isAFK())
+        RemovePlayerFlag(PLAYER_FLAGS_AFK);
+    else
+        SetPlayerFlag(PLAYER_FLAGS_AFK);
 
     // afk player not allowed in battleground
     if (!GetSession()->HasPermission(rbac::RBAC_PERM_CAN_AFK_ON_BATTLEGROUND) && isAFK() && InBattleground() && !InArena())
@@ -1322,7 +1322,10 @@ void Player::ToggleAFK()
 
 void Player::ToggleDND()
 {
-    ToggleFlag(PLAYER_FLAGS, PLAYER_FLAGS_DND);
+    if (isDND())
+        RemovePlayerFlag(PLAYER_FLAGS_DND);
+    else
+        SetPlayerFlag(PLAYER_FLAGS_DND);
 }
 
 uint8 Player::GetChatTag() const
@@ -1744,13 +1747,10 @@ void Player::RemoveFromWorld()
     ///- The player should only be removed when logging out
     Unit::RemoveFromWorld();
 
-    if (m_uint32Values)
+    if (WorldObject* viewpoint = GetViewpoint())
     {
-        if (WorldObject* viewpoint = GetViewpoint())
-        {
-            LOG_FATAL("entities.player", "Player {} has viewpoint {} {} when removed from world", GetName(), viewpoint->GetEntry(), viewpoint->GetTypeId());
-            SetViewpoint(viewpoint, false);
-        }
+        LOG_FATAL("entities.player", "Player {} has viewpoint {} {} when removed from world", GetName(), viewpoint->GetEntry(), viewpoint->GetTypeId());
+        SetViewpoint(viewpoint, false);
     }
 }
 
@@ -1851,7 +1851,7 @@ void Player::Regenerate(Powers power)
             //Set the value to 0 first then set it to max to force resend of packet as for range clients keeps removing rage
             if (power == POWER_RAGE || power == POWER_RUNIC_POWER)
             {
-                UpdateUInt32Value(static_cast<uint16>(UNIT_FIELD_POWER1) + power, 0);
+                SetPower(power, 0, false, true);
             }
 
             SetPower(power, maxValue);
@@ -1878,9 +1878,9 @@ void Player::Regenerate(Powers power)
                     ManaIncreaseRate = sWorld->getRate(RATE_POWER_MANA) * (2.066f - (GetLevel() * 0.066f));
 
                 if (recentCast) // Trinity Updates Mana in intervals of 2s, which is correct
-                    addvalue += GetFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER + AsUnderlyingType(POWER_MANA)) *  ManaIncreaseRate * 0.001f * m_regenTimer;
+                    addvalue += m_unitData->PowerRegenInterruptedFlatModifier[AsUnderlyingType(POWER_MANA)] *  ManaIncreaseRate * 0.001f * m_regenTimer;
                 else
-                    addvalue += GetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER + AsUnderlyingType(POWER_MANA)) * ManaIncreaseRate * 0.001f * m_regenTimer;
+                    addvalue += m_unitData->PowerRegenFlatModifier[AsUnderlyingType(POWER_MANA)] * ManaIncreaseRate * 0.001f * m_regenTimer;
             }
             break;
         case POWER_RAGE:                                    // Regenerate rage
@@ -1894,7 +1894,7 @@ void Player::Regenerate(Powers power)
             break;
         case POWER_ENERGY:                                  // Regenerate energy (rogue)
             // Regen per second
-            addvalue += (GetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER + AsUnderlyingType(POWER_ENERGY)) + 10.f);
+            addvalue += (m_unitData->PowerRegenFlatModifier[AsUnderlyingType(POWER_ENERGY)] + 10.f);
             // Regen per millisecond
             addvalue *= 0.001f;
             // Milliseconds passed
@@ -1976,7 +1976,7 @@ void Player::Regenerate(Powers power)
     if (m_regenTimerCount >= 2000 || curValue == 0 || curValue == maxValue)
         SetPower(power, curValue, true, true);
     else
-        UpdateUInt32Value(UNIT_FIELD_POWER1 + AsUnderlyingType(power), curValue);
+        SetPower(power, curValue, false, true);
 }
 
 void Player::RegenerateHealth()
@@ -2539,8 +2539,9 @@ void Player::GiveLevel(uint8 level)
             {
                 ++m_grantableLevels;
 
-                if (!HasByteFlag(PLAYER_FIELD_BYTES, 1, 0x01))
-                    SetByteFlag(PLAYER_FIELD_BYTES, 1, 0x01);
+                // [1c.4] TODO: PLAYER_FIELD_BYTES byte1 0x01 (RAF "can grant level" client visual flag) has no
+                // 3.4.3 equivalent field (RAF removed/reworked, absent from xian55 ActivePlayerData); server-side
+                // m_grantableLevels above is still tracked and drives the grant logic.
             }
 
     SendQuestGiverStatusMultiple();
@@ -2550,7 +2551,7 @@ void Player::GiveLevel(uint8 level)
 
 bool Player::IsMaxLevel() const
 {
-    return GetLevel() >= GetUInt32Value(PLAYER_FIELD_MAX_LEVEL);
+    return GetLevel() >= m_activePlayerData->MaxLevel;
 }
 
 void Player::InitTalentForLevel()
@@ -2586,16 +2587,16 @@ void Player::InitStatsForLevel(bool reapplyMods)
 
     uint32 maxPlayerLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
     sScriptMgr->OnPlayerSetMaxLevel(this, maxPlayerLevel);
-    SetUInt32Value(PLAYER_FIELD_MAX_LEVEL, maxPlayerLevel);
-    SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr->GetXPForLevel(GetLevel()));
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::MaxLevel), maxPlayerLevel);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::NextLevelXP), sObjectMgr->GetXPForLevel(GetLevel()));
 
     // reset before any aura state sources (health set/aura apply)
-    SetUInt32Value(UNIT_FIELD_AURASTATE, 0);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AuraState), 0);
 
     UpdateSkillsForLevel();
 
     // set default cast time multiplier
-    SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);
+    SetModCastingSpeed(1.0f);
 
     // reset size before reapply auras
     SetObjectScale(1.0f);
@@ -2617,74 +2618,75 @@ void Player::InitStatsForLevel(bool reapplyMods)
     InitStatBuffMods();
 
     //reset rating fields values
-    for (uint16 index = PLAYER_FIELD_COMBAT_RATING_1; index < PLAYER_FIELD_COMBAT_RATING_1 + MAX_COMBAT_RATING; ++index)
-        SetUInt32Value(index, 0);
+    for (uint16 index = 0; index < MAX_COMBAT_RATING; ++index)
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::CombatRatings, index), 0);
 
-    SetUInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, 0);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModHealingDonePos), 0);
     for (uint8 i = 0; i < 7; ++i)
     {
-        SetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + i, 0);
-        SetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, 0);
-        SetFloatValue(PLAYER_FIELD_MOD_DAMAGE_DONE_PCT + i, 1.00f);
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModDamageDoneNeg, i), 0);
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModDamageDonePos, i), 0);
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModDamageDonePercent, i), 1.00f);
     }
 
     //reset attack power, damage and attack speed fields
-    SetFloatValue(UNIT_FIELD_BASEATTACKTIME, 2000.0f);
-    SetFloatValue(UNIT_FIELD_BASEATTACKTIME + 1, 2000.0f); // offhand attack time
-    SetFloatValue(UNIT_FIELD_RANGEDATTACKTIME, 2000.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AttackRoundBaseTime, 0), uint32(BASE_ATTACK_TIME));
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AttackRoundBaseTime, 1), uint32(BASE_ATTACK_TIME)); // offhand attack time
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::RangedAttackRoundBaseTime), uint32(BASE_ATTACK_TIME));
 
-    SetFloatValue(UNIT_FIELD_MINDAMAGE, 0.0f);
-    SetFloatValue(UNIT_FIELD_MAXDAMAGE, 0.0f);
-    SetFloatValue(UNIT_FIELD_MINOFFHANDDAMAGE, 0.0f);
-    SetFloatValue(UNIT_FIELD_MAXOFFHANDDAMAGE, 0.0f);
-    SetFloatValue(UNIT_FIELD_MINRANGEDDAMAGE, 0.0f);
-    SetFloatValue(UNIT_FIELD_MAXRANGEDDAMAGE, 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MinDamage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MaxDamage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MinOffHandDamage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MaxOffHandDamage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MinRangedDamage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MaxRangedDamage), 0.0f);
 
-    SetInt32Value(UNIT_FIELD_ATTACK_POWER,            0);
-    SetInt32Value(UNIT_FIELD_ATTACK_POWER_MODS,       0);
-    SetFloatValue(UNIT_FIELD_ATTACK_POWER_MULTIPLIER, 0.0f);
-    SetInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER,     0);
-    SetInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER_MODS, 0);
-    SetFloatValue(UNIT_FIELD_RANGED_ATTACK_POWER_MULTIPLIER, 0.0f);
+    SetAttackPower(0);
+    SetAttackPowerModPos(0);
+    SetAttackPowerModNeg(0);
+    SetAttackPowerMultiplier(0.0f);
+    SetRangedAttackPower(0);
+    SetRangedAttackPowerModPos(0);
+    SetRangedAttackPowerModNeg(0);
+    SetRangedAttackPowerMultiplier(0.0f);
 
     // Base crit values (will be recalculated in UpdateAllStats() at loading and in _ApplyAllStatBonuses() at reset
-    SetFloatValue(PLAYER_CRIT_PERCENTAGE, 0.0f);
-    SetFloatValue(PLAYER_OFFHAND_CRIT_PERCENTAGE, 0.0f);
-    SetFloatValue(PLAYER_RANGED_CRIT_PERCENTAGE, 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::CritPercentage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::OffhandCritPercentage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::RangedCritPercentage), 0.0f);
 
     // Init spell schools (will be recalculated in UpdateAllStats() at loading and in _ApplyAllStatBonuses() at reset
     for (uint8 i = 0; i < 7; ++i)
-        SetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + i, 0.0f);
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SpellCritPercentage, i), 0.0f);
 
-    SetFloatValue(PLAYER_PARRY_PERCENTAGE, 0.0f);
-    SetFloatValue(PLAYER_BLOCK_PERCENTAGE, 0.0f);
-    SetUInt32Value(PLAYER_SHIELD_BLOCK, 0);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ParryPercentage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::BlockPercentage), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ShieldBlock), 0);
 
     // Dodge percentage
-    SetFloatValue(PLAYER_DODGE_PERCENTAGE, 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::DodgePercentage), 0.0f);
 
     // set armor (resistance 0) to original value (create_agility*2)
     SetArmor(int32(m_createStats[STAT_AGILITY] * 2));
-    SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSPOSITIVE + AsUnderlyingType(SPELL_SCHOOL_NORMAL), 0.0f);
-    SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSNEGATIVE + AsUnderlyingType(SPELL_SCHOOL_NORMAL), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ResistanceBuffModsPositive, AsUnderlyingType(SPELL_SCHOOL_NORMAL)), 0);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ResistanceBuffModsNegative, AsUnderlyingType(SPELL_SCHOOL_NORMAL)), 0);
     // set other resistance to original value (0)
     for (uint8 i = 1; i < MAX_SPELL_SCHOOL; ++i)
     {
         SetResistance(SpellSchools(i), 0);
-        SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSPOSITIVE + i, 0.0f);
-        SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSNEGATIVE + i, 0.0f);
+        SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ResistanceBuffModsPositive, i), 0);
+        SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ResistanceBuffModsNegative, i), 0);
     }
 
-    SetUInt32Value(PLAYER_FIELD_MOD_TARGET_RESISTANCE, 0);
-    SetUInt32Value(PLAYER_FIELD_MOD_TARGET_PHYSICAL_RESISTANCE, 0);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModTargetResistance), 0);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModTargetPhysicalResistance), 0);
     for (uint8 i = 0; i < MAX_SPELL_SCHOOL; ++i)
     {
-        SetUInt32Value(UNIT_FIELD_POWER_COST_MODIFIER + i, 0);
-        SetFloatValue(UNIT_FIELD_POWER_COST_MULTIPLIER + i, 0.0f);
+        SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerCostModifier, i), 0);
+        SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerCostMultiplier, i), 0.0f);
     }
     // Reset no reagent cost field
-    for (uint8 i = 0; i < 3; ++i)
-        SetUInt32Value(PLAYER_NO_REAGENT_COST_1 + i, 0);
+    SetNoRegentCostMask(flag96());
     // Init data for form but skip reapply item mods for form
     InitDataForForm(reapplyMods);
 
@@ -2695,16 +2697,16 @@ void Player::InitStatsForLevel(bool reapplyMods)
     SetMaxHealth(classInfo.basehealth);                     // stamina bonus will applied later
 
     // cleanup mounted state (it will set correctly at aura loading if player saved at mount.
-    SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, 0);
+    SetMountDisplayId(0);
 
     // cleanup unit flags (will be re-applied if need at aura load).
-    RemoveFlag(UNIT_FIELD_FLAGS,
+    RemoveUnitFlag(UnitFlags(
                UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_DISABLE_MOVE  | UNIT_FLAG_NOT_ATTACKABLE_1 |
                UNIT_FLAG_LOOTING        | UNIT_FLAG_PET_IN_COMBAT | UNIT_FLAG_SILENCED         |
                UNIT_FLAG_PACIFIED       | UNIT_FLAG_STUNNED       | UNIT_FLAG_IN_COMBAT        |
                UNIT_FLAG_DISARMED       | UNIT_FLAG_CONFUSED      | UNIT_FLAG_FLEEING          |
                UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_SKINNABLE     | UNIT_FLAG_MOUNT            |
-               UNIT_FLAG_TAXI_FLIGHT);
+               UNIT_FLAG_TAXI_FLIGHT));
     SetImmuneToAll(false);
     SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);   // must be set
 
@@ -2721,7 +2723,8 @@ void Player::InitStatsForLevel(bool reapplyMods)
 
     }
     // restore if need some important flags
-    SetUInt32Value(PLAYER_FIELD_BYTES2, 0);                 // flags empty by default
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LocalRegenFlags), 0); // flags empty by default
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AuraVision), 0);
 
     if (reapplyMods)                                        // reapply stats values only on .reset stats (level) command
         _ApplyAllStatBonuses();
@@ -4465,7 +4468,9 @@ void Player::BuildPlayerRepop()
     }
     corpse->ResetGhostTime(); // to prevent cheating
     StopMirrorTimers(); // disable timers on bars
-    SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_ANIM_TIER, UNIT_BYTE1_FLAG_ALWAYS_STAND); // set and clear other
+    // [1c.4] TODO: 3.3.5 set the legacy UNIT_FIELD_BYTES_1 anim-tier byte here (ALWAYS_STAND).
+    // xian55's BuildPlayerRepop drops this write in 3.4.3 (UnitData::AnimTier defaults to Ground);
+    // matching xian55 by omitting it.
     sScriptMgr->OnPlayerReleasedGhost(this);
 }
 
@@ -4484,7 +4489,9 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     // speed change, land walk
 
     // remove death flag + set aura
-    SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_ANIM_TIER, UNIT_BYTE1_FLAG_GROUND);
+    // [1c.4] TODO: 3.3.5 reset the legacy UNIT_FIELD_BYTES_1 anim-tier byte here (GROUND).
+    // xian55's ResurrectPlayer drops this write in 3.4.3 (UnitData::AnimTier defaults to Ground);
+    // matching xian55 by omitting it.
     RemoveAurasDueToSpell(20584);                           // speed bonuses
     RemoveAurasDueToSpell(8326);                            // SPELL_AURA_GHOST
 
@@ -4564,7 +4571,10 @@ void Player::KillPlayer()
     //SetUnitFlag(UNIT_FLAG_NOT_IN_PVP);
 
     ReplaceAllDynamicFlags(UNIT_DYNFLAG_NONE);
-    ApplyModFlag(PLAYER_FIELD_BYTES, PLAYER_FIELD_BYTE_RELEASE_TIMER, !sMapStore.LookupEntry(GetMapId())->Instanceable() && !HasPreventResurectionAura());
+    if (!sMapStore.LookupEntry(GetMapId())->Instanceable() && !HasPreventResurectionAura())
+        SetPlayerLocalFlag(PLAYER_LOCAL_FLAG_RELEASE_TIMER);
+    else
+        RemovePlayerLocalFlag(PLAYER_LOCAL_FLAG_RELEASE_TIMER);
 
     // 6 minutes until repop at graveyard
     m_deathTimer = 6 * MINUTE * IN_MILLISECONDS;
@@ -4608,12 +4618,12 @@ Corpse* Player::CreateCorpse()
 
     _corpseLocation.WorldRelocate(*this);
 
-    // Appearance: structured CorpseData now carries Race/Sex/Class instead of the legacy bytes1/bytes2.
-    // [1c.4] TODO: skin/face/hairstyle/haircolor/facialhair were packed into CORPSE_FIELD_BYTES_1/2 and
-    // are now ChrCustomizationChoice data (CorpseData::Customizations); customization copy not yet ported.
+    // Appearance: structured CorpseData now carries Race/Sex/Class plus the ChrCustomizationChoice list
+    // (CorpseData::Customizations) instead of the legacy CORPSE_FIELD_BYTES_1/2 packed bytes. (xian55 ~4370-4373)
     corpse->SetRace(getRace());
-    corpse->SetSex(getGender());
+    corpse->SetSex(GetNativeGender());
     corpse->SetClass(getClass());
+    corpse->SetCustomizations(Acore::Containers::MakeIteratorPair(m_playerData->Customizations.begin(), m_playerData->Customizations.end()));
 
     uint32 flags = CORPSE_FLAG_UNK2;
     if (HasPlayerFlag(PLAYER_FLAGS_HIDE_HELM))
@@ -6223,7 +6233,7 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize, int32 honor, bool awar
             if (v_level <= k_grey)
                 return false;
 
-            victim_rank = victim->GetByteValue(PLAYER_FIELD_BYTES, PLAYER_FIELD_BYTES_OFFSET_LIFETIME_MAX_PVP_RANK);
+            victim_rank = victim->m_activePlayerData->LifetimeMaxRank;
 
             uint32 killer_title = uint32(GetChosenTitle());
 
@@ -6232,9 +6242,9 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize, int32 honor, bool awar
             honor_f = std::ceil(Acore::Honor::hk_honor_at_level_f(k_level) * (v_level - k_grey) / (k_level - k_grey));
 
             // count the number of playerkills in one day
-            ApplyModUInt32Value(PLAYER_FIELD_KILLS, 1, true);
+            ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TodayHonorableKills), 1, true);
             // and those in a lifetime
-            ApplyModUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 1, true);
+            ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LifetimeHonorableKills), 1, true);
             UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL);
             UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HK_CLASS, victim->getClass());
             UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HK_RACE, victim->getRace(true));
@@ -6282,7 +6292,8 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize, int32 honor, bool awar
     // add honor points
     ModifyHonorPoints(honor);
 
-    ApplyModUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION, honor, true);
+    // [1c.4] TODO: PLAYER_FIELD_TODAY_CONTRIBUTION has NO equivalent field in 3.4.3 ActivePlayerData
+    // (xian55 drops it); today's honor contribution tracking is not represented. Omitting.
 
     // Xinef: Battleground experience
     if (awardXP)
@@ -6339,7 +6350,10 @@ void Player::SetHonorPoints(uint32 value)
 
         value = sWorld->getIntConfig(CONFIG_MAX_HONOR_POINTS);
     }
-    SetUInt32Value(PLAYER_FIELD_HONOR_CURRENCY, value);
+    // [1c.4] PLAYER_FIELD_HONOR_CURRENCY is absent in 3.4.3; store server-side
+    // instead of the dead update field. Client-visible display still needs the
+    // Currency subsystem (separate brick).
+    m_honorPoints = value;
     if (value)
         AddKnownCurrency(ITEM_HONOR_POINTS_ID);
 }
@@ -6348,7 +6362,10 @@ void Player::SetArenaPoints(uint32 value)
 {
     if (value > sWorld->getIntConfig(CONFIG_MAX_ARENA_POINTS))
         value = sWorld->getIntConfig(CONFIG_MAX_ARENA_POINTS);
-    SetUInt32Value(PLAYER_FIELD_ARENA_CURRENCY, value);
+    // [1c.4] PLAYER_FIELD_ARENA_CURRENCY is absent in 3.4.3; store server-side
+    // instead of the dead update field. Client-visible display still needs the
+    // Currency subsystem (separate brick).
+    m_arenaPoints = value;
     if (value)
         AddKnownCurrency(ITEM_ARENA_POINTS_ID);
 }
@@ -7910,9 +7927,6 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
         // And permit out of range GO with no owner in case fishing hole
         if (!go || (loot_type != LOOT_FISHINGHOLE && ((loot_type != LOOT_FISHING && loot_type != LOOT_FISHING_JUNK) || go->GetOwnerGUID() != GetGUID()) && !go->IsWithinDistInMap(this)) || (loot_type == LOOT_CORPSE && go->GetRespawnTime() && go->isSpawnedByDefault()))
         {
-            if (go)
-                go->ForceValuesUpdateAtIndex(GAMEOBJECT_BYTES_1);
-
             SendLootRelease(guid);
             return;
         }
@@ -7934,7 +7948,6 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
                     if (bg->GetBgTypeID(true) == BATTLEGROUND_AV)
                         if (!bg->ToBattlegroundAV()->PlayerCanDoMineQuest(go->GetEntry(), GetTeamId()))
                         {
-                            go->ForceValuesUpdateAtIndex(GAMEOBJECT_BYTES_1);
                             SendLootRelease(guid);
                             return;
                         }
@@ -9117,7 +9130,8 @@ Pet* Player::SummonPet(uint32 entry, float x, float y, float z, float ang, PetTy
     pet->SetFaction(GetFaction());
     pet->setPowerType(POWER_MANA);
     pet->ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
-    pet->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
+    // [1c.4] TODO: 3.3.5 cleared the legacy UNIT_FIELD_BYTES_1 byte here; xian55's SummonPet drops
+    // this in 3.4.3 (StandState/VisFlags/AnimTier all default to 0 on a freshly created pet).
     pet->InitStatsForLevel(GetLevel());
 
     SetMinion(pet, true);
@@ -9133,11 +9147,11 @@ Pet* Player::SummonPet(uint32 entry, float x, float y, float z, float ang, PetTy
             pet->GetCharmInfo()->SetPetNumber(pet_number, false);
         }
 
-        pet->SetUInt32Value(UNIT_FIELD_PETEXPERIENCE, 0);
-        pet->SetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP, 1000);
+        pet->SetPetExperience(0);
+        pet->SetPetNextLevelExperience(1000);
         pet->SetFullHealth();
         pet->SetPower(POWER_MANA, pet->GetMaxPower(POWER_MANA));
-        pet->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, uint32(GameTime::GetGameTime().count())); // cast can't be helped in this case
+        pet->SetPetNameTimestamp(uint32(GameTime::GetGameTime().count())); // cast can't be helped in this case
     }
 
     map->AddToMap(pet->ToCreature(), true);
@@ -9193,7 +9207,7 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
     if (returnreagent && (pet || (m_temporaryUnsummonedPetNumber && (!m_session || !m_session->PlayerLogout()))) && !InBattleground())
     {
         //returning of reagents only for players, so best done here
-        uint32 spellId = pet ? pet->GetUInt32Value(UNIT_CREATED_BY_SPELL) : m_oldpetspell;
+        uint32 spellId = pet ? pet->GetCreatedBySpell() : m_oldpetspell;
         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
 
         if (spellInfo)
@@ -9348,13 +9362,13 @@ Pet* Player::CreatePet(Creature* creatureTarget, uint32 spellID /*= 0*/)
     uint8 level = (creatureTarget->GetLevel() < (GetLevel() - 5)) ? (GetLevel() - 5) : GetLevel();
 
     // prepare visual effect for levelup
-    pet->SetUInt32Value(UNIT_FIELD_LEVEL, level - 1);
+    pet->SetLevel(uint8(level - 1));
 
     // add to world
     pet->GetMap()->AddToMap(pet->ToCreature());
 
     // visual effect for levelup
-    pet->SetUInt32Value(UNIT_FIELD_LEVEL, level);
+    pet->SetLevel(level);
 
     // caster have pet now
     SetMinion(pet, true);
@@ -9389,13 +9403,13 @@ Pet* Player::CreatePet(uint32 creatureEntry, uint32 spellID /*= 0*/)
     }
 
     // prepare visual effect for levelup
-    pet->SetUInt32Value(UNIT_FIELD_LEVEL, GetLevel() - 1);
+    pet->SetLevel(uint8(GetLevel() - 1));
 
     // add to world
     pet->GetMap()->AddToMap(pet->ToCreature());
 
     // visual effect for levelup
-    pet->SetUInt32Value(UNIT_FIELD_LEVEL, GetLevel());
+    pet->SetLevel(GetLevel());
 
     // caster have pet now
     SetMinion(pet, true);
@@ -10264,17 +10278,17 @@ void Player::SetRestBonus(float restBonusNew)
         _restBonus = restBonusNew;
     // update data for client
     if ((GetsRecruitAFriendBonus(true) && (GetSession()->IsARecruiter() || GetSession()->GetRecruiterId() != 0)))
-        SetByteValue(PLAYER_BYTES_2, 3, REST_STATE_RAF_LINKED);
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::RestInfo, 0).ModifyValue(&UF::RestInfo::StateID), uint8(REST_STATE_RAF_LINKED));
     else
     {
         if (_restBonus > 10)
-            SetByteValue(PLAYER_BYTES_2, 3, REST_STATE_RESTED);
+            SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::RestInfo, 0).ModifyValue(&UF::RestInfo::StateID), uint8(REST_STATE_RESTED));
         else if (_restBonus <= 1)
-            SetByteValue(PLAYER_BYTES_2, 3, REST_STATE_NOT_RAF_LINKED);
+            SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::RestInfo, 0).ModifyValue(&UF::RestInfo::StateID), uint8(REST_STATE_NOT_RAF_LINKED));
     }
 
     //RestTickUpdate
-    SetUInt32Value(PLAYER_REST_STATE_EXPERIENCE, uint32(_restBonus));
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::RestInfo, 0).ModifyValue(&UF::RestInfo::Threshold), uint32(_restBonus));
 }
 
 bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc /*= nullptr*/, uint32 spellid /*= 1*/)
@@ -10743,7 +10757,7 @@ inline bool Player::_StoreOrEquipNewItem(uint32 vendorslot, uint32 item, uint8 c
 
         if (pProto->HasFlag(ITEM_FLAG_ITEM_PURCHASE_RECORD) && crItem->ExtendedCost && pProto->GetMaxStackSize() == 1)
         {
-            it->SetFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_REFUNDABLE);
+            it->SetItemFlag(ITEM_FIELD_FLAG_REFUNDABLE);
             it->SetRefundRecipient(GetGUID().GetCounter());
             it->SetPaidMoney(price);
             it->SetPaidExtendedCost(crItem->ExtendedCost);
@@ -12420,7 +12434,7 @@ void Player::SetBattlegroundId(uint32 id, BattlegroundTypeId bgTypeId, uint32 qu
     m_bgData.bgIsRandom = isRandom;
 
     m_bgData.bgTeamId = teamId;
-    SetByteValue(PLAYER_BYTES_3, 3, uint8(teamId == TEAM_ALLIANCE ? 1 : 0));
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::ArenaFaction), uint8(teamId == TEAM_ALLIANCE ? 1 : 0));
 }
 
 bool Player::GetBGAccessByLevel(BattlegroundTypeId bgTypeId) const
@@ -12720,9 +12734,9 @@ bool Player::CanNoReagentCast(SpellInfo const* spellInfo) const
 
     // Check no reagent use mask
     flag96 noReagentMask;
-    noReagentMask[0] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1);
-    noReagentMask[1] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1 + 1);
-    noReagentMask[2] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1 + 2);
+    noReagentMask[0] = m_activePlayerData->NoReagentCostMask[0];
+    noReagentMask[1] = m_activePlayerData->NoReagentCostMask[1];
+    noReagentMask[2] = m_activePlayerData->NoReagentCostMask[2];
     if (spellInfo->SpellFamilyFlags  & noReagentMask)
         return true;
 
@@ -13340,11 +13354,13 @@ void Player::SetViewpoint(WorldObject* target, bool apply)
     {
         LOG_DEBUG("maps", "Player::CreateViewpoint: Player {} create seer {} (TypeId: {}).", GetName(), target->GetEntry(), target->GetTypeId());
 
-        if (!AddGuidValue(PLAYER_FARSIGHT, target->GetGUID()))
+        if (ObjectGuid::Empty != m_activePlayerData->FarsightObject)
         {
             LOG_DEBUG("entities.player", "Player::CreateViewpoint: Player {} cannot add new viewpoint!", GetName());
             return;
         }
+
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::FarsightObject), target->GetGUID());
 
         // farsight dynobj or puppet may be very far away
         UpdateVisibilityOf(target);
@@ -13360,11 +13376,13 @@ void Player::SetViewpoint(WorldObject* target, bool apply)
 
         LOG_DEBUG("maps", "Player::CreateViewpoint: Player {} remove seer", GetName());
 
-        if (!RemoveGuidValue(PLAYER_FARSIGHT, target->GetGUID()))
+        if (target->GetGUID() != m_activePlayerData->FarsightObject)
         {
             LOG_DEBUG("entities.player", "Player::CreateViewpoint: Player {} cannot remove current viewpoint!", GetName());
             return;
         }
+
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::FarsightObject), ObjectGuid::Empty);
 
         if (target->IsUnit() && !GetVehicle())
             static_cast<Unit*>(target)->RemovePlayerFromVision(this);
@@ -13422,41 +13440,35 @@ bool Player::CanCaptureTowerPoint() const
            );
 }
 
-uint32 Player::GetBarberShopCost(uint8 newhairstyle, uint8 newhaircolor, uint8 newfacialhair, BarberShopStyleEntry const* newSkin)
+// [1c.4] 3.4.3 barbershop cost (mirrors xian55 Player::GetBarberShopCost): diff the requested ChrCustomizationChoice
+// set against the player's current m_playerData->Customizations and charge the level-based base cost scaled by each
+// changed option's BarberShopCostModifier. xian55 reads the base from the BarberShopCostBase GameTable via
+// GetRow(GetLevel()); AC exposes the same data through the sGtBarberShopCostBaseStore DBC GameTable (0-based level).
+int64 Player::GetBarberShopCost(Acore::IteratorPair<UF::ChrCustomizationChoice const*> newCustomizations) const
 {
     uint8 level = GetLevel();
 
     if (level > GT_MAX_LEVEL)
         level = GT_MAX_LEVEL;                               // max level in this dbc
 
-    uint8 hairstyle = GetByteValue(PLAYER_BYTES, 2);
-    uint8 haircolor = GetByteValue(PLAYER_BYTES, 3);
-    uint8 facialhair = GetByteValue(PLAYER_BYTES_2, 0);
-    uint8 skincolor = GetByteValue(PLAYER_BYTES, 0);
-
-    if ((hairstyle == newhairstyle) && (haircolor == newhaircolor) && (facialhair == newfacialhair) && (!newSkin || (newSkin->hair_id == skincolor)))
+    GtBarberShopCostBaseEntry const* bsc = sGtBarberShopCostBaseStore.LookupEntry(level - 1);
+    if (!bsc)                                                // shouldn't happen
         return 0;
 
-    GtBarberShopCostBaseEntry const* bsc = sGtBarberShopCostBaseStore.LookupEntry(level - 1);
+    int64 cost = 0;
+    for (UF::ChrCustomizationChoice const& newChoice : newCustomizations)
+    {
+        int32 currentCustomizationIndex = m_playerData->Customizations.FindIndexIf([&](UF::ChrCustomizationChoice const& currentCustomization)
+        {
+            return currentCustomization.ChrCustomizationOptionID == newChoice.ChrCustomizationOptionID;
+        });
 
-    if (!bsc)                                                // shouldn't happen
-        return 0xFFFFFFFF;
+        if (currentCustomizationIndex == -1 || m_playerData->Customizations[currentCustomizationIndex].ChrCustomizationChoiceID != newChoice.ChrCustomizationChoiceID)
+            if (ChrCustomizationOptionEntry const* customizationOption = sChrCustomizationOptionStore.LookupEntry(newChoice.ChrCustomizationOptionID))
+                cost += int64(bsc->cost * customizationOption->BarberShopCostModifier);
+    }
 
-    float cost = 0;
-
-    if (hairstyle != newhairstyle)
-        cost += bsc->cost;                                  // full price
-
-    if ((haircolor != newhaircolor) && (hairstyle == newhairstyle))
-        cost += bsc->cost * 0.5f;                           // +1/2 of price
-
-    if (facialhair != newfacialhair)
-        cost += bsc->cost * 0.75f;                          // +3/4 of price
-
-    if (newSkin && skincolor != newSkin->hair_id)
-        cost += bsc->cost * 0.75f;                          // +5/6 of price
-
-    return uint32(cost);
+    return cost;
 }
 
 void Player::InitGlyphsForLevel()
@@ -13653,8 +13665,8 @@ void Player::InitRunes()
         m_runes->SetRuneState(i);
     }
 
-    for (uint8 i = 0; i < NUM_RUNE_TYPES; ++i)
-        SetFloatValue(PLAYER_RUNE_REGEN_1 + i, 0.1f);
+    // [1c.4] TODO: PLAYER_RUNE_REGEN_1 has no equivalent field in 3.4.3 ActivePlayerData
+    // (rune-regen-per-type was removed from the UF layout); per-type regen rate write omitted.
 }
 
 bool Player::IsBaseRuneSlotsOnCooldown(RuneType runeType) const
@@ -14422,7 +14434,7 @@ void Player::UnsummonPetTemporaryIfAny()
     if (!m_temporaryUnsummonedPetNumber && pet->isControlled() && !pet->isTemporarySummoned())
     {
         m_temporaryUnsummonedPetNumber = pet->GetCharmInfo()->GetPetNumber();
-        SetLastPetSpell(pet->GetUInt32Value(UNIT_CREATED_BY_SPELL));
+        SetLastPetSpell(pet->GetCreatedBySpell());
     }
 
     RemovePet(pet, PET_SAVE_AS_CURRENT);
@@ -14984,17 +14996,17 @@ void Player::_SaveCharacter(bool create, CharacterDatabaseTransaction trans)
         stmt->SetData(index++, GetName());
         stmt->SetData(index++, getRace(true));
         stmt->SetData(index++, getClass());
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES_3, 0));   // save gender from PLAYER_BYTES_3, UNIT_BYTES_0 changes with every transform effect
+        stmt->SetData(index++, GetNativeGender());                // [1c.4] native gender (PlayerData::NativeSex; stable across transforms)
         stmt->SetData(index++, GetLevel());
         stmt->SetData(index++, GetXP());
         stmt->SetData(index++, GetMoney());
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES, 0));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES, 1));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES, 2));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES, 3));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES_2, 0));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES_2, 2));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES_2, 3));
+        stmt->SetData(index++, uint8(0));                         // [1c.4] skin (vestigial; appearance is now Customizations)
+        stmt->SetData(index++, uint8(0));                         // [1c.4] face (vestigial)
+        stmt->SetData(index++, uint8(0));                         // [1c.4] hairStyle (vestigial)
+        stmt->SetData(index++, uint8(0));                         // [1c.4] hairColor (vestigial)
+        stmt->SetData(index++, uint8(0));                         // [1c.4] facialStyle (vestigial)
+        stmt->SetData(index++, GetBankBagSlotCount());            // bankSlots (legacy PLAYER_BYTES_2 byte2)
+        stmt->SetData(index++, uint8(m_activePlayerData->RestInfo[0].StateID)); // restState (legacy PLAYER_BYTES_2 byte3)
         stmt->SetData(index++, (uint32)GetPlayerFlags());
         stmt->SetData(index++, (uint16)GetMapId());
         stmt->SetData(index++, (uint32)GetInstanceId());
@@ -15063,34 +15075,43 @@ void Player::_SaveCharacter(bool create, CharacterDatabaseTransaction trans)
         stmt->SetData(index++, m_activeSpec);
 
         ss.str("");
+        // [1c.4] ExploredZones is now a uint64 array; write low then high uint32 word per entry (symmetric with LoadFromDB)
         for (uint32 i = 0; i < PLAYER_EXPLORED_ZONES_SIZE; ++i)
-            ss << GetUInt32Value(PLAYER_EXPLORED_ZONES_1 + i) << ' ';
+        {
+            ss << uint32(m_activePlayerData->ExploredZones[i] & 0xFFFFFFFF) << ' ';
+            ss << uint32((m_activePlayerData->ExploredZones[i] >> 32) & 0xFFFFFFFF) << ' ';
+        }
         stmt->SetData(index++, ss.str());
 
         ss.str("");
-        // cache equipment...
-        for (uint32 i = 0; i < EQUIPMENT_SLOT_END * 2; ++i)
-            ss << GetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + i) << ' ';
-
-        // ...and bags for enum opcode
-        for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
+        // [1c.4] equipmentcache: PLAYER_VISIBLE_ITEM_* flat fields are gone. Keep the legacy "<entry> <packedEnchant>"
+        // per-slot DB format that Player::BuildEnumData still parses; source from live items (entry + 2x uint16 enchant).
+        for (uint8 slot = 0; slot < INVENTORY_SLOT_BAG_END; ++slot)
         {
-            if (Item* item = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-                ss << item->GetEntry();
+            if (Item* item = GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+            {
+                uint32 enchants = 0;
+                for (uint8 enchantSlot = PERM_ENCHANTMENT_SLOT; enchantSlot <= TEMP_ENCHANTMENT_SLOT; ++enchantSlot)
+                    enchants |= uint32(item->GetEnchantmentId(EnchantmentSlot(enchantSlot)) & 0xFFFF) << (enchantSlot * 16);
+                ss << item->GetEntry() << ' ' << enchants << ' ';
+            }
             else
-                ss << '0';
-            ss << " 0 ";
+                ss << "0 0 ";
         }
 
         stmt->SetData(index++, ss.str());
         stmt->SetData(index++, GetAmmoId());
 
         ss.str("");
-        for (uint32 i = 0; i < KNOWN_TITLES_SIZE * 2; ++i)
-            ss << GetUInt32Value(PLAYER__FIELD_KNOWN_TITLES + i) << ' ';
+        // [1c.4] KnownTitles is now a dynamic uint64 field; write low then high uint32 word per entry (symmetric with LoadFromDB)
+        for (uint32 i = 0; i < m_activePlayerData->KnownTitles.size(); ++i)
+        {
+            ss << uint32(m_activePlayerData->KnownTitles[i] & 0xFFFFFFFF) << ' ';
+            ss << uint32((m_activePlayerData->KnownTitles[i] >> 32) & 0xFFFFFFFF) << ' ';
+        }
 
         stmt->SetData(index++, ss.str());
-        stmt->SetData(index++, GetByteValue(PLAYER_FIELD_BYTES, 2));
+        stmt->SetData(index++, uint8(m_activePlayerData->MultiActionBars)); // [1c.4] legacy PLAYER_FIELD_BYTES byte2 -> ActivePlayerData::MultiActionBars
         stmt->SetData(index++, m_grantableLevels);
         stmt->SetData(index++, _innTriggerId);
         stmt->SetData(index++, m_extraBonusTalentCount);
@@ -15102,17 +15123,17 @@ void Player::_SaveCharacter(bool create, CharacterDatabaseTransaction trans)
         stmt->SetData(index++, GetName());
         stmt->SetData(index++, getRace(true));
         stmt->SetData(index++, getClass());
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES_3, 0));   // save gender from PLAYER_BYTES_3, UNIT_BYTES_0 changes with every transform effect
+        stmt->SetData(index++, GetNativeGender());                // [1c.4] native gender (PlayerData::NativeSex; stable across transforms)
         stmt->SetData(index++, GetLevel());
         stmt->SetData(index++, GetXP());
         stmt->SetData(index++, GetMoney());
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES, 0));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES, 1));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES, 2));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES, 3));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES_2, 0));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES_2, 2));
-        stmt->SetData(index++, GetByteValue(PLAYER_BYTES_2, 3));
+        stmt->SetData(index++, uint8(0));                         // [1c.4] skin (vestigial; appearance is now Customizations)
+        stmt->SetData(index++, uint8(0));                         // [1c.4] face (vestigial)
+        stmt->SetData(index++, uint8(0));                         // [1c.4] hairStyle (vestigial)
+        stmt->SetData(index++, uint8(0));                         // [1c.4] hairColor (vestigial)
+        stmt->SetData(index++, uint8(0));                         // [1c.4] facialStyle (vestigial)
+        stmt->SetData(index++, GetBankBagSlotCount());            // bankSlots (legacy PLAYER_BYTES_2 byte2)
+        stmt->SetData(index++, uint8(m_activePlayerData->RestInfo[0].StateID)); // restState (legacy PLAYER_BYTES_2 byte3)
         stmt->SetData(index++, GetPlayerFlags());
 
         if (!IsBeingTeleported())
@@ -15203,34 +15224,43 @@ void Player::_SaveCharacter(bool create, CharacterDatabaseTransaction trans)
         stmt->SetData(index++, m_activeSpec);
 
         ss.str("");
+        // [1c.4] ExploredZones is now a uint64 array; write low then high uint32 word per entry (symmetric with LoadFromDB)
         for (uint32 i = 0; i < PLAYER_EXPLORED_ZONES_SIZE; ++i)
-            ss << GetUInt32Value(PLAYER_EXPLORED_ZONES_1 + i) << ' ';
+        {
+            ss << uint32(m_activePlayerData->ExploredZones[i] & 0xFFFFFFFF) << ' ';
+            ss << uint32((m_activePlayerData->ExploredZones[i] >> 32) & 0xFFFFFFFF) << ' ';
+        }
         stmt->SetData(index++, ss.str());
 
         ss.str("");
-        // cache equipment...
-        for (uint32 i = 0; i < EQUIPMENT_SLOT_END * 2; ++i)
-            ss << GetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + i) << ' ';
-
-        // ...and bags for enum opcode
-        for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
+        // [1c.4] equipmentcache: PLAYER_VISIBLE_ITEM_* flat fields are gone. Keep the legacy "<entry> <packedEnchant>"
+        // per-slot DB format that Player::BuildEnumData still parses; source from live items (entry + 2x uint16 enchant).
+        for (uint8 slot = 0; slot < INVENTORY_SLOT_BAG_END; ++slot)
         {
-            if (Item* item = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-                ss << item->GetEntry();
+            if (Item* item = GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+            {
+                uint32 enchants = 0;
+                for (uint8 enchantSlot = PERM_ENCHANTMENT_SLOT; enchantSlot <= TEMP_ENCHANTMENT_SLOT; ++enchantSlot)
+                    enchants |= uint32(item->GetEnchantmentId(EnchantmentSlot(enchantSlot)) & 0xFFFF) << (enchantSlot * 16);
+                ss << item->GetEntry() << ' ' << enchants << ' ';
+            }
             else
-                ss << '0';
-            ss << " 0 ";
+                ss << "0 0 ";
         }
 
         stmt->SetData(index++, ss.str());
         stmt->SetData(index++, GetAmmoId());
 
         ss.str("");
-        for (uint32 i = 0; i < KNOWN_TITLES_SIZE * 2; ++i)
-            ss << GetUInt32Value(PLAYER__FIELD_KNOWN_TITLES + i) << ' ';
+        // [1c.4] KnownTitles is now a dynamic uint64 field; write low then high uint32 word per entry (symmetric with LoadFromDB)
+        for (uint32 i = 0; i < m_activePlayerData->KnownTitles.size(); ++i)
+        {
+            ss << uint32(m_activePlayerData->KnownTitles[i] & 0xFFFFFFFF) << ' ';
+            ss << uint32((m_activePlayerData->KnownTitles[i] >> 32) & 0xFFFFFFFF) << ' ';
+        }
 
         stmt->SetData(index++, ss.str());
-        stmt->SetData(index++, GetByteValue(PLAYER_FIELD_BYTES, 2));
+        stmt->SetData(index++, uint8(m_activePlayerData->MultiActionBars)); // [1c.4] legacy PLAYER_FIELD_BYTES byte2 -> ActivePlayerData::MultiActionBars
         stmt->SetData(index++, m_grantableLevels);
         stmt->SetData(index++, _innTriggerId);
         stmt->SetData(index++, m_extraBonusTalentCount);
@@ -15241,6 +15271,32 @@ void Player::_SaveCharacter(bool create, CharacterDatabaseTransaction trans)
     }
 
     trans->Append(stmt);
+}
+
+void Player::SaveCustomizations(CharacterDatabaseTransaction trans, ObjectGuid::LowType guid, Acore::IteratorPair<UF::ChrCustomizationChoice const*> customizations)
+{
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHARACTER_CUSTOMIZATIONS);
+    stmt->SetData(0, guid);
+    trans->Append(stmt);
+
+    for (auto&& customization : customizations)
+    {
+        stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHARACTER_CUSTOMIZATION);
+        stmt->SetData(0, guid);
+        stmt->SetData(1, customization.ChrCustomizationOptionID);
+        stmt->SetData(2, customization.ChrCustomizationChoiceID);
+        trans->Append(stmt);
+    }
+}
+
+void Player::_SaveCustomizations(CharacterDatabaseTransaction trans)
+{
+    if (!m_customizationsChanged)
+        return;
+
+    m_customizationsChanged = false;
+
+    SaveCustomizations(trans, GetGUID().GetCounter(), Acore::Containers::MakeIteratorPair(m_playerData->Customizations.data(), m_playerData->Customizations.data() + m_playerData->Customizations.size()));
 }
 
 void Player::_LoadGlyphs(PreparedQueryResult result)

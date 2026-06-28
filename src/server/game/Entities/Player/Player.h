@@ -29,6 +29,7 @@
 #include "EnumFlag.h"
 #include "GroupReference.h"
 #include "InstanceSaveMgr.h"
+#include "IteratorPair.h"
 #include "Item.h"
 #include "MapReference.h"
 #include "ObjectMgr.h"
@@ -910,6 +911,7 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOAD_CHARACTER_SETTINGS           = 36,
     PLAYER_LOGIN_QUERY_LOAD_PET_SLOTS                    = 37,
     PLAYER_LOGIN_QUERY_LOAD_OFFLINE_ACHIEVEMENTS_UPDATES = 38,
+    PLAYER_LOGIN_QUERY_LOAD_CUSTOMIZATIONS               = 39,
     MAX_PLAYER_LOGIN_QUERY
 };
 
@@ -1158,6 +1160,9 @@ public:
     void SetXPForNextLevel(uint32 xp) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::NextLevelXP), int32(xp)); }
     void SetCombatRating(uint32 combatRating, uint32 value) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::CombatRatings, combatRating), int32(value)); }
     [[nodiscard]] int32 GetCombatRatingValue(uint32 combatRating) const { return m_activePlayerData->CombatRatings[combatRating]; }
+    void SetTodayHonorableKills(uint16 value) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TodayHonorableKills), value); }
+    void SetYesterdayHonorableKills(uint16 value) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::YesterdayHonorableKills), value); }
+    void SetLifetimeHonorableKills(uint32 value) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::LifetimeHonorableKills), value); }
 
     // Structured ActivePlayerData / PlayerData accessors replacing removed flat PLAYER_* fields.
     void SetInvSlot(uint32 slot, ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::InvSlots, slot), guid); }
@@ -1165,6 +1170,7 @@ public:
     [[nodiscard]] uint32 GetAmmoId() const { return m_activePlayerData->AmmoID; }
     void SetAmmoId(uint32 ammoId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AmmoID), int32(ammoId)); }
     void SetWatchedFactionIndex(int32 index) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::WatchedFactionIndex), index); }
+    [[nodiscard]] uint32 GetTrackCreatureMask() const { return m_activePlayerData->TrackCreatureMask; }
     void SetTrackCreatureMask(uint32 mask) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TrackCreatureMask), mask); }
     void SetTrackResourceMask(uint32 index, uint32 mask) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TrackResourceMask, index), mask); }
     [[nodiscard]] int32 GetChosenTitle() const { return m_playerData->PlayerTitle; }
@@ -1177,6 +1183,34 @@ public:
     // [1c.4] Native gender. xian55 declares these as Unit overrides; AC's Unit has no such virtual, so plain Player methods.
     [[nodiscard]] Gender GetNativeGender() const { return Gender(*m_playerData->NativeSex); }
     void SetNativeGender(Gender gender) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::NativeSex), gender); }
+
+    uint32 GetCustomizationChoice(uint32 chrCustomizationOptionId) const
+    {
+        int32 choiceIndex = m_playerData->Customizations.FindIndexIf([chrCustomizationOptionId](UF::ChrCustomizationChoice choice)
+        {
+            return choice.ChrCustomizationOptionID == chrCustomizationOptionId;
+        });
+
+        if (choiceIndex >= 0)
+            return m_playerData->Customizations[choiceIndex].ChrCustomizationChoiceID;
+
+        return 0;
+    }
+
+    template<typename Iter>
+    void SetCustomizations(Acore::IteratorPair<Iter> customizations, bool markChanged = true)
+    {
+        if (markChanged)
+            m_customizationsChanged = true;
+
+        ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::Customizations));
+        for (auto&& customization : customizations)
+        {
+            UF::ChrCustomizationChoice& newChoice = AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::Customizations));
+            newChoice.ChrCustomizationOptionID = customization.ChrCustomizationOptionID;
+            newChoice.ChrCustomizationChoiceID = customization.ChrCustomizationChoiceID;
+        }
+    }
 
     // [1c.4] xian55 takes flag128; AC's spell class mask is flag96 (NoReagentCostMask is uint32[4], 4th word always 0).
     void SetNoRegentCostMask(flag96 mask)
@@ -1191,6 +1225,19 @@ public:
     void ApplyModDamageDoneNeg(SpellSchools school, int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModDamageDoneNeg, school), mod, apply); }
     void SetModDamageDonePercent(uint8 school, float pct) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ModDamageDonePercent, school), pct); }
     void SetPetSpellPower(uint32 spellPower) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::PetSpellPower), spellPower); }
+    // [1c.4] crit% getters (3.3.5 PLAYER_CRIT_PERCENTAGE / PLAYER_RANGED_CRIT_PERCENTAGE / PLAYER_SPELL_CRIT_PERCENTAGE1+school).
+    [[nodiscard]] float GetMeleeCritPercentage() const { return m_activePlayerData->CritPercentage; }
+    [[nodiscard]] float GetRangedCritPercentage() const { return m_activePlayerData->RangedCritPercentage; }
+    [[nodiscard]] float GetSpellCritPercentage(SpellSchools school) const { return m_activePlayerData->SpellCritPercentage[school]; }
+    // [1c.4] self-resurrection spell list (3.3.5 single PLAYER_SELF_RES_SPELL -> 3.4.3 ActivePlayerData::SelfResSpells dynamic list).
+    void AddSelfResSpell(int32 spellId) { AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SelfResSpells)) = spellId; }
+    void RemoveSelfResSpell(int32 spellId)
+    {
+        int32 index = m_activePlayerData->SelfResSpells.FindIndex(spellId);
+        if (index >= 0)
+            RemoveDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SelfResSpells), uint32(index));
+    }
+    void ClearSelfResSpell() { ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SelfResSpells)); }
     void ApplyModFakeInebriation(int32 mod, bool apply) { ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::FakeInebriation), mod, apply); }
     void AddAuraVision(PlayerFieldByte2Flags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AuraVision), flags); }
     void RemoveAuraVision(PlayerFieldByte2Flags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AuraVision), flags); }
@@ -1231,7 +1278,7 @@ public:
     [[nodiscard]] uint8 GetChatTag() const;
     std::string autoReplyMsg;
 
-    uint32 GetBarberShopCost(uint8 newhairstyle, uint8 newhaircolor, uint8 newfacialhair, BarberShopStyleEntry const* newSkin = nullptr);
+    int64 GetBarberShopCost(Acore::IteratorPair<UF::ChrCustomizationChoice const*> newCustomizations) const;
 
     PlayerSocial* GetSocial() { return m_social; }
 
@@ -1692,6 +1739,9 @@ public:
     void SaveToDB(CharacterDatabaseTransaction trans, bool create, bool logout);
     void SaveInventoryAndGoldToDB(CharacterDatabaseTransaction trans);                    // fast save function for item/money cheating preventing
     void SaveGoldToDB(CharacterDatabaseTransaction trans);
+
+    static void SaveCustomizations(CharacterDatabaseTransaction trans, ObjectGuid::LowType guid,
+        Acore::IteratorPair<UF::ChrCustomizationChoice const*> customizations);
     void _SaveSkills(CharacterDatabaseTransaction trans);
 
     static void Customize(CharacterCustomizeInfo const* customizeInfo, CharacterDatabaseTransaction trans);
@@ -2283,10 +2333,12 @@ public:
     /*********************************************************/
     void UpdateHonorFields();
     bool RewardHonor(Unit* victim, uint32 groupsize, int32 honor = -1, bool awardXP = true);
-    // [1c.4] TODO: 3.4.3 ActivePlayerData has no WotLK honor/arena point currency fields
-    // (PLAYER_FIELD_HONOR_CURRENCY / PLAYER_FIELD_ARENA_CURRENCY). Stub returns 0 until mapping is decided.
-    [[nodiscard]] uint32 GetHonorPoints() const { return 0; }
-    [[nodiscard]] uint32 GetArenaPoints() const { return 0; }
+    // [1c.4] 3.4.3 has no WotLK honor/arena point currency update fields
+    // (PLAYER_FIELD_HONOR_CURRENCY / PLAYER_FIELD_ARENA_CURRENCY). Points are kept
+    // server-side in m_honorPoints / m_arenaPoints (persisted to the characters DB
+    // columns). Client-visible display needs the Currency subsystem (separate brick).
+    [[nodiscard]] uint32 GetHonorPoints() const { return m_honorPoints; }
+    [[nodiscard]] uint32 GetArenaPoints() const { return m_arenaPoints; }
     void ModifyHonorPoints(int32 value, CharacterDatabaseTransaction trans = CharacterDatabaseTransaction(nullptr));      //! If trans is specified, honor save query will be added to trans
     void ModifyArenaPoints(int32 value, CharacterDatabaseTransaction trans = CharacterDatabaseTransaction(nullptr));      //! If trans is specified, arena point save query will be added to trans
     [[nodiscard]] uint32 GetMaxPersonalArenaRatingRequirement(uint32 minarenaslot) const;
@@ -2912,6 +2964,7 @@ protected:
     /***                   SAVE SYSTEM                     ***/
     /*********************************************************/
 
+    void _SaveCustomizations(CharacterDatabaseTransaction trans);
     void _SaveActions(CharacterDatabaseTransaction trans);
     void _SaveAuras(CharacterDatabaseTransaction trans, bool logout);
     void _SaveInventory(CharacterDatabaseTransaction trans);
@@ -2945,11 +2998,19 @@ protected:
     /*********************************************************/
     time_t m_lastHonorUpdateTime;
 
+    // [1c.4] Server-side honor/arena point storage (the WotLK PLAYER_FIELD_*_CURRENCY
+    // update fields are gone in 3.4.3). Backed by the characters DB columns
+    // totalHonorPoints / arenaPoints. Client-visible display still requires the
+    // Currency subsystem, which is a separate brick (not ported here).
+    uint32 m_honorPoints = 0;
+    uint32 m_arenaPoints = 0;
+
     void outDebugValues() const;
     ObjectGuid m_lootGuid;
 
     TeamId m_team;
     uint32 m_nextSave; // pussywizard
+    bool m_customizationsChanged = false;
     uint16 m_additionalSaveTimer; // pussywizard
     uint8 m_additionalSaveMask; // pussywizard
     uint16 m_hostileReferenceCheckTimer; // pussywizard

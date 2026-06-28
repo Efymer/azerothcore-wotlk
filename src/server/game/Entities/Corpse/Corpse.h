@@ -20,6 +20,7 @@
 
 #include "DatabaseEnv.h"
 #include "GridDefines.h"
+#include "IteratorPair.h"
 #include "LootMgr.h"
 #include "Object.h"
 
@@ -73,6 +74,18 @@ public:
     void SetFactionTemplate(int32 factionTemplate) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::FactionTemplate), factionTemplate); }
     void ReplaceAllFlags(uint32 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Flags), flags); }
     void SetItem(uint32 slot, uint32 item) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Items, slot), item); }
+
+    template<typename Iter>
+    void SetCustomizations(Acore::IteratorPair<Iter> customizations)
+    {
+        ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Customizations));
+        for (auto&& customization : customizations)
+        {
+            UF::ChrCustomizationChoice& newChoice = AddDynamicUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Customizations));
+            newChoice.ChrCustomizationOptionID = customization.ChrCustomizationOptionID;
+            newChoice.ChrCustomizationChoiceID = customization.ChrCustomizationChoiceID;
+        }
+    }
 
     [[nodiscard]] uint32 GetCorpseDynamicFlags() const { return m_corpseData->DynamicFlags; }
     [[nodiscard]] bool HasCorpseDynamicFlag(uint32 flag) const { return (*m_corpseData->DynamicFlags & flag) != 0; }

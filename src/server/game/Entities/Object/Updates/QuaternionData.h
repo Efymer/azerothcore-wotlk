@@ -33,6 +33,8 @@ struct AC_GAME_API QuaternionData
     [[nodiscard]] bool IsUnit() const;
     void ToEulerAnglesZYX(float& Z, float& Y, float& X) const;
     [[nodiscard]] static QuaternionData FromEulerAnglesZYX(float Z, float Y, float X);
+
+    friend bool operator==(QuaternionData const& left, QuaternionData const& right) = default;
 };
 
 #endif // QuaternionData_h__

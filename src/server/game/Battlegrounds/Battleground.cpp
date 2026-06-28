@@ -1718,14 +1718,12 @@ bool Battleground::AddSpiritGuide(uint32 type, float x, float y, float z, float 
 
     if (Creature* creature = AddCreature(entry, type, x, y, z, o))
     {
-        // [1c.4] TODO: the spirit-heal channel visual set UNIT_FIELD_CHANNEL_OBJECT (now ChannelObjects
-        // dynamic list) and UNIT_CHANNEL_SPELL (now ChannelData.SpellID). Those structured-UF setters are
-        // protected on Unit and Battleground is not a friend, and no public AddChannelObject/SetChannelSpellId
-        // wrapper exists yet, so the channel visual is skipped (spirit guides still heal). Restore once a
-        // public channel accessor is available.
+        creature->SetChannelObject(0, creature->GetGUID());
         // aura
         /// @todo: Fix display here
         // creature->SetVisibleAura(0, SPELL_SPIRIT_HEAL_CHANNEL);
+        // casting visual effect
+        creature->SetChannelSpellId(SPELL_SPIRIT_HEAL_CHANNEL);
         // correct cast speed
         creature->SetModCastingSpeed(1.0f);
         //creature->CastSpell(creature, SPELL_SPIRIT_HEAL_CHANNEL, true);

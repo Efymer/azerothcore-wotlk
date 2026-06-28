@@ -102,7 +102,8 @@ bool DynamicObject::CreateDynamicObject(ObjectGuid::LowType guidlow, Unit* caste
         return false;
     }
 
-    WorldObject::_Create(guidlow, HighGuid::DynamicObject, caster->GetPhaseMask());
+    Object::_Create(ObjectGuid::Create<HighGuid::DynamicObject>(0, guidlow));
+    SetPhaseMask(caster->GetPhaseMask(), false);
 
     UpdatePositionData();
 

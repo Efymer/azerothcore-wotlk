@@ -169,6 +169,9 @@ namespace UF
 
 class Object
 {
+    // [1c.4] Map needs access to protected SetUpdateFieldValue* (e.g. Map::ConvertCorpseToBones copies corpse fields).
+    friend class Map;
+
 public:
     virtual ~Object();
 
@@ -589,8 +592,6 @@ public:
     ~WorldObject() override;
 
     virtual void Update(uint32 diff);
-
-    void _Create(ObjectGuid::LowType guidlow, HighGuid guidhigh, uint32 phaseMask);
 
     void AddToWorld() override;
     void RemoveFromWorld() override;

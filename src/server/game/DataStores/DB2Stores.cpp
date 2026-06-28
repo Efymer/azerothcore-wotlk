@@ -16,11 +16,16 @@
  */
 
 #include "DB2Stores.h"
+#include "Containers.h"
+#include "DatabaseEnv.h"
 #include "DB2LoadInfo.h"
 #include "DB2Meta.h"
+#include "Field.h"
 #include "Log.h"
+#include "QueryResult.h"
 #include "StringFormat.h"
 #include "Timer.h"
+#include <bitset>
 #include <vector>
 
 DB2Storage<ChrClassesEntry>             sChrClassesStore("ChrClasses.db2", &ChrClassesLoadInfo::Instance);
@@ -37,6 +42,9 @@ DB2Storage<CharacterLoadoutEntry>       sCharacterLoadoutStore("CharacterLoadout
 DB2Storage<CharacterLoadoutItemEntry>   sCharacterLoadoutItemStore("CharacterLoadoutItem.db2", &CharacterLoadoutItemLoadInfo::Instance);
 DB2Storage<ChrCustomizationOptionEntry> sChrCustomizationOptionStore("ChrCustomizationOption.db2", &ChrCustomizationOptionLoadInfo::Instance);
 DB2Storage<ChrCustomizationReqEntry>    sChrCustomizationReqStore("ChrCustomizationReq.db2", &ChrCustomizationReqLoadInfo::Instance);
+DB2Storage<ChrCustomizationChoiceEntry> sChrCustomizationChoiceStore("ChrCustomizationChoice.db2", &ChrCustomizationChoiceLoadInfo::Instance);
+DB2Storage<ChrCustomizationDisplayInfoEntry> sChrCustomizationDisplayInfoStore("ChrCustomizationDisplayInfo.db2", &ChrCustomizationDisplayInfoLoadInfo::Instance);
+DB2Storage<ChrCustomizationElementEntry> sChrCustomizationElementStore("ChrCustomizationElement.db2", &ChrCustomizationElementLoadInfo::Instance);
 DB2Storage<ItemEffectEntry>             sItemEffectStore("ItemEffect.db2", &ItemEffectLoadInfo::Instance);
 DB2Storage<ItemAppearanceEntry>         sItemAppearanceStore("ItemAppearance.db2", &ItemAppearanceLoadInfo::Instance);
 DB2Storage<ItemModifiedAppearanceEntry> sItemModifiedAppearanceStore("ItemModifiedAppearance.db2", &ItemModifiedAppearanceLoadInfo::Instance);
@@ -84,6 +92,7 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
         try \
         { \
             (store).Load(db2Path + localeNames[defaultLocale] + '/', defaultLocale); \
+            sDB2Manager.AddDB2((store).GetTableHash(), &(store)); \
             LOG_INFO("server.loading", ">> DB2 {} loaded {} records", (store).GetFileName(), (store).GetNumRows()); \
             ++loadedStores; \
         } \
@@ -107,6 +116,9 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     LOAD_DB2(sCharacterLoadoutItemStore);
     LOAD_DB2(sChrCustomizationOptionStore);
     LOAD_DB2(sChrCustomizationReqStore);
+    LOAD_DB2(sChrCustomizationChoiceStore);
+    LOAD_DB2(sChrCustomizationDisplayInfoStore);
+    LOAD_DB2(sChrCustomizationElementStore);
     LOAD_DB2(sItemEffectStore);
     LOAD_DB2(sItemAppearanceStore);
     LOAD_DB2(sItemModifiedAppearanceStore);
@@ -132,5 +144,260 @@ void LoadDB2Stores(std::string const& dataPath, LocaleConstant defaultLocale)
     for (std::string const& error : loadErrors)
         LOG_ERROR("server.loading", "Could not load DB2 store: {}", error);
 
+    sDB2Manager.LoadChrCustomizationData();
+
     LOG_INFO("server.loading", ">> Initialized {} DB2 data stores in {} ms", loadedStores, GetMSTimeDiffToNow(oldMSTime));
+}
+
+DB2Manager& DB2Manager::Instance()
+{
+    static DB2Manager instance;
+    return instance;
+}
+
+void DB2Manager::AddDB2(uint32 tableHash, DB2StorageBase* store)
+{
+    _stores[tableHash] = store;
+}
+
+DB2StorageBase const* DB2Manager::GetStorage(uint32 type) const
+{
+    auto itr = _stores.find(type);
+    if (itr != _stores.end())
+        return itr->second;
+
+    return nullptr;
+}
+
+void DB2Manager::LoadChrCustomizationData()
+{
+    _chrCustomizationChoicesByOption.clear();
+    _displayInfoByCustomizationChoice.clear();
+
+    for (ChrCustomizationChoiceEntry const* customizationChoice : sChrCustomizationChoiceStore)
+        _chrCustomizationChoicesByOption[customizationChoice->ChrCustomizationOptionID].push_back(customizationChoice);
+
+    // ChrCustomizationElement links a customization choice to the display info (shapeshift form / model)
+    // it produces. Resolve choice -> displayInfo so shapeshift and barbershop code can look it up directly.
+    for (ChrCustomizationElementEntry const* customizationElement : sChrCustomizationElementStore)
+    {
+        if (ChrCustomizationDisplayInfoEntry const* customizationDisplayInfo = sChrCustomizationDisplayInfoStore.LookupEntry(customizationElement->ChrCustomizationDisplayInfoID))
+            if (sChrCustomizationChoiceStore.LookupEntry(customizationElement->ChrCustomizationChoiceID))
+                _displayInfoByCustomizationChoice[customizationElement->ChrCustomizationChoiceID] = customizationDisplayInfo;
+    }
+
+    // [1c.4] TODO: the full per-(race, gender, form) ShapeshiftFormModelData index and
+    // GetShapeshiftFormModelData()/GetCustomizationOptions(race, gender) accessors still need the
+    // ChrModel, ChrRaceXChrModel and ChrCustomizationReqChoice DB2 stores (not yet ported to AC).
+    // The choice->displayInfo and option->choices maps above are the pieces resolvable from the
+    // currently-loaded stores; wiring GetModelForShapeshift can build on them.
+
+    LOG_INFO("server.loading", ">> Indexed {} ChrCustomization options and {} choice display infos",
+        _chrCustomizationChoicesByOption.size(), _displayInfoByCustomizationChoice.size());
+}
+
+std::vector<ChrCustomizationChoiceEntry const*> const* DB2Manager::GetCustomizationChoices(uint32 chrCustomizationOptionId) const
+{
+    return Acore::Containers::MapGetValuePtr(_chrCustomizationChoicesByOption, chrCustomizationOptionId);
+}
+
+ChrCustomizationDisplayInfoEntry const* DB2Manager::GetCustomizationDisplayInfo(uint32 chrCustomizationChoiceId) const
+{
+    // The map stores pointers, so MapGetValuePtr returns the stored pointer directly (not a pointer-to-pointer).
+    return Acore::Containers::MapGetValuePtr(_displayInfoByCustomizationChoice, chrCustomizationChoiceId);
+}
+
+void DB2Manager::LoadHotfixData(uint32 localeMask)
+{
+    uint32 oldMSTime = getMSTime();
+
+    QueryResult result = HotfixDatabase.Query("SELECT Id, UniqueId, TableHash, RecordId, Status FROM hotfix_data ORDER BY Id");
+
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 hotfix info entries.");
+        return;
+    }
+
+    uint32 count = 0;
+
+    std::map<std::pair<uint32, int32>, bool> deletedRecords;
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        int32 id = fields[0].Get<int32>();
+        uint32 uniqueId = fields[1].Get<uint32>();
+        uint32 tableHash = fields[2].Get<uint32>();
+        int32 recordId = fields[3].Get<int32>();
+        HotfixRecord::Status status = static_cast<HotfixRecord::Status>(fields[4].Get<uint8>());
+        std::bitset<TOTAL_LOCALES> availableDb2Locales = localeMask;
+        if (status == HotfixRecord::Status::Valid && !_stores.contains(tableHash))
+        {
+            std::pair<uint32, int32> key = std::make_pair(tableHash, recordId);
+            for (std::size_t locale = 0; locale < TOTAL_LOCALES; ++locale)
+            {
+                if (!availableDb2Locales[locale])
+                    continue;
+
+                if (!_hotfixBlob[locale].contains(key))
+                    availableDb2Locales[locale] = false;
+            }
+
+            if (availableDb2Locales.none())
+            {
+                LOG_ERROR("sql.sql", "Table `hotfix_data` references unknown DB2 store by hash 0x{:X} and has no reference to `hotfix_blob` in hotfix id {} with RecordID: {}", tableHash, id, recordId);
+                continue;
+            }
+        }
+
+        HotfixRecord hotfixRecord;
+        hotfixRecord.TableHash = tableHash;
+        hotfixRecord.RecordID = recordId;
+        hotfixRecord.ID.PushID = id;
+        hotfixRecord.ID.UniqueID = uniqueId;
+        hotfixRecord.HotfixStatus = status;
+        hotfixRecord.AvailableLocalesMask = availableDb2Locales.to_ulong();
+
+        HotfixPush& push = _hotfixData[id];
+        push.Records.push_back(hotfixRecord);
+        push.AvailableLocalesMask |= hotfixRecord.AvailableLocalesMask;
+
+        _maxHotfixId = std::max(_maxHotfixId, id);
+        deletedRecords[std::make_pair(tableHash, recordId)] = status == HotfixRecord::Status::RecordRemoved;
+        ++count;
+    } while (result->NextRow());
+
+    for (auto itr = deletedRecords.begin(); itr != deletedRecords.end(); ++itr)
+        if (itr->second)
+            if (DB2StorageBase* store = Acore::Containers::MapGetValuePtr(_stores, itr->first.first))
+                store->EraseRecord(itr->first.second);
+
+    LOG_INFO("server.loading", ">> Loaded {} hotfix records in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
+void DB2Manager::LoadHotfixBlob(uint32 localeMask)
+{
+    uint32 oldMSTime = getMSTime();
+
+    QueryResult result = HotfixDatabase.Query("SELECT TableHash, RecordId, locale, `Blob` FROM hotfix_blob ORDER BY TableHash");
+
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 hotfix blob entries.");
+        return;
+    }
+
+    std::bitset<TOTAL_LOCALES> availableDb2Locales = localeMask;
+    uint32 hotfixBlobCount = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 tableHash = fields[0].Get<uint32>();
+        auto storeItr = _stores.find(tableHash);
+        if (storeItr != _stores.end())
+        {
+            LOG_ERROR("sql.sql", "Table hash 0x{:X} points to a loaded DB2 store {}, fill related table instead of hotfix_blob",
+                tableHash, storeItr->second->GetFileName());
+            continue;
+        }
+
+        int32 recordId = fields[1].Get<int32>();
+        std::string localeName = fields[2].Get<std::string>();
+        LocaleConstant locale = GetLocaleByName(localeName);
+
+        if (locale >= TOTAL_LOCALES)
+        {
+            LOG_ERROR("sql.sql", "`hotfix_blob` contains invalid locale: {} at TableHash: 0x{:X} and RecordID: {}", localeName, tableHash, recordId);
+            continue;
+        }
+
+        if (!availableDb2Locales[locale])
+            continue;
+
+        _hotfixBlob[locale][std::make_pair(tableHash, recordId)] = fields[3].Get<Binary>();
+        hotfixBlobCount++;
+    } while (result->NextRow());
+
+    LOG_INFO("server.loading", ">> Loaded {} hotfix blob records in {} ms", hotfixBlobCount, GetMSTimeDiffToNow(oldMSTime));
+}
+
+void DB2Manager::LoadHotfixOptionalData(uint32 localeMask)
+{
+    // NOTE: TrinityCore registers an allow-list of (DB2 store, optional-data key, validator) tuples here
+    // (e.g. BroadcastText -> TactKey). AzerothCore's 3.4.3 DB2 subset has neither store, and
+    // acore_hotfixes.hotfix_optional_data is empty, so the allow-list is intentionally omitted. The query is
+    // kept verbatim; with 0 rows it returns early. If optional-data support is ever needed, restore the
+    // allow-list registration (see reference DB2Stores.cpp::LoadHotfixOptionalData).
+    uint32 oldMSTime = getMSTime();
+
+    QueryResult result = HotfixDatabase.Query("SELECT TableHash, RecordId, locale, `Key`, `Data` FROM hotfix_optional_data ORDER BY TableHash");
+
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 hotfix optional data records.");
+        return;
+    }
+
+    std::bitset<TOTAL_LOCALES> availableDb2Locales = localeMask;
+    uint32 hotfixOptionalDataCount = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 tableHash = fields[0].Get<uint32>();
+        uint32 recordId = fields[1].Get<int32>();
+        auto storeItr = _stores.find(tableHash);
+        if (storeItr == _stores.end())
+        {
+            LOG_ERROR("sql.sql", "Table `hotfix_optional_data` references unknown DB2 store by hash 0x{:X} with RecordID: {}", tableHash, recordId);
+            continue;
+        }
+
+        std::string localeName = fields[2].Get<std::string>();
+        LocaleConstant locale = GetLocaleByName(localeName);
+
+        if (locale >= TOTAL_LOCALES)
+        {
+            LOG_ERROR("sql.sql", "`hotfix_optional_data` contains invalid locale: {} at TableHash: 0x{:X} and RecordID: {}", localeName, tableHash, recordId);
+            continue;
+        }
+
+        if (!availableDb2Locales[locale])
+            continue;
+
+        DB2Manager::HotfixOptionalData optionalData;
+        optionalData.Key = fields[3].Get<uint32>();
+        optionalData.Data = fields[4].Get<Binary>();
+        _hotfixOptionalData[locale][std::make_pair(tableHash, recordId)].push_back(std::move(optionalData));
+        hotfixOptionalDataCount++;
+    } while (result->NextRow());
+
+    LOG_INFO("server.loading", ">> Loaded {} hotfix optional data records in {} ms", hotfixOptionalDataCount, GetMSTimeDiffToNow(oldMSTime));
+}
+
+uint32 DB2Manager::GetHotfixCount() const
+{
+    return _hotfixData.size();
+}
+
+DB2Manager::HotfixContainer const& DB2Manager::GetHotfixData() const
+{
+    return _hotfixData;
+}
+
+std::vector<uint8> const* DB2Manager::GetHotfixBlobData(uint32 tableHash, int32 recordId, LocaleConstant locale) const
+{
+    ASSERT(locale < TOTAL_LOCALES, "Locale {} is invalid locale", uint32(locale));
+
+    return Acore::Containers::MapGetValuePtr(_hotfixBlob[locale], std::make_pair(tableHash, recordId));
+}
+
+std::vector<DB2Manager::HotfixOptionalData> const* DB2Manager::GetHotfixOptionalData(uint32 tableHash, int32 recordId, LocaleConstant locale) const
+{
+    ASSERT(locale < TOTAL_LOCALES, "Locale {} is invalid locale", uint32(locale));
+
+    return Acore::Containers::MapGetValuePtr(_hotfixOptionalData[locale], std::make_pair(tableHash, recordId));
 }

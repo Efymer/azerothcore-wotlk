@@ -361,7 +361,7 @@ Unit::Unit() : WorldObject(),
     m_objectType |= TYPEMASK_UNIT;
     m_objectTypeId = TYPEID_UNIT;
 
-    m_updateFlag = (UPDATEFLAG_LIVING | UPDATEFLAG_STATIONARY_POSITION);
+    m_updateFlag.MovementUpdate = true;
 
     m_attackTimer[BASE_ATTACK] = 0;
     m_attackTimer[OFF_ATTACK] = 0;
@@ -7701,15 +7701,11 @@ void Unit::SetOwnerGUID(ObjectGuid owner)
     if (!player || !player->HaveAtClient(this)) // if player cannot see this unit yet, he will receive needed data with create object
         return;
 
-    SetFieldNotifyFlag(UF_FLAG_OWNER);
-
     UpdateData udata(GetMapId());
     WorldPacket packet;
-    BuildValuesUpdateBlockForPlayer(&udata, player);
-    udata.BuildPacket(packet);
+    BuildValuesUpdateBlockForPlayerWithFlag(&udata, UF::UpdateFieldFlag::Owner, player);
+    udata.BuildPacket(&packet);
     player->SendDirectMessage(&packet);
-
-    RemoveFieldNotifyFlag(UF_FLAG_OWNER);
 }
 
 Unit* Unit::GetOwner() const
@@ -14157,11 +14153,9 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
             }
             else
             {
-                // save value before aura remove
-                // [1c.4] TODO: PLAYER_SELF_RES_SPELL became ActivePlayerData::SelfResSpells (dynamic list)
-                // in 3.4.3. The single-value get/set is stubbed pending a Player list accessor; we fall back
-                // to GetResurrectionSpellId() and skip restoring the cached self-res spell id.
-                uint32 ressSpellId = victim->ToPlayer()->GetResurrectionSpellId();
+                // save value before aura remove ([1c.4] PLAYER_SELF_RES_SPELL is now ActivePlayerData::SelfResSpells list)
+                Player* victimPlayer = victim->ToPlayer();
+                uint32 ressSpellId = victimPlayer->m_activePlayerData->SelfResSpells.empty() ? 0 : uint32(victimPlayer->m_activePlayerData->SelfResSpells[0]);
 
                 //Remove all expected to remove at death auras (most important negative case like DoT or periodic triggers)
                 victim->RemoveAllAurasOnDeath();
@@ -14169,8 +14163,16 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
                 // Stop attacks
                 victim->CombatStop();
 
-                // restore for use at real death
-                (void)ressSpellId;
+                // passive spell
+                if (!ressSpellId)
+                    ressSpellId = victimPlayer->GetResurrectionSpellId();
+
+                // restore self-resurrection spell id after aura remove
+                if (ressSpellId)
+                {
+                    victimPlayer->ClearSelfResSpell();
+                    victimPlayer->AddSelfResSpell(int32(ressSpellId));
+                }
 
                 // FORM_SPIRITOFREDEMPTION and related auras
                 victim->CastSpell(victim, 27827, true, nullptr, aurEff);
@@ -15024,7 +15026,7 @@ bool Unit::CreateVehicleKit(uint32 id, uint32 creatureEntry)
         return false;
 
     m_vehicleKit = new Vehicle(this, vehInfo, creatureEntry);
-    m_updateFlag |= UPDATEFLAG_VEHICLE;
+    m_updateFlag.Vehicle = true;
     m_unitTypeMask |= UNIT_MASK_VEHICLE;
     return true;
 }
@@ -15039,7 +15041,7 @@ void Unit::RemoveVehicleKit()
 
     m_vehicleKit = nullptr;
 
-    m_updateFlag &= ~UPDATEFLAG_VEHICLE;
+    m_updateFlag.Vehicle = false;
     m_unitTypeMask &= ~UNIT_MASK_VEHICLE;
     RemoveNpcFlag(UNIT_NPC_FLAG_SPELLCLICK | UNIT_NPC_FLAG_PLAYER_VEHICLE);
 }

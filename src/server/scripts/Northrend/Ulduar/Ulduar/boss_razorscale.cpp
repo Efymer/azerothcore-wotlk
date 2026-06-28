@@ -794,7 +794,7 @@ struct npc_ulduar_expedition_engineer : public NullCreatureAI
                     if (Creature* c = ObjectAccessor::GetCreature(*me, fixingGUID))
                         if (me->GetExactDist2dSq(c) <= 25.0f)
                         {
-                            if (EMOTE_ONESHOT_NONE != EMOTE_STATE_WORK ) // [1c.4] TODO: GetEmoteState() wrapper missing on Unit
+                            if (me->GetEmoteState() != EMOTE_STATE_WORK)
                                 me->SetEmoteState(EMOTE_STATE_WORK);
 
                             if (std::fabs(me->GetOrientation() - me->GetAngle(c)) > M_PI / 4)
@@ -837,7 +837,7 @@ struct npc_ulduar_expedition_engineer : public NullCreatureAI
             else
                 timer -= diff;
         }
-        else if (EMOTE_STATE_WORK == EMOTE_STATE_WORK) // [1c.4] TODO: GetEmoteState() wrapper missing on Unit; assume WORK to preserve reset path
+        else if (me->GetEmoteState() == EMOTE_STATE_WORK)
             me->SetEmoteState(EMOTE_STATE_STAND);
     }
 };

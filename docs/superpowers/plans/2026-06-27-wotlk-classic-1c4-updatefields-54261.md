@@ -84,24 +84,74 @@
 > **CAT-B SWEEP COMPLETE (2026-06-28) — ALL buckets done (~600+ sites: Unit/Creature/Pet/Object, Player/Item/Bag/
 > GO/DynObj/Corpse/Transport, Spells, Handlers+Globals+Maps+BGs+AI, scripts). NEXT, in order:**
 >
-> **STEP 1 (DO FIRST) — add the missing PUBLIC typed-wrapper helpers** the sweep call sites depend on (the
-> underlying UF fields all exist; only the wrappers are missing). Access-control note: `Object::SetUpdateFieldValue*`
-> are PROTECTED (friends: Map on Object, WorldSession on Player), so non-entity/script code REQUIRES these public
-> wrappers. Reference xian55's same-named entity headers for each body:
-> - **Unit.h:** `SetChannelSpellId`, `ClearChannelObjects`, `AddChannelObject`, `SetChannelObject(slot,guid)`,
->   `ApplyModPowerCostPCT`, `ApplyModManaCostModifier`, `GetEmoteState()`, `SetRace`, power-regen flat-mod setters,
->   `GetTrackCreatureMask()`.
-> - **Player.h:** `Add/RemoveAuraVision`, `ApplyModTargetResistance`, `ApplyModTargetPhysicalResistance`,
->   `ApplyModDamageDonePos/Neg`, `SetModDamageDonePercent`, `SetNoRegentCostMask`, `ApplyModFakeInebriation`,
->   `SetOverrideSpellsId`, `Set/RemovePlayerLocalFlag` + `enum PlayerLocalFlags` (TRACK_STEALTHED, RELEASE_TIMER),
->   `SetPetSpellPower`, melee/spell crit% getters, honor/kills/contribution setters, `ExploredZones` bit+bulk setter,
->   `KnownTitles` bulk-mask setter, `NativeSex` setter.
-> - **GameObject:** `ParentRotation` via QuaternionData (2 ICC Arthas-platform sites currently TODO).
-> - Note: `ForceValuesUpdateAtIndex` is GONE (resend is automatic now) — the 5 script TODO stubs can stay no-op.
+> **STEP 1 ✅ DONE (2026-06-28) — PUBLIC typed-wrapper helpers added** (transcribed verbatim from xian55; all call
+> sites verified). **Unit.h:** GetEmoteState, ApplyModPowerCostPCT, ApplyModManaCostModifier, GetChannelSpellId,
+> SetChannelSpellId, AddChannelObject, SetChannelObject(slot,guid), ClearChannelObjects. **Player.h:** enum
+> `PlayerLocalFlags`+DEFINE_ENUM_FLAG, Has/Set/Remove/ReplaceAllPlayerLocalFlag, Get/SetNativeGender, SetNoRegentCostMask
+> (flag96 — NoReagentCostMask is uint32[4], word3=0), SetOverrideSpellsId, ApplyModTarget(Physical)Resistance,
+> ApplyModDamageDonePos/Neg, SetModDamageDonePercent, SetPetSpellPower, ApplyModFakeInebriation, Add/RemoveAuraVision,
+> Add/RemoveExploredZones(pos,uint64 mask), SetKnownTitles(index,uint64 mask), GetTrackCreatureMask getter.
+> **GameObject:** SetParentRotation already existed (verbatim match); the 2 ICC Arthas-platform TODO sites wired
+> (memcpy-pack legacy uint32 into ParentRotation.x — DIVERGES from xian55's GUID-only form; flagged for Phase-E).
+> **Decisions / deliberately NOT added:** SetRace (AC keeps lowercase `setRace`; SetRace call sites are Corpse-only),
+> power-regen flat-mod setters (no call sites — set inline in StatSystem.cpp), crit% getters (no call sites — direct
+> member reads), honor-kill counters (set inline in Player members). **Now-satisfiable TODO stubs un-stubbed** (originals
+> recovered from git `6c4c1e886`): 8 SetPetSpellPower (spell_warlock/shaman/priest/mage/hunter/druid/dk),
+> SpellAuraEffects PlayerLocalFlag×2 + NoReagentCostMask, Battleground spirit-guide channel visual, 4 GetEmoteState
+> (zone_borean_tundra/boss_razorscale×2/pit_of_saron), boss_koralon ClearChannelObjects, cs_cheat/cs_misc ExploredZones,
+> cs_titles KnownTitles, spell_item multiphase-goggles TrackCreatureMask RMW. **Still TODO (STEP 3 hazard, left alone):**
+> Map.cpp:3051 Corpse `SetCustomizations` (ChrCustomizationChoice). Note: `ForceValuesUpdateAtIndex` GONE — 5 script
+> stubs stay no-op. **⚠ Watch at build:** cs_titles `SetKnownTitles(0,mask)` writes a DynamicUpdateField index that may
+> need an element to exist first; SetNoRegentCostMask flag96→uint32[4] word-write.
 >
-> **STEP 2 — finish ~158 remaining `Player.cpp` sites** (InitStatsForLevel ~50, Player::Create ~20, Pet setters ~9,
-> RestInfo/rune-regen/anim-tier/inebriation). **STEP 3 — port ChrCustomizationChoice** to safely convert the
-> DB-save appearance blocks (the data-safety hazard above) — do NOT stub those. **STEP 4 — central build**
+> **STEP 2 ✅ DONE (2026-06-28)** — Player.cpp non-appearance sites converted (verified `InitStatsForLevel` line-by-line
+> vs xian55; field names confirmed present in UpdateFields.h). Converted: InitStatsForLevel (full body; attack-power
+> MODS split into Pos/Neg, NoReagentCost→`SetNoRegentCostMask(flag96())`, PLAYER_FIELD_BYTES2→LocalRegenFlags+AuraVision,
+> AttackRoundBaseTime/PowerCost*/ResistanceBuffMods/Crit/etc.); Create non-appearance (UNIT_FIELD_BYTES_0→Race/Class/
+> Sex/DisplayPower, SetLevel, Coinage, watched-faction, hover); SetDrunkValue→PlayerData::Inebriation; power-regen
+> reads→m_unitData->PowerRegen[Interrupted]FlatModifier[]; honor/kills→TodayHonorableKills/LifetimeHonorableKills/
+> LifetimeMaxRank; Pet→SetPetExperience/NextLevelExperience/NameTimestamp + SetLevel/GetCreatedBySpell; RestInfo→nested
+> ModifyValue(RestInfo,0).StateID/.Threshold; ArenaFaction; no-reagent reads→NoReagentCostMask[]. Fixed 2 build-breakers
+> the subagent missed: `RemoveFlag(UNIT_FIELD_FLAGS,…)`→`RemoveUnitFlag(UnitFlags(…))`; RAF byte-flag stubbed. **Stubs
+> (absent in 3.4.3, tagged `// [1c.4] TODO:`):** Create guild/title/kills/contribution block (UF defaults them; GuildGUID
+> now ObjectGuid, KnownTitles dynamic), TodayContribution, honor/arena currency (moved to CurrencyTypes — out of 1c.4),
+> anim-tier writes (UnitData::AnimTier defaults Ground — xian55 also drops them), rune-regen (no field), RAF grant flag.
+> **STILL UNCONVERTED in Player.cpp = STEP-3 only:** Create appearance cluster (551,552,556,557), appearance reads
+> (13439-42), DB-save serialization block (14994-15240: gender/PLAYER_BYTES, ExploredZones, VisibleItem, KnownTitles).
+> **STEP 3 ✅ DONE (2026-06-28) — VARIANT A (user-chosen): full migration to native ChrCustomizationChoice storage**
+> (match xian55) — implemented across all waves below (3A SQL, 3B prepared-stmts, 3C headers, 3D WorldSession.h,
+> 3E create-packet, 3F Player.cpp/PlayerStorage.cpp, 3G Corpse.cpp/Map.cpp). Legacy skin/face/hair columns kept
+> vestigial (NOT NULL DEFAULT 0, no reindex; DROP deferred). DEFERRED non-blocking TODOs: enum/char-select
+> customizations (needs holder+CHAR_SEL_ENUM_CUSTOMIZATIONS), barbershop rework (needs DB2 ChrCustomization diff).
+> Full detail in memory `1c4-updatefields-plan`. Original sub-plan retained below for reference:
+> - **3A SQL** (`data/sql/updates/pending_db_characters/`): `CREATE TABLE character_customizations (guid INT UNSIGNED,
+>   chrCustomizationOptionID INT UNSIGNED, chrCustomizationChoiceID INT UNSIGNED, PRIMARY KEY(guid,
+>   chrCustomizationOptionID))` + `corpse_customizations (ownerGuid, …)`; **non-destructive vestigial step:** `ALTER TABLE
+>   characters MODIFY skin/face/hairStyle/hairColor/facialStyle … DEFAULT 0` (do NOT DROP yet — existing 3.3.5 byte
+>   appearance can't be migrated to choices until ChrCustomizationChoice/Element DB2 stores load; DROP deferred to a
+>   future cleanup). InnoDB; DELETE-before-INSERT convention N/A for DDL.
+> - **3B CharacterDatabase.{h,cpp}:** enum + Prepare for CHAR_SEL/INS/DEL_CHARACTER_CUSTOMIZATIONS (+ corpse triple);
+>   add PLAYER_LOGIN_QUERY_LOAD_CUSTOMIZATIONS to the login holder; **remove the 5 appearance columns from
+>   CHAR_INS_CHARACTER / CHAR_UPD_CHARACTER / CHAR_SEL_CHARACTER / CHAR_SEL_ENUM / CHAR_UPD_GENDER_AND_APPEARANCE** (drop
+>   from the statement column-lists + reindex `?` placeholders; non-destructive since columns now DEFAULT 0). Fix all C++
+>   bind/read sites for the reindexed statements.
+> - **3C Player.h/Corpse.h:** port `SetCustomizations` template + `GetCustomizationChoice`, `_SaveCustomizations` +
+>   static `SavePlayerCustomizations`, `bool m_customizationsChanged` (Player); `Corpse::SetCustomizations` +
+>   customizations save/delete (Corpse). Use `Acore::Containers::MakeIteratorPair` (verify name) for xian55's
+>   `Trinity::Containers::MakeIteratorPair`.
+> - **3D WorldSession.h (OTHER agent's file — additive, coordinate):** `CharacterCreateInfo` gains
+>   `std::vector<UF::ChrCustomizationChoice> Customizations;` (keep byte fields for now; create handler fills the vector).
+> - **3E create path (CharacterHandler.cpp:274 TODO + CharacterPackets.cpp):** parse Customizations from 3.4.3
+>   CMSG_CREATE_CHARACTER into createInfo; populate the EnumCharactersResult Customizations from the loaded list.
+> - **3F Player.cpp:** Create → `SetCustomizations(createInfo->Customizations…)` (replace byte cluster 551-557; keep
+>   Sex/NativeSex set); LoadFromDB → load customizations query loop + `SetCustomizations(…, false)`; SaveToDB → call
+>   `_SaveCustomizations(trans)` and DROP the appearance-byte binding in the reindexed CHAR_INS/UPD statements; CreateCorpse
+>   → `corpse->SetCustomizations(m_playerData->Customizations…)`. Appearance reads 13439-42 (barbershop) →
+>   `GetCustomizationChoice(optionId)` or rework via the customize handler.
+> - **3G Corpse.cpp:** SaveToDB/DeleteFromDB customizations rows; load on Corpse::LoadFromDB.
+> - Existing 3.3.5 test chars (byte-only, no customization rows) get a default/empty Customizations list — acceptable
+>   for the world-entry gate; full fidelity needs the DB2 byte→choice map (separate brick).
+> **STEP 4 — central build**
 > (`cmake -S . -B build` then `cmake --build build --target worldserver --config RelWithDebInfo`) and iterate on
 > residual errors (expect: TODO-stub sites, any wrapper still missing, ADL/serialize issues in UpdateFields.cpp).
 > **STEP 5 — Phase E** packet-capture validation (movement wire-order risks listed above). **Then revisit the

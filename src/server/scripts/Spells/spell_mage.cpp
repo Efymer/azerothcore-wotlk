@@ -292,7 +292,7 @@ class spell_mage_pet_scaling : public AuraScript
 
             // xinef: Update appropriate player field
             if (owner->IsPlayer())
-                { } // [1c.4] TODO: Player::SetPetSpellPower() wrapper missing (was PLAYER_PET_SPELL_POWER UF)
+                owner->ToPlayer()->SetPetSpellPower((uint32)amount);
         }
     }
 

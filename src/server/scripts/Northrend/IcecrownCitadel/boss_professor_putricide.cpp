@@ -1424,7 +1424,8 @@ class spell_putricide_mutated_transformation : public SpellScript
         summon->setPowerType(POWER_ENERGY);
         summon->SetMaxPower(POWER_ENERGY, 100);
         summon->SetPower(POWER_ENERGY, 0);
-        // [1c.4] TODO: power-regen flat modifier setters missing (were UNIT_FIELD_POWER_REGEN_(INTERRUPTED_)FLAT_MODIFIER = 0)
+        summon->SetPowerRegenInterruptedFlatModifier(POWER_MANA, 0.0f);
+        summon->SetPowerRegenFlatModifier(POWER_MANA, 0.0f);
     }
 
     void Register() override

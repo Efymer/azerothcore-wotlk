@@ -63,7 +63,7 @@ struct boss_rajaxx : public BossAI
         if (Creature* andorov = instance->instance->GetCreature(instance->GetGuidData(DATA_ANDOROV)))
         {
             andorov->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_VENDOR);
-            // [1c.4] TODO: ForceValuesUpdateAtIndex removed under structured UF model (NpcFlags resend now automatic on change)
+            andorov->ForceUpdateFieldChange(andorov->m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 0));
         }
 
         std::list<Creature*> creatureList;

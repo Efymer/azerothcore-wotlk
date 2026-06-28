@@ -138,7 +138,7 @@ class spell_pri_shadowfiend_scaling : public AuraScript
 
             // xinef: Update appropriate player field
             if (owner->IsPlayer())
-                { } // [1c.4] TODO: Player::SetPetSpellPower() wrapper missing (was PLAYER_PET_SPELL_POWER UF)
+                owner->ToPlayer()->SetPetSpellPower((uint32)amount);
         }
     }
 
@@ -527,7 +527,7 @@ class spell_pri_mind_sear : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& unitList)
     {
-        unitList.remove_if(Acore::ObjectGUIDCheck(ObjectGuid::Empty, true)); // [1c.4] TODO: Unit channel-object getter missing (was UNIT_FIELD_CHANNEL_OBJECT)
+        unitList.remove_if(Acore::ObjectGUIDCheck(GetCaster()->GetChannelObjectGuid(), true));
     }
 
     void Register() override

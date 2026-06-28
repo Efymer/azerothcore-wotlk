@@ -184,7 +184,7 @@ void Object::SendUpdateToPlayer(Player* player)
     UpdateData upd(player->GetMapId());
     WorldPacket packet;
 
-    if (player->HaveAtClient(this))
+    if (player->HaveAtClient(GetGUID()))
         BuildValuesUpdateBlockForPlayer(&upd, player);
     else
         BuildCreateUpdateBlockForPlayer(&upd, player);
@@ -714,12 +714,6 @@ void WorldObject::CleanupsBeforeDelete(bool /*finalCleanup*/)
         RemoveFromWorld();
 
     m_Events.KillAllEvents(false);                      // non-delatable (currently cast spells) will not deleted now but it will deleted at call in Map::RemoveAllObjectsInRemoveList
-}
-
-void WorldObject::_Create(ObjectGuid::LowType guidlow, HighGuid guidhigh, uint32 phaseMask)
-{
-    Object::_Create(guidlow, 0, guidhigh);
-    SetPhaseMask(phaseMask, false);
 }
 
 void WorldObject::SetPositionDataUpdate()

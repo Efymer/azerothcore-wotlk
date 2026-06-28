@@ -1022,7 +1022,7 @@ public:
         npc_hidden_cultistAI(Creature* creature) : ScriptedAI(creature)
         {
             Initialize();
-            _emoteState = EMOTE_ONESHOT_NONE; // [1c.4] TODO: GetEmoteState() wrapper missing on Unit (was UNIT_NPC_EMOTESTATE)
+            _emoteState = uint32(creature->GetEmoteState());
             _npcFlags   = creature->GetNpcFlags();
         }
 

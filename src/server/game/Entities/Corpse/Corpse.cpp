@@ -59,7 +59,7 @@ void Corpse::RemoveFromWorld()
 
 bool Corpse::Create(ObjectGuid::LowType guidlow)
 {
-    Object::_Create(guidlow, 0, HighGuid::Corpse);
+    Object::_Create(ObjectGuid::Create<HighGuid::Corpse>(0, guidlow));
     return true;
 }
 
@@ -76,7 +76,8 @@ bool Corpse::Create(ObjectGuid::LowType guidlow, Player* owner)
         return false;
     }
 
-    WorldObject::_Create(guidlow, HighGuid::Corpse, owner->GetPhaseMask());
+    Object::_Create(ObjectGuid::Create<HighGuid::Corpse>(0, guidlow));
+    SetPhaseMask(owner->GetPhaseMask(), false);
 
     SetObjectScale(1);
     SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Owner), owner->GetGUID());
@@ -120,6 +121,15 @@ void Corpse::SaveToDB()
     stmt->SetData(16, GetPhaseMask());                                        // phaseMask
     trans->Append(stmt);
 
+    for (UF::ChrCustomizationChoice const& customization : m_corpseData->Customizations)
+    {
+        stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CORPSE_CUSTOMIZATIONS);
+        stmt->SetData(0, GetOwnerGUID().GetCounter());                        // ownerGuid
+        stmt->SetData(1, customization.ChrCustomizationOptionID);             // chrCustomizationOptionID
+        stmt->SetData(2, customization.ChrCustomizationChoiceID);             // chrCustomizationChoiceID
+        trans->Append(stmt);
+    }
+
     CharacterDatabase.CommitTransaction(trans);
 }
 
@@ -131,6 +141,10 @@ void Corpse::DeleteFromDB(CharacterDatabaseTransaction trans)
 void Corpse::DeleteFromDB(ObjectGuid const& ownerGuid, CharacterDatabaseTransaction trans)
 {
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CORPSE);
+    stmt->SetData(0, ownerGuid.GetCounter());
+    CharacterDatabase.ExecuteOrAppend(trans, stmt);
+
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CORPSE_CUSTOMIZATIONS);
     stmt->SetData(0, ownerGuid.GetCounter());
     CharacterDatabase.ExecuteOrAppend(trans, stmt);
 }
@@ -147,7 +161,7 @@ bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields)
     float o      = fields[3].Get<float>();
     uint32 mapId = fields[4].Get<uint16>();
 
-    Object::_Create(guid, 0, HighGuid::Corpse);
+    Object::_Create(ObjectGuid::Create<HighGuid::Corpse>(0, guid));
 
     SetObjectScale(1.0f);
     auto corpseData = m_values.ModifyValue(&Corpse::m_corpseData);

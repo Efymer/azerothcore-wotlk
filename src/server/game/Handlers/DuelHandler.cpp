@@ -32,7 +32,7 @@ void WorldSession::HandleDuelAcceptedOpcode(WorldPacket& recvPacket)
     recvPacket >> guid;
 
     Player* target = player->duel->Opponent;
-    if (target->m_playerData->DuelArbiter != guid)
+    if (*target->m_playerData->DuelArbiter != guid)
         return;
 
     LOG_DEBUG("network.opcode", "Player 1 is: {} ({})", player->GetGUID().ToString(), player->GetName());

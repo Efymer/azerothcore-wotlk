@@ -148,6 +148,47 @@ struct ChrCustomizationReqEntry
     int32 ItemModifiedAppearanceID;
 };
 
+struct ChrCustomizationChoiceEntry
+{
+    LocalizedString Name;
+    uint32 ID;
+    int32 ChrCustomizationOptionID;
+    int32 ChrCustomizationReqID;
+    int32 ChrCustomizationVisReqID;
+    uint16 SortOrder;
+    uint16 UiOrderIndex;
+    int32 Flags;
+    int32 AddedInPatch;
+    int32 SoundKitID;
+    std::array<int32, 2> SwatchColor;
+};
+
+struct ChrCustomizationDisplayInfoEntry
+{
+    uint32 ID;
+    int32 ShapeshiftFormID;
+    int32 DisplayID;
+    float BarberShopMinCameraDistance;
+    float BarberShopHeightOffset;
+};
+
+struct ChrCustomizationElementEntry
+{
+    uint32 ID;
+    int32 ChrCustomizationChoiceID;
+    int32 RelatedChrCustomizationChoiceID;
+    int32 ChrCustomizationGeosetID;
+    int32 ChrCustomizationSkinnedModelID;
+    int32 ChrCustomizationMaterialID;
+    int32 ChrCustomizationBoneSetID;
+    int32 ChrCustomizationCondModelID;
+    int32 ChrCustomizationDisplayInfoID;
+    int32 ChrCustItemGeoModifyID;
+    int32 ChrCustomizationVoiceID;
+    int32 AnimKitID;
+    int32 ParticleColorID;
+};
+
 struct ItemEffectEntry
 {
     uint32 ID;

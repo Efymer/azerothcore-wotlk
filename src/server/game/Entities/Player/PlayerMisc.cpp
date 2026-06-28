@@ -390,13 +390,13 @@ void Player::UpdateFFAPvPFlag(time_t currTime)
     }
 
     pvpInfo.FFAPvPEndTimer = time_t(0);
-    if (HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP))
+    if (HasPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP))
     {
-        RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
+        RemovePvpFlag(UNIT_BYTE2_FLAG_FFA_PVP);
         sScriptMgr->OnPlayerFfaPvpStateUpdate(this, false);
     }
     for (ControlSet::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
-        (*itr)->RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
+        (*itr)->RemovePvpFlag(UNIT_BYTE2_FLAG_FFA_PVP);
 
     // xinef: iterate attackers
     AttackerSet toRemove;

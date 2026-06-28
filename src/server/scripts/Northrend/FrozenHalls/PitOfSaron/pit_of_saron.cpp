@@ -1370,7 +1370,7 @@ class spell_pos_slave_trigger_closest : public SpellScript
     void HandleDummy(SpellEffIndex /*effIndex*/)
     {
         if (Unit* target = GetHitUnit())
-            if (true) // [1c.4] TODO: GetEmoteState() wrapper missing on Unit (was UNIT_NPC_EMOTESTATE guard "prevent using multiple times")
+            if (target->GetEmoteState()) // prevent using multiple times
             {
                 if (Unit* caster = GetCaster())
                     if (Player* p = caster->ToPlayer())

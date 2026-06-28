@@ -1091,6 +1091,8 @@ public:
     [[nodiscard]] bool IsFFAPvP() const { return (*m_unitData->PvpFlags & UNIT_BYTE2_FLAG_FFA_PVP) != 0; }
     [[nodiscard]] uint8 GetPvpFlags() const { return m_unitData->PvpFlags; }
     [[nodiscard]] bool HasPvpFlag(uint8 flags) const { return (*m_unitData->PvpFlags & flags) != 0; }
+    void SetPvpFlag(uint8 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PvpFlags), flags); }
+    void RemovePvpFlag(uint8 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PvpFlags), flags); }
     void ReplaceAllPvpFlags(uint8 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PvpFlags), flags); }
     void SetPvP(bool state)
     {
@@ -1649,6 +1651,11 @@ public:
     void AddChannelObject(ObjectGuid guid) { AddDynamicUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects)) = guid; }
     void SetChannelObject(uint32 slot, ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects, slot), guid); }
     void ClearChannelObjects() { ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects)); }
+    // [1c.4] 3.3.5 UNIT_FIELD_CHANNEL_OBJECT was a single guid; 3.4.3 ChannelObjects is a dynamic list — return the primary (first) entry.
+    [[nodiscard]] ObjectGuid GetChannelObjectGuid() const { return m_unitData->ChannelObjects.size() > 0 ? m_unitData->ChannelObjects[0] : ObjectGuid::Empty; }
+    // [1c.4] power-regen flat-mod setters (3.3.5 UNIT_FIELD_POWER_REGEN_(INTERRUPTED_)FLAT_MODIFIER are now UnitData arrays).
+    void SetPowerRegenFlatModifier(Powers power, float value) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerRegenFlatModifier, AsUnderlyingType(power)), value); }
+    void SetPowerRegenInterruptedFlatModifier(Powers power, float value) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerRegenInterruptedFlatModifier, AsUnderlyingType(power)), value); }
 
     // set withDelayed to true to account delayed spells as casted
     // delayed+channeled spells are always accounted as casted

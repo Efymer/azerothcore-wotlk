@@ -92,7 +92,11 @@ public:
         Player* playerTarget = target->GetConnectedPlayer();
 
         playerTarget->SetHonorPoints(0);
-        // [1c.4] TODO: setters missing for PLAYER_FIELD_KILLS / LIFETIME_HONORABLE_KILLS / TODAY_CONTRIBUTION / YESTERDAY_CONTRIBUTION UFs
+        // PLAYER_FIELD_KILLS packed today(low16)+yesterday(high16) -> split across Today/YesterdayHonorableKills
+        playerTarget->SetTodayHonorableKills(0);
+        playerTarget->SetYesterdayHonorableKills(0);
+        playerTarget->SetLifetimeHonorableKills(0);
+        // [1c.4] TODAY/YESTERDAY_CONTRIBUTION have no 3.4.3 update-field equivalent; skipped
         playerTarget->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL);
 
         return true;

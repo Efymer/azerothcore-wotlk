@@ -3297,7 +3297,6 @@ void AuraEffect::HandleAuraTrackStealthed(AuraApplication const* aurApp, uint8 m
         if (target->HasAuraType(GetAuraType()))
             return;
     }
-    // [1c.4] TODO: requires Player::SetPlayerLocalFlag/RemovePlayerLocalFlag helpers + PlayerLocalFlags enum (UF::ActivePlayerData::LocalFlags) — absent from converted Player.h
     if (apply)
         target->ToPlayer()->SetPlayerLocalFlag(PLAYER_LOCAL_FLAG_TRACK_STEALTHED);
     else
@@ -5158,7 +5157,6 @@ void AuraEffect::HandleNoReagentUseAura(AuraApplication const* aurApp, uint8 mod
     for (Unit::AuraEffectList::const_iterator i = noReagent.begin(); i != noReagent.end(); ++i)
         mask |= (*i)->m_spellInfo->Effects[(*i)->m_effIndex].SpellClassMask;
 
-    // [1c.4] TODO: requires Player::SetNoRegentCostMask helper (UF::ActivePlayerData::NoReagentCostMask[4]) — absent from converted Player.h
     target->ToPlayer()->SetNoRegentCostMask(mask);
 }
 
@@ -5966,7 +5964,6 @@ void AuraEffect::HandlePreventResurrection(AuraApplication const* aurApp, uint8 
     if (!aurApp->GetTarget()->IsPlayer())
         return;
 
-    // [1c.4] TODO: requires Player::SetPlayerLocalFlag/RemovePlayerLocalFlag helpers + PlayerLocalFlags enum (UF::ActivePlayerData::LocalFlags) — absent from converted Player.h
     if (apply)
         aurApp->GetTarget()->ToPlayer()->RemovePlayerLocalFlag(PLAYER_LOCAL_FLAG_RELEASE_TIMER);
     else if (!aurApp->GetTarget()->GetMap()->Instanceable())

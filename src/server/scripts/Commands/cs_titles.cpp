@@ -167,7 +167,7 @@ public:
 
         mask &= ~titles2;                                     // remove non-existing titles
 
-        // [1c.4] TODO: KnownTitles is now a dynamic uint64[] list; no public bulk-mask setter (was PLAYER__FIELD_KNOWN_TITLES). Use Player::SetTitle per-title.
+        target->SetKnownTitles(0, mask);
         handler->SendSysMessage(LANG_DONE);
 
         if (!target->HasTitle(target->GetChosenTitle()))

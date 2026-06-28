@@ -4847,7 +4847,7 @@ void Player::SendNewItem(Item* item, uint32 count, bool received, bool created, 
 
 void Player::Initialize(ObjectGuid::LowType guid)
 {
-    Object::_Create(guid, 0, HighGuid::Player);
+    Object::_Create(ObjectGuid::Create<HighGuid::Player>(guid));
 }
 
 void Player::_LoadDeclinedNames(PreparedQueryResult result)
@@ -5025,7 +5025,7 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
 
     ObjectGuid::LowType guid = playerGuid.GetCounter();
 
-    Object::_Create(guid, 0, HighGuid::Player);
+    Object::_Create(playerGuid);
 
     m_name = fields[2].Get<std::string>();
 
@@ -5085,9 +5085,24 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
         money = MAX_MONEY_AMOUNT;
     SetMoney(money);
 
-    // [1c.4] TODO: appearance (PLAYER_BYTES/PLAYER_BYTES_2 skin/face/hair/facial) is genuinely-absent in 3.4.3 -
-    // it is now ChrCustomizationChoice data (PlayerData::Customizations) sourced from a customizations table; not ported.
+    // [1c.4] 3.4.3 native appearance: skin/face/hair/facial bytes are gone; appearance is the
+    // ChrCustomizationChoice list loaded from character_customizations (PlayerData::Customizations).
     // PLAYER_BYTES_3 byte0 (gender) is already applied via SetSex above; byte1 (drunk) handled by inebriation logic.
+    std::vector<UF::ChrCustomizationChoice> customizations;
+    if (PreparedQueryResult customizationsResult = holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_CUSTOMIZATIONS))
+    {
+        do
+        {
+            Field* customizationFields = customizationsResult->Fetch();
+            UF::ChrCustomizationChoice& choice = customizations.emplace_back();
+            choice.ChrCustomizationOptionID = customizationFields[0].Get<uint32>();
+            choice.ChrCustomizationChoiceID = customizationFields[1].Get<uint32>();
+        } while (customizationsResult->NextRow());
+    }
+
+    SetCustomizations(Acore::Containers::MakeIteratorPair(customizations.begin(), customizations.end()), false);
+    SetNativeGender(static_cast< ::Gender>(Gender));        // native gender persists (matches Create + Sex)
+
     ReplaceAllPlayerFlags((PlayerFlags)fields[16].Get<uint32>());
     SetWatchedFactionIndex(int32(fields[53].Get<uint32>()));
 
@@ -7188,6 +7203,7 @@ void Player::SaveToDB(CharacterDatabaseTransaction trans, bool create, bool logo
         sScriptMgr->OnPlayerSave(this);
 
     _SaveCharacter(create, trans);
+    _SaveCustomizations(trans);
 
     if (m_mailsUpdated)                                     //save mails only when needed
         _SaveMail(trans);

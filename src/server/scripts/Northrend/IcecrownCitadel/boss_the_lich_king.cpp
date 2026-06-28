@@ -3472,7 +3472,7 @@ class spell_the_lich_king_trigger_vile_spirit : public SpellScript
 
         target->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_ATTACKABLE_1);
         target->SetImmuneToAll(false);
-        // [1c.4] TODO: ForceValuesUpdateAtIndex removed under structured UF model (UnitFlags resend now automatic on change)
+        target->ForceUpdateFieldChange(target->m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags));
         VileSpiritActivateEvent(target).Execute(0, 0);
     }
 

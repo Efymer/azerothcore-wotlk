@@ -129,8 +129,8 @@ void GameObject::CleanupsBeforeDelete(bool /*finalCleanup*/)
     if (IsInWorld())
         RemoveFromWorld();
 
-    if (m_uint32Values)                                      // field array can be not exist if GameOBject not loaded
-        RemoveFromOwner();
+    // [1c.4] field array no longer exists in 3.4.3; RemoveFromOwner is null-safe (guards on !ownerGUID)
+    RemoveFromOwner();
 }
 
 void GameObject::RemoveFromOwner()
@@ -298,7 +298,7 @@ bool GameObject::Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* map, u
         return false;
     }
 
-    Object::_Create(guidlow, goinfo->entry, HighGuid::GameObject);
+    Object::_Create(ObjectGuid::Create<HighGuid::GameObject>(goinfo->entry, guidlow));
 
     m_goInfo = goinfo;
 
@@ -510,7 +510,7 @@ void GameObject::Update(uint32 diff)
                                     UpdateData udata(GetMapId());
                                     WorldPacket packet;
                                     BuildValuesUpdateBlockForPlayer(&udata, caster->ToPlayer());
-                                    udata.BuildPacket(packet);
+                                    udata.BuildPacket(&packet);
                                     caster->ToPlayer()->SendDirectMessage(&packet);
 
                                     SendCustomAnim(GetGoAnimProgress());
@@ -2111,10 +2111,10 @@ void GameObject::CastSpell(Unit* target, uint32 spellId)
             trigger->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
         if (owner->IsFFAPvP())
         {
-            if (!trigger->HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP))
+            if (!trigger->HasPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP))
             {
                 sScriptMgr->OnFfaPvpStateUpdate(trigger, true);
-                trigger->SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
+                trigger->SetPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP);
             }
 
         }

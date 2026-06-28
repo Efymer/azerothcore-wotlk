@@ -1631,7 +1631,10 @@ bool Creature::CreateFromProto(ObjectGuid::LowType guidlow, uint32 Entry, uint32
 
     SetOriginalEntry(Entry);
 
-    Object::_Create(guidlow, Entry, (vehId || normalInfo->VehicleId) ? HighGuid::Vehicle : HighGuid::Unit);
+    if (vehId || normalInfo->VehicleId)
+        Object::_Create(ObjectGuid::Create<HighGuid::Vehicle>(Entry, guidlow));
+    else
+        Object::_Create(ObjectGuid::Create<HighGuid::Unit>(Entry, guidlow));
 
     // Xinef: select proper vehicle id
     if (!vehId)

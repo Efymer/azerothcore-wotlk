@@ -569,7 +569,7 @@ class spell_dk_rune_of_the_fallen_crusader : public SpellScript
         std::list<TargetInfo>* targetsInfo = GetSpell()->GetUniqueTargetInfo();
         for (std::list<TargetInfo>::iterator ihit = targetsInfo->begin(); ihit != targetsInfo->end(); ++ihit)
             if (ihit->targetGUID == GetCaster()->GetGUID())
-                ihit->crit = roll_chance_f(0.0f); // [1c.4] TODO: Player melee crit% getter missing (was PLAYER_CRIT_PERCENTAGE)
+                ihit->crit = roll_chance_f(GetCaster()->ToPlayer()->GetMeleeCritPercentage());
     }
 
     void Register() override
@@ -839,7 +839,7 @@ class spell_dk_pet_scaling : public AuraScript
 
             // xinef: Update appropriate player field
             if (owner->IsPlayer())
-                { } // [1c.4] TODO: Player::SetPetSpellPower() wrapper missing (was PLAYER_PET_SPELL_POWER UF)
+                owner->ToPlayer()->SetPetSpellPower((uint32)amount);
         }
     }
 

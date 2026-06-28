@@ -374,7 +374,7 @@ public:
                     me->RemoveDynamicFlag(UNIT_DYNFLAG_DEAD);
                     me->RemoveUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
                     me->SetReactState(REACT_AGGRESSIVE);
-                    // [1c.4] TODO: ForceValuesUpdateAtIndex removed under structured UF model (was forced resend of NpcFlags; in sniff)
+                    me->ForceUpdateFieldChange(me->m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 0));   // was in sniff. don't ask why
                     me->m_Events.AddEventAtOffset(new StandUpEvent(*me), 1s);
                     DoAction(ACTION_REMOVE_INVOCATION);
                     me->SetHealth(1);
@@ -644,7 +644,7 @@ public:
                     me->RemoveDynamicFlag(UNIT_DYNFLAG_DEAD);
                     me->RemoveUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
                     me->SetReactState(REACT_AGGRESSIVE);
-                    // [1c.4] TODO: ForceValuesUpdateAtIndex removed under structured UF model (was forced resend of NpcFlags; in sniff)
+                    me->ForceUpdateFieldChange(me->m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 0));   // was in sniff. don't ask why
                     me->m_Events.AddEventAtOffset(new StandUpEvent(*me), 1s);
                     DoAction(ACTION_REMOVE_INVOCATION);
                     me->SetHealth(1);
@@ -938,7 +938,7 @@ public:
                     me->RemoveDynamicFlag(UNIT_DYNFLAG_DEAD);
                     me->RemoveUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
                     me->SetReactState(REACT_AGGRESSIVE);
-                    // [1c.4] TODO: ForceValuesUpdateAtIndex removed under structured UF model (was forced resend of NpcFlags; in sniff)
+                    me->ForceUpdateFieldChange(me->m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 0));   // was in sniff. don't ask why
                     me->m_Events.AddEventAtOffset(new StandUpEvent(*me), 1s);
                     me->SetHealth(me->GetMaxHealth());
                     DoAction(ACTION_CAST_INVOCATION);

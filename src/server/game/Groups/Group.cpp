@@ -525,8 +525,6 @@ bool Group::AddMember(Player* player, uint8 roles /* = 0 */)
 
         {
             // Broadcast new player group member fields to rest of the group
-            player->SetFieldNotifyFlag(UF_FLAG_PARTY_MEMBER);
-
             UpdateData groupData(player->GetMapId());
             WorldPacket groupDataPacket;
 
@@ -542,19 +540,17 @@ bool Group::AddMember(Player* player, uint8 roles /* = 0 */)
                 {
                     if (player->HaveAtClient(itrMember))
                     {
-                        itrMember->SetFieldNotifyFlag(UF_FLAG_PARTY_MEMBER);
-                        itrMember->BuildValuesUpdateBlockForPlayer(&groupData, player);
-                        itrMember->RemoveFieldNotifyFlag(UF_FLAG_PARTY_MEMBER);
+                        itrMember->BuildValuesUpdateBlockForPlayerWithFlag(&groupData, UF::UpdateFieldFlag::PartyMember, player);
                     }
 
                     if (itrMember->HaveAtClient(player))
                     {
                         UpdateData newData(player->GetMapId());
                         WorldPacket newDataPacket;
-                        player->BuildValuesUpdateBlockForPlayer(&newData, itrMember);
+                        player->BuildValuesUpdateBlockForPlayerWithFlag(&newData, UF::UpdateFieldFlag::PartyMember, itrMember);
                         if (newData.HasData())
                         {
-                            newData.BuildPacket(newDataPacket);
+                            newData.BuildPacket(&newDataPacket);
                             itrMember->SendDirectMessage(&newDataPacket);
                         }
                     }
@@ -563,11 +559,9 @@ bool Group::AddMember(Player* player, uint8 roles /* = 0 */)
 
             if (groupData.HasData())
             {
-                groupData.BuildPacket(groupDataPacket);
+                groupData.BuildPacket(&groupDataPacket);
                 player->SendDirectMessage(&groupDataPacket);
             }
-
-            player->RemoveFieldNotifyFlag(UF_FLAG_PARTY_MEMBER);
         }
 
         if (m_maxEnchantingLevel < player->GetSkillValue(SKILL_ENCHANTING))
@@ -2280,8 +2274,8 @@ void Group::BroadcastGroupUpdate(void)
         Player* pp = ObjectAccessor::FindPlayer(citr->guid);
         if (pp)
         {
-            pp->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
-            pp->ForceValuesUpdateAtIndex(UNIT_FIELD_FACTIONTEMPLATE);
+            pp->ForceUpdateFieldChange(pp->m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PvpFlags));
+            pp->ForceUpdateFieldChange(pp->m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::FactionTemplate));
             LOG_DEBUG("group", "-- Forced group value update for '{}'", pp->GetName());
         }
     }

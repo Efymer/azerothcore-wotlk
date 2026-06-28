@@ -63,6 +63,8 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "WorldSessionMgr.h"
+#include <algorithm>
+#include <unordered_map>
 
 class LoginQueryHolder : public CharacterDatabaseQueryHolder
 {
@@ -88,6 +90,10 @@ bool LoginQueryHolder::Initialize()
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER);
     stmt->SetData(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_FROM, stmt);
+
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_CUSTOMIZATIONS);
+    stmt->SetData(0, lowGuid);
+    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_CUSTOMIZATIONS, stmt);
 
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_AURAS);
     stmt->SetData(0, lowGuid);
@@ -233,14 +239,19 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
     // The WotLK Classic client build this core targets; reported back per character as LastLoginVersion.
     constexpr uint32 CLIENT_BUILD_3_4_3 = 54261;
 
-    WorldPackets::Character::EnumCharactersResult charEnum;
-    charEnum.Success = true;
+    // Held by shared_ptr so the packet survives until the chained customizations query completes (see below).
+    auto charEnum = std::make_shared<WorldPackets::Character::EnumCharactersResult>();
+    charEnum->Success = true;
     // The 343 reference (Xian55) populates these; AC omitted them, so its SMSG_ENUM_CHARACTERS_RESULT byte-0 was
     // 0x80 (DisabledClassesMask absent) vs the reference's 0x82. Send DisabledClassesMask (present) so the field
     // layout matches the modern client's expectation.
-    charEnum.DisabledClassesMask = 0;
+    charEnum->DisabledClassesMask = 0;
 
     _legitCharacters.clear();
+
+    // CHAR-SCREEN DIAGNOSTIC (temporary): trace the enum result + each character's fields, to find why the
+    // character-select screen does not finish loading once a character exists. Revert after.
+    LOG_INFO("network", "CHAR-SCREEN HandleCharEnum (account {}): CHAR_SEL_ENUM returned {}", GetAccountId(), result ? "rows" : "NO rows");
 
     if (result)
     {
@@ -271,21 +282,67 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
             charInfo.FirstLogin = (atLoginFlags & AT_LOGIN_FIRST) != 0;
             charInfo.LastLoginVersion = CLIENT_BUILD_3_4_3;
 
-            // TODO(3.4.3): populate Customizations/VisualItems/SpecID — needs modern character_customizations schema + DB2 ChrCustomization (next brick)
+            // [1c.4] charInfo.Customizations (the select-screen appearance) is filled by the chained query below;
+            // VisualItems and SpecID remain unpopulated for now.
 
-            charEnum.MaxCharacterLevel = std::max<int32>(charEnum.MaxCharacterLevel, charInfo.ExperienceLevel);
+            charEnum->MaxCharacterLevel = std::max<int32>(charEnum->MaxCharacterLevel, charInfo.ExperienceLevel);
+
+            LOG_INFO("network", "CHAR-SCREEN   char[{}] guid={} name='{}' race={} class={} sex={} level={} map={} zone={} firstLogin={}",
+                index, guid.ToString(), charInfo.Name, uint32(charInfo.RaceID), uint32(charInfo.ClassID), uint32(charInfo.SexID),
+                uint32(charInfo.ExperienceLevel), charInfo.MapID, charInfo.ZoneID, charInfo.FirstLogin);
 
             _legitCharacters.insert(guid);
-            charEnum.Characters.push_back(std::move(charInfo));
+            charEnum->Characters.push_back(std::move(charInfo));
             ++index;
         } while (result->NextRow());
     }
 
-    SendPacket(charEnum.Write());
+    // [1c.4] Populate each character's select-screen appearance (ChrCustomizationChoice). xian55 loads this via an
+    // EnumCharactersQueryHolder that runs CHAR_SEL_ENUM + CHAR_SEL_ENUM_CUSTOMIZATIONS atomically and groups rows by
+    // guid into CharacterInfo.Customizations. AC's enum is a single AsyncQuery and HandleCharEnum's signature is
+    // declared in WorldSession.h (out of scope to change), so instead of converting to a holder we chain a second
+    // account-keyed async customizations query here, group its rows by guid, assign into each CharacterInfo, then
+    // send the packet from that callback. Fully async — the world thread is never blocked.
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_ENUM_CUSTOMIZATIONS);
+    stmt->SetData(0, GetAccountId());
+    _queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(stmt).WithPreparedCallback([this, charEnum](PreparedQueryResult customizationsResult)
+    {
+        if (customizationsResult)
+        {
+            // Rows arrive ordered by (guid, chrCustomizationOptionID); group them per character guid.
+            std::unordered_map<ObjectGuid::LowType, std::vector<WorldPackets::Character::ChrCustomizationChoice>> customizations;
+            do
+            {
+                Field* fields = customizationsResult->Fetch();
+                WorldPackets::Character::ChrCustomizationChoice& choice = customizations[fields[0].Get<uint32>()].emplace_back();
+                choice.ChrCustomizationOptionID = fields[1].Get<uint32>();
+                choice.ChrCustomizationChoiceID = fields[2].Get<uint32>();
+            } while (customizationsResult->NextRow());
+
+            for (WorldPackets::Character::EnumCharactersResult::CharacterInfo& charInfo : charEnum->Characters)
+            {
+                auto itr = customizations.find(charInfo.Guid.GetCounter());
+                if (itr != customizations.end())
+                    charInfo.Customizations = std::move(itr->second);
+            }
+        }
+
+        std::size_t totalCustomizations = 0;
+        for (WorldPackets::Character::EnumCharactersResult::CharacterInfo const& c : charEnum->Characters)
+            totalCustomizations += c.Customizations.size();
+
+        WorldPacket const* pkt = charEnum->Write();
+        LOG_INFO("network", "CHAR-SCREEN sending SMSG_ENUM_CHARACTERS_RESULT: chars={} disabledClassesMask={} maxLevel={} totalCustomizations={} size={}",
+            charEnum->Characters.size(), charEnum->DisabledClassesMask.value_or(0), charEnum->MaxCharacterLevel, uint32(totalCustomizations), uint32(pkt->size()));
+        SendPacket(pkt);
+    }));
 }
 
 void WorldSession::HandleCharEnumOpcode(WorldPacket& /*recvData*/)
 {
+    // CHAR-SCREEN DIAGNOSTIC (temporary): confirm the client's CMSG_ENUM_CHARACTERS arrived and the enum query fires.
+    LOG_INFO("network", "CHAR-SCREEN recv CMSG_ENUM_CHARACTERS (account {}) - dispatching CHAR_SEL_ENUM query", GetAccountId());
+
     CharacterDatabasePreparedStatement* stmt = nullptr;
 
     /// get all the data necessary for loading all characters (along with their pets) on the account
@@ -305,16 +362,37 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
 {
     std::shared_ptr<CharacterCreateInfo> createInfo = std::make_shared<CharacterCreateInfo>();
 
-    recvData >> createInfo->Name
-             >> createInfo->Race
-             >> createInfo->Class
-             >> createInfo->Gender
-             >> createInfo->Skin
-             >> createInfo->Face
-             >> createInfo->HairStyle
-             >> createInfo->HairColor
-             >> createInfo->FacialHair
-             >> createInfo->OutfitId;
+    // [1c.4] 3.4.3 CMSG_CREATE_CHARACTER carries the modern ChrCustomizationChoice appearance list instead of
+    // the legacy Skin/Face/HairStyle/HairColor/FacialHair/OutfitId bytes. Transcribed from xian55
+    // CreateCharacter::Read (src/server/game/Server/Packets/CharacterPackets.cpp). The legacy byte fields on
+    // CharacterCreateInfo stay default-zeroed; createInfo->Customizations is the source of truth and is consumed
+    // by Player::SetCustomizations in Player::Create.
+    uint32 nameLength = recvData.ReadBits(6);
+    bool const hasTemplateSet = recvData.ReadBit();
+    recvData.ReadBit();                                         // IsTrialBoost (unused by AC)
+    recvData.ReadBit();                                         // UseNPE (unused by AC)
+
+    recvData >> createInfo->Race;
+    recvData >> createInfo->Class;
+    recvData >> createInfo->Gender;
+    createInfo->Customizations.resize(recvData.read<uint32>());
+    createInfo->Name = recvData.ReadString(nameLength);
+    if (hasTemplateSet)
+        recvData.read<int32>();                                // TemplateSet (unused by AC)
+
+    for (WorldPackets::Character::ChrCustomizationChoice& customization : createInfo->Customizations)
+    {
+        recvData >> customization.ChrCustomizationOptionID;
+        recvData >> customization.ChrCustomizationChoiceID;
+    }
+
+    // xian55 SortCustomizations(): keep the list ordered by option id so create-time storage matches the
+    // ORDER BY chrCustomizationOptionID load path (CHAR_SEL_CHARACTER_CUSTOMIZATIONS).
+    std::stable_sort(createInfo->Customizations.begin(), createInfo->Customizations.end(),
+        [](WorldPackets::Character::ChrCustomizationChoice const& left, WorldPackets::Character::ChrCustomizationChoice const& right)
+        {
+            return left.ChrCustomizationOptionID < right.ChrCustomizationOptionID;
+        });
 
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_TEAMMASK))
     {
@@ -1600,23 +1678,37 @@ void WorldSession::HandleAlterAppearance(WorldPacket& recvData)
 {
     LOG_DEBUG("network", "CMSG_ALTER_APPEARANCE");
 
-    uint32 Hair, Color, FacialHair, SkinColor;
-    recvData >> Hair >> Color >> FacialHair >> SkinColor;
+    // [1c.4] 3.4.3 CMSG_ALTER_APPEARANCE wire layout (mirrors WorldPackets::Character::AlterApperance::Read):
+    // uint32 customization count, uint8 NewSex, int32 CustomizedRace, int32 CustomizedChrModelID,
+    // then <count> ChrCustomizationChoice entries { uint32 OptionID, uint32 ChoiceID }.
+    std::vector<UF::ChrCustomizationChoice> customizations;
+    customizations.resize(recvData.read<uint32>());
 
-    BarberShopStyleEntry const* bs_hair = sBarberShopStyleStore.LookupEntry(Hair);
+    uint8 newSex;
+    int32 customizedRace;
+    int32 customizedChrModelID;
+    recvData >> newSex;
+    recvData >> customizedRace;
+    recvData >> customizedChrModelID;
 
-    if (!bs_hair || bs_hair->type != 0 || bs_hair->race != _player->getRace() || bs_hair->gender != _player->getGender())
-        return;
+    // [1c.4] CustomizedRace/CustomizedChrModelID drive xian55's ConditionalChrModel validation; AC lacks those
+    // DB2 stores (sConditionalChrModelStore/sChrCustomizationReqStore), so they are only consumed off the wire.
+    (void)customizedRace;
+    (void)customizedChrModelID;
 
-    BarberShopStyleEntry const* bs_facialHair = sBarberShopStyleStore.LookupEntry(FacialHair);
+    for (UF::ChrCustomizationChoice& customization : customizations)
+    {
+        recvData >> customization.ChrCustomizationOptionID;
+        recvData >> customization.ChrCustomizationChoiceID;
+    }
 
-    if (!bs_facialHair || bs_facialHair->type != 2 || bs_facialHair->race != _player->getRace() || bs_facialHair->gender != _player->getGender())
-        return;
-
-    BarberShopStyleEntry const* bs_skinColor = sBarberShopStyleStore.LookupEntry(SkinColor);
-
-    if (bs_skinColor && (bs_skinColor->type != 3 || bs_skinColor->race != _player->getRace() || bs_skinColor->gender != _player->getGender()))
-        return;
+    // xian55 SortCustomizations(): keep the list ordered by option id so the diff in GetBarberShopCost and the
+    // stored appearance are deterministic.
+    std::stable_sort(customizations.begin(), customizations.end(),
+        [](UF::ChrCustomizationChoice const& left, UF::ChrCustomizationChoice const& right)
+        {
+            return left.ChrCustomizationOptionID < right.ChrCustomizationOptionID;
+        });
 
     GameObject* go = _player->FindNearestGameObjectOfType(GAMEOBJECT_TYPE_BARBER_CHAIR, 5.0f);
     if (!go)
@@ -1635,12 +1727,13 @@ void WorldSession::HandleAlterAppearance(WorldPacket& recvData)
         return;
     }
 
-    uint32 cost = _player->GetBarberShopCost(bs_hair->hair_id, Color, bs_facialHair->hair_id, bs_skinColor);
+    int64 cost = _player->GetBarberShopCost(Acore::Containers::MakeIteratorPair<UF::ChrCustomizationChoice const*>(
+        customizations.data(), customizations.data() + customizations.size()));
 
     // 0 - ok
     // 1, 3 - not enough money
     // 2 - you have to seat on barber chair
-    if (!_player->HasEnoughMoney(cost))
+    if (!_player->HasEnoughMoney(int32(cost)))
     {
         WorldPacket data(SMSG_BARBER_SHOP_RESULT, 4);
         data << uint32(1);                                  // no money
@@ -1655,17 +1748,12 @@ void WorldSession::HandleAlterAppearance(WorldPacket& recvData)
     }
 
     _player->ModifyMoney(-int32(cost));                     // it isn't free
-    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GOLD_SPENT_AT_BARBER, cost);
-
-    // [1c.4] TODO: legacy PLAYER_BYTES appearance (hair/hair color/facial hair/skin) is gone in 3.4.3;
-    // character appearance is now ChrCustomizationChoice list (Player::SetCustomizations). Barber-shop
-    // restyling needs to be reworked onto that model before it can persist the new look.
-    (void)bs_hair;
-    (void)Color;
-    (void)bs_facialHair;
-    (void)bs_skinColor;
-
+    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GOLD_SPENT_AT_BARBER, uint32(cost));
     _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_VISIT_BARBER_SHOP, 1);
+
+    // [1c.4] persist the restyle onto the modern ChrCustomizationChoice model + native sex.
+    _player->SetCustomizations(Acore::Containers::MakeIteratorPair(customizations.begin(), customizations.end()));
+    _player->SetNativeGender(Gender(newSex));
 
     _player->SetStandState(0);                              // stand up
 }
