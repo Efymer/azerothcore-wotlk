@@ -551,7 +551,7 @@ struct boss_mimiron : public BossAI
                 if (Creature* VX001 = GetVX001())
                 {
                     VX001->HandleEmoteCommand(EMOTE_STATE_DROWNED);
-                    VX001->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_DROWNED);
+                    VX001->SetEmoteState(EMOTE_STATE_DROWNED);
                     events.ScheduleEvent(EVENT_GET_OUT_VX001, 2500ms);
                     break;
                 }
@@ -620,7 +620,7 @@ struct boss_mimiron : public BossAI
                     }
 
                     VX001->SendMeleeAttackStop();
-                    VX001->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_CUSTOM_SPELL_02);
+                    VX001->SetEmoteState(EMOTE_ONESHOT_CUSTOM_SPELL_02);
                     VX001->HandleEmoteCommand(EMOTE_ONESHOT_CUSTOM_SPELL_02);
                     events.ScheduleEvent(EVENT_LEVIATHAN_RIDE_MIDDLE, 4800ms);
                 }
@@ -636,7 +636,7 @@ struct boss_mimiron : public BossAI
                     }
 
                     LMK2->GetMotionMaster()->MoveCharge(2744.65f, 2569.46f, 364.31f, 21.0f);
-                    VX001->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_CUSTOM_SPELL_01);
+                    VX001->SetEmoteState(EMOTE_STATE_CUSTOM_SPELL_01);
                     VX001->HandleEmoteCommand(EMOTE_STATE_CUSTOM_SPELL_01);
                     VX001->EnterVehicle(LMK2, 3);
                     events.ScheduleEvent(EVENT_JOIN_TOGETHER, 3s);
@@ -813,7 +813,7 @@ struct boss_mimiron : public BossAI
             if (elevator->GetGoState() != GO_STATE_ACTIVE )
             {
                 elevator->SetLootState(GO_READY);
-                elevator->SetByteValue(GAMEOBJECT_BYTES_1, 0, GO_STATE_ACTIVE);
+                elevator->SetGoState(GO_STATE_ACTIVE);
             }
             elevator->EnableCollision(false);
         }
@@ -936,7 +936,7 @@ struct npc_ulduar_leviathan_mkii : public ScriptedAI
         me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         me->SetReactState(REACT_AGGRESSIVE);
-        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+        me->SetEmoteState(EMOTE_ONESHOT_NONE);
 
         _events.Reset();
     }
@@ -1191,13 +1191,13 @@ struct npc_ulduar_vx001 : public ScriptedAI
                 case 0:
                     _phase = 0;
                     _fighting = false;
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                    me->SetEmoteState(EMOTE_ONESHOT_NONE);
                     _events.Reset();
                     break;
                 case 2:
                     _phase = 2;
                     _fighting = true;
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_SPELL_CAST_OMNI);
+                    me->SetEmoteState(EMOTE_ONESHOT_SPELL_CAST_OMNI);
                     me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                     _events.Reset();
                     _events.ScheduleEvent(EVENT_SPELL_HEAT_WAVE, 10s);
@@ -1261,7 +1261,7 @@ struct npc_ulduar_vx001 : public ScriptedAI
                     me->InterruptNonMeleeSpells(false);
                     me->RemoveAllAurasExceptType(SPELL_AURA_CONTROL_VEHICLE);
                     me->SendMeleeAttackStop();
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_CUSTOM_SPELL_06);
+                    me->SetEmoteState(EMOTE_ONESHOT_CUSTOM_SPELL_06);
                     me->HandleEmoteCommand(EMOTE_ONESHOT_CUSTOM_SPELL_06);
                     if (Creature* c = GetMimiron())
                         c->AI()->SetData(0, 2);
@@ -1369,7 +1369,7 @@ struct npc_ulduar_vx001 : public ScriptedAI
                     if (Unit* vb = me->GetVehicleBase())
                     {
                         vb->SendMeleeAttackStop();
-                        vb->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                        vb->SetEmoteState(EMOTE_ONESHOT_NONE);
 
                         if (!_leftArm)
                         {
@@ -1399,7 +1399,7 @@ struct npc_ulduar_vx001 : public ScriptedAI
                     me->CastSpell(p, SPELL_SPINNING_UP, true);
                     if (Unit* vehicle = me->GetVehicleBase())
                     {
-                        vehicle->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_CUSTOM_SPELL_01);
+                        vehicle->SetEmoteState(EMOTE_STATE_CUSTOM_SPELL_01);
                         vehicle->HandleEmoteCommand(EMOTE_STATE_CUSTOM_SPELL_01);
                     }
                     _events.RescheduleEvent((_phase == 2 ? EVENT_SPELL_RAPID_BURST : EVENT_HAND_PULSE), 14s + 500ms);

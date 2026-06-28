@@ -1152,36 +1152,18 @@ public:
         return true;
     }
 
-    static bool HandleDebugGetItemValueCommand(ChatHandler* handler, ObjectGuid::LowType guid, uint32 index)
+    static bool HandleDebugGetItemValueCommand(ChatHandler* handler, ObjectGuid::LowType /*guid*/, uint32 /*index*/)
     {
-        Item* i = handler->GetPlayer()->GetItemByGuid(ObjectGuid(HighGuid::Item, 0, guid));
-
-        if (!i)
-            return false;
-
-        if (index >= i->GetValuesCount())
-            return false;
-
-        uint32 value = i->GetUInt32Value(index);
-
-        handler->PSendSysMessage("Item {}: value at {} is {}", guid, index, value);
-
-        return true;
+        // [1c.4] TODO: raw flat update-field index access removed under the structured UpdateField model (3.4.3)
+        handler->SendErrorMessage("Raw update-field index access is unsupported under the structured UpdateField model (3.4.3).");
+        return false;
     }
 
-    static bool HandleDebugSetItemValueCommand(ChatHandler* handler, ObjectGuid::LowType guid, uint32 index, uint32 value)
+    static bool HandleDebugSetItemValueCommand(ChatHandler* handler, ObjectGuid::LowType /*guid*/, uint32 /*index*/, uint32 /*value*/)
     {
-        Item* i = handler->GetPlayer()->GetItemByGuid(ObjectGuid(HighGuid::Item, 0, guid));
-
-        if (!i)
-            return false;
-
-        if (index >= i->GetValuesCount())
-            return false;
-
-        i->SetUInt32Value(index, value);
-
-        return true;
+        // [1c.4] TODO: raw flat update-field index access removed under the structured UpdateField model (3.4.3)
+        handler->SendErrorMessage("Raw update-field index access is unsupported under the structured UpdateField model (3.4.3).");
+        return false;
     }
 
     static bool HandleDebugItemExpireCommand(ChatHandler* handler, ObjectGuid::LowType guid)
@@ -1244,136 +1226,39 @@ public:
         return true;
     }
 
-    static bool HandleDebugSetValueCommand(ChatHandler* handler, uint32 index, Variant<uint32, float> value)
+    static bool HandleDebugSetValueCommand(ChatHandler* handler, uint32 /*index*/, Variant<uint32, float> /*value*/)
     {
-        WorldObject* target = handler->getSelectedObject();
-        if (!target)
-        {
-            handler->SendErrorMessage(LANG_SELECT_CHAR_OR_CREATURE);
-            return false;
-        }
-
-        if (index >= target->GetValuesCount())
-        {
-            handler->PSendSysMessage(LANG_TOO_BIG_INDEX, index, target->GetGUID().ToString(), target->GetValuesCount());
-            return false;
-        }
-
-        if (value.holds_alternative<uint32>())
-        {
-            target->SetUInt32Value(index, value.get<uint32>());
-            handler->PSendSysMessage(LANG_SET_UINT_FIELD, target->GetGUID().ToString(), uint32(index), uint32(value));
-        }
-        else if (value.holds_alternative<float>())
-        {
-            target->SetFloatValue(index, value.get<float>());
-            handler->PSendSysMessage(LANG_SET_FLOAT_FIELD, target->GetGUID().ToString(), static_cast<float>(index), uint32(value));
-        }
-
-        return true;
+        // [1c.4] TODO: raw flat update-field index access removed under the structured UpdateField model (3.4.3)
+        handler->SendErrorMessage("Raw update-field index access is unsupported under the structured UpdateField model (3.4.3).");
+        return false;
     }
 
-    static bool HandleDebugGetValueCommand(ChatHandler* handler, uint32 index, bool isInt)
+    static bool HandleDebugGetValueCommand(ChatHandler* handler, uint32 /*index*/, bool /*isInt*/)
     {
-        Unit* target = handler->getSelectedUnit();
-        if (!target)
-        {
-            handler->SendErrorMessage(LANG_SELECT_CHAR_OR_CREATURE);
-            return false;
-        }
-
-        ObjectGuid guid = target->GetGUID();
-
-        if (index >= target->GetValuesCount())
-        {
-            handler->PSendSysMessage(LANG_TOO_BIG_INDEX, index, guid.ToString(), target->GetValuesCount());
-            return false;
-        }
-
-        if (isInt)
-        {
-            uint32 value = target->GetUInt32Value(index);
-            handler->PSendSysMessage(LANG_GET_UINT_FIELD, guid.ToString(), index, value);
-        }
-        else
-        {
-            float value = target->GetFloatValue(index);
-            handler->PSendSysMessage(LANG_GET_FLOAT_FIELD, guid.ToString(), index, value);
-        }
-
-        return true;
+        // [1c.4] TODO: raw flat update-field index access removed under the structured UpdateField model (3.4.3)
+        handler->SendErrorMessage("Raw update-field index access is unsupported under the structured UpdateField model (3.4.3).");
+        return false;
     }
 
-    static bool HandleDebugMod32ValueCommand(ChatHandler* handler, uint32 index, uint32 value)
+    static bool HandleDebugMod32ValueCommand(ChatHandler* handler, uint32 /*index*/, uint32 /*value*/)
     {
-        if (index >= handler->GetPlayer()->GetValuesCount())
-        {
-            handler->PSendSysMessage(LANG_TOO_BIG_INDEX, index, handler->GetPlayer()->GetGUID().ToString(), handler->GetPlayer()->GetValuesCount());
-            return false;
-        }
-
-        uint32 currentValue = handler->GetPlayer()->GetUInt32Value(index);
-
-        currentValue += value;
-        handler->GetPlayer()->SetUInt32Value(index, currentValue);
-
-        handler->PSendSysMessage(LANG_CHANGE_32BIT_FIELD, index, currentValue);
-
-        return true;
+        // [1c.4] TODO: raw flat update-field index access removed under the structured UpdateField model (3.4.3)
+        handler->SendErrorMessage("Raw update-field index access is unsupported under the structured UpdateField model (3.4.3).");
+        return false;
     }
 
-    static bool HandleDebugUpdateCommand(ChatHandler* handler, uint32 index, Optional<uint32> value)
+    static bool HandleDebugUpdateCommand(ChatHandler* handler, uint32 /*index*/, Optional<uint32> /*value*/)
     {
-        Unit* unit = handler->getSelectedUnit();
-        if (!unit)
-        {
-            handler->SendErrorMessage(LANG_SELECT_CHAR_OR_CREATURE);
-            return false;
-        }
-
-        if (!index)
-            return true;
-
-        // check index
-        if (unit->IsPlayer())
-        {
-            if (index >= PLAYER_END)
-                return true;
-        }
-        else if (index >= UNIT_END)
-            return true;
-
-        if (!value)
-        {
-            value = unit->GetUInt32Value(index);
-
-            handler->PSendSysMessage(LANG_UPDATE, unit->GetGUID().ToString(), index, *value);
-            return true;
-        }
-
-        unit->SetUInt32Value(index, *value);
-
-        handler->PSendSysMessage(LANG_UPDATE_CHANGE, unit->GetGUID().ToString(), index, *value);
-        return true;
+        // [1c.4] TODO: raw flat update-field index access removed under the structured UpdateField model (3.4.3)
+        handler->SendErrorMessage("Raw update-field index access is unsupported under the structured UpdateField model (3.4.3).");
+        return false;
     }
 
-    static bool HandleDebugSet32BitCommand(ChatHandler* handler, uint32 index, uint8 bit)
+    static bool HandleDebugSet32BitCommand(ChatHandler* handler, uint32 /*index*/, uint8 /*bit*/)
     {
-        WorldObject* target = handler->getSelectedObject();
-        if (!target)
-        {
-            handler->SendErrorMessage(LANG_SELECT_CHAR_OR_CREATURE);
-            return false;
-        }
-
-        if (bit > 32) // uint32 = 32 bits
-            return false;
-
-        uint32 value = bit ? 1 << (bit - 1) : 0;
-        target->SetUInt32Value(index, value);
-
-        handler->PSendSysMessage(LANG_SET_32BIT_FIELD, index, value);
-        return true;
+        // [1c.4] TODO: raw flat update-field index access removed under the structured UpdateField model (3.4.3)
+        handler->SendErrorMessage("Raw update-field index access is unsupported under the structured UpdateField model (3.4.3).");
+        return false;
     }
 
     static bool HandleDebugMoveflagsCommand(ChatHandler* handler, Optional<uint32> moveFlags, Optional<uint32> moveFlagsExtra)

@@ -1308,7 +1308,7 @@ public:
                     {
                         if (!theLichKing->IsAlive() || !theLichKing->IsVisible())
                             break;
-                        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                        me->SetEmoteState(EMOTE_STATE_READY2H);
                         theLichKing->SetStandState(UNIT_STAND_STATE_STAND);
                         theLichKing->SetSheath(SHEATH_STATE_MELEE);
                         theLichKing->RemoveAurasDueToSpell(SPELL_EMOTE_SIT_NO_SHEATH);
@@ -1365,7 +1365,7 @@ public:
             ScriptedAI::JustReachedHome();
             if (!(_instance->GetBossState(DATA_THE_LICH_KING) == DONE || (me->GetMap()->IsHeroic() && !_instance->GetData(DATA_LK_HC_AVAILABLE))))
                 me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+            me->SetEmoteState(EMOTE_ONESHOT_NONE);
         }
 
         void sGossipSelect(Player* /*player*/, uint32 sender, uint32 action) override
@@ -1540,7 +1540,7 @@ public:
                     {
                         theLichKing->AI()->Talk(SAY_LK_OUTRO_6);
                         me->SetFacingToObject(theLichKing);
-                        theLichKing->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, EQUIP_UNEQUIP);
+                        theLichKing->SetVirtualItem(0, EQUIP_UNEQUIP);
                         theLichKing->CastSpell((Unit*)nullptr, SPELL_SUMMON_BROKEN_FROSTMOURNE_3, true);
                         me->GetMap()->SetZoneOverrideLight(AREA_THE_FROZEN_THRONE, LIGHT_SOULSTORM, 10s);
                         me->GetMap()->SetZoneWeather(AREA_THE_FROZEN_THRONE, WEATHER_STATE_BLACKSNOW, 0.5f);
@@ -1595,7 +1595,7 @@ public:
                         if (Creature* lichKing = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_THE_LICH_KING)))
                         {
                             lichKing->SetImmuneToNPC(false);
-                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                            me->SetEmoteState(EMOTE_ONESHOT_NONE);
                             me->RemoveAllAuras();
                             SetEquipmentSlots(false, EQUIP_ASHBRINGER);
                             me->Attack(lichKing, true);
@@ -2351,13 +2351,13 @@ class spell_the_lich_king_defile : public SpellScript
     void CorrectRange(std::list<WorldObject*>& targets)
     {
         targets.remove_if(VehicleCheck());
-        targets.remove_if(Acore::AllWorldObjectsInExactRange(GetCaster(), 10.0f * GetCaster()->GetFloatValue(OBJECT_FIELD_SCALE_X), true));
+        targets.remove_if(Acore::AllWorldObjectsInExactRange(GetCaster(), 10.0f * GetCaster()->GetObjectScale(), true));
         targets.remove_if(Acore::UnitAuraCheck(true, sSpellMgr->GetSpellIdForDifficulty(SPELL_HARVEST_SOUL, GetCaster())));
     }
 
     void ChangeDamageAndGrow()
     {
-        SetHitDamage(int32(GetHitDamage() * GetCaster()->GetFloatValue(OBJECT_FIELD_SCALE_X)));
+        SetHitDamage(int32(GetHitDamage() * GetCaster()->GetObjectScale()));
         // HACK: target player should cast this spell on defile
         // however with current aura handling auras cast by different units
         // cannot stack on the same aura object increasing the stack count
@@ -3472,7 +3472,7 @@ class spell_the_lich_king_trigger_vile_spirit : public SpellScript
 
         target->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_ATTACKABLE_1);
         target->SetImmuneToAll(false);
-        target->ForceValuesUpdateAtIndex(UNIT_FIELD_FLAGS);
+        // [1c.4] TODO: ForceValuesUpdateAtIndex removed under structured UF model (UnitFlags resend now automatic on change)
         VileSpiritActivateEvent(target).Execute(0, 0);
     }
 

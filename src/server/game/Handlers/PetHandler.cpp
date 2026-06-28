@@ -635,7 +635,7 @@ void WorldSession::SendPetNameQuery(ObjectGuid petguid, uint32 petnumber)
     WorldPacket data(SMSG_QUERY_PET_NAME_RESPONSE, (4 + 4 + name.size() + 1));
     data << uint32(petnumber);
     data << name.c_str();
-    data << uint32(pet->GetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP));
+    data << uint32(pet->m_unitData->PetNameTimestamp);
 
     if (pet->IsPet() && ((Pet*)pet)->GetDeclinedNames())
     {
@@ -836,7 +836,7 @@ void WorldSession::HandlePetRename(WorldPacket& recvData)
 
     // check it!
     if (!pet || !pet->IsPet() || ((Pet*)pet)->getPetType() != HUNTER_PET ||
-        !pet->HasByteFlag(UNIT_FIELD_BYTES_2, 2, UNIT_CAN_BE_RENAMED) ||
+        !pet->HasPetFlag(UNIT_CAN_BE_RENAMED) ||
         pet->GetOwnerGUID() != _player->GetGUID() || !pet->GetCharmInfo() ||
         !petStable || !petStable->CurrentPet || petStable->CurrentPet->PetNumber != pet->GetCharmInfo()->GetPetNumber())
     {
@@ -856,7 +856,7 @@ void WorldSession::HandlePetRename(WorldPacket& recvData)
     if (owner && (owner->IsPlayer()) && owner->ToPlayer()->GetGroup())
         owner->ToPlayer()->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_PET_NAME);
 
-    pet->RemoveByteFlag(UNIT_FIELD_BYTES_2, 2, UNIT_CAN_BE_RENAMED);
+    pet->RemovePetFlag(UNIT_CAN_BE_RENAMED);
 
     petStable->CurrentPet->Name = name;
     petStable->CurrentPet->WasRenamed = true;
@@ -904,7 +904,7 @@ void WorldSession::HandlePetRename(WorldPacket& recvData)
 
     CharacterDatabase.CommitTransaction(trans);
 
-    pet->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, uint32(GameTime::GetGameTime().count())); // cast can't be helped
+    pet->SetPetNameTimestamp(uint32(GameTime::GetGameTime().count())); // cast can't be helped
 }
 
 void WorldSession::HandlePetAbandon(WorldPackets::Pet::PetAbandon& packet)

@@ -45,7 +45,10 @@ public:
     [[nodiscard]] uint8 GetSlotByItemGUID(ObjectGuid guid) const;
     [[nodiscard]] bool IsEmpty() const;
     [[nodiscard]] uint32 GetFreeSlots() const;
-    [[nodiscard]] uint32 GetBagSize() const { return GetUInt32Value(CONTAINER_FIELD_NUM_SLOTS); }
+    [[nodiscard]] uint32 GetBagSize() const { return m_containerData->NumSlots; }
+    void SetBagSize(uint32 numSlots) { SetUpdateFieldValue(m_values.ModifyValue(&Bag::m_containerData).ModifyValue(&UF::ContainerData::NumSlots), numSlots); }
+    // named to avoid hiding Item::SetSlot(uint8)
+    void SetContainerSlot(uint32 slot, ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Bag::m_containerData).ModifyValue(&UF::ContainerData::Slots, slot), guid); }
 
     // DB operations
     // overwrite virtual Item::SaveToDB
@@ -55,11 +58,17 @@ public:
     // overwrite virtual Item::DeleteFromDB
     void DeleteFromDB(CharacterDatabaseTransaction trans) override;
 
-    void BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) override;
+    void BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) const override;
 
     std::string GetDebugInfo() const override;
 
+    UF::UpdateField<UF::ContainerData, 0, TYPEID_CONTAINER> m_containerData;
+
 protected:
+    void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+    void ClearUpdateMask(bool remove) override;
+
     // Bag Storage space
     Item* m_bagslot[MAX_BAG_SIZE];
 };

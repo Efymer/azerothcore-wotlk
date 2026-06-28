@@ -663,10 +663,10 @@ void WorldSession::HandleSellItemOpcode(WorldPackets::Item::SellItem& packet)
                 if (sWorld->getBoolConfig(CONFIG_ITEMDELETE_VENDOR))
                     recoveryItem(pItem);
 
-                uint32 maxDurability = pItem->GetUInt32Value(ITEM_FIELD_MAXDURABILITY);
+                uint32 maxDurability = pItem->GetMaxDurability();
                 if (maxDurability)
                 {
-                    uint32 curDurability = pItem->GetUInt32Value(ITEM_FIELD_DURABILITY);
+                    uint32 curDurability = pItem->GetDurability();
                     uint32 LostDurability = maxDurability - curDurability;
 
                     if (LostDurability > 0)
@@ -712,7 +712,7 @@ void WorldSession::HandleSellItemOpcode(WorldPackets::Item::SellItem& packet)
                         return;
                     }
 
-                    pNewItem->SetUInt32Value(ITEM_FIELD_DURABILITY, pItem->GetUInt32Value(ITEM_FIELD_DURABILITY));
+                    pNewItem->SetDurability(pItem->GetDurability());
 
                     pItem->SetCount(pItem->GetCount() - packet.Count);
                     _player->ItemRemovedQuestCheck(pItem->GetEntry(), packet.Count);
@@ -762,7 +762,7 @@ void WorldSession::HandleBuybackItem(WorldPackets::Item::BuybackItem& packet)
     Item* pItem = _player->GetItemFromBuyBackSlot(packet.Slot);
     if (pItem)
     {
-        uint32 price = _player->GetUInt32Value(PLAYER_FIELD_BUYBACK_PRICE_1 + packet.Slot - BUYBACK_SLOT_START);
+        uint32 price = _player->GetBuybackPrice(packet.Slot - BUYBACK_SLOT_START);
         if (!_player->HasEnoughMoney(price))
         {
             _player->SendBuyError(BUY_ERR_NOT_ENOUGHT_MONEY, creature, pItem->GetEntry(), 0);
@@ -1128,7 +1128,7 @@ void WorldSession::HandleWrapItemOpcode(WorldPackets::Item::WrapItem& packet)
         return;
     }
 
-    if (item->GetGuidValue(ITEM_FIELD_GIFTCREATOR))        // HasFlag(ITEM_FIELD_FLAGS, ITEM_FLAGS_WRAPPED);
+    if (item->GetGiftCreator())        // HasFlag(ITEM_FIELD_FLAGS, ITEM_FLAGS_WRAPPED);
     {
         _player->SendEquipError(EQUIP_ERR_WRAPPED_CANT_BE_WRAPPED, item, nullptr);
         return;
@@ -1171,7 +1171,7 @@ void WorldSession::HandleWrapItemOpcode(WorldPackets::Item::WrapItem& packet)
     stmt->SetData(0, item->GetOwnerGUID().GetCounter());
     stmt->SetData(1, item->GetGUID().GetCounter());
     stmt->SetData(2, item->GetEntry());
-    stmt->SetData(3, item->GetUInt32Value(ITEM_FIELD_FLAGS));
+    stmt->SetData(3, item->GetItemFlags());
     trans->Append(stmt);
 
     item->SetEntry(gift->GetEntry());
@@ -1197,8 +1197,8 @@ void WorldSession::HandleWrapItemOpcode(WorldPackets::Item::WrapItem& packet)
             item->SetEntry(21831);
             break;
     }
-    item->SetGuidValue(ITEM_FIELD_GIFTCREATOR, _player->GetGUID());
-    item->SetUInt32Value(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_WRAPPED);
+    item->SetGiftCreator(_player->GetGUID());
+    item->ReplaceAllItemFlags(ITEM_FIELD_FLAG_WRAPPED);
     item->SetState(ITEM_CHANGED, _player);
 
     // after save it will be impossible to remove the item from the queue

@@ -1314,18 +1314,11 @@ bool Player::SatisfyQuestDay(Quest const* qInfo, bool msg) const
         return true;
     }
 
-    bool have_slot = false;
-    for (uint32 quest_daily_idx = 0; quest_daily_idx < PLAYER_MAX_DAILY_QUESTS; ++quest_daily_idx)
-    {
-        uint32 id = GetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1 + quest_daily_idx);
-        if (qInfo->GetQuestId() == id)
-            return false;
+    // DailyQuestsCompleted is now a dynamic list (was the fixed PLAYER_FIELD_DAILY_QUESTS_1 array)
+    if (m_activePlayerData->DailyQuestsCompleted.FindIndex(int32(qInfo->GetQuestId())) >= 0)
+        return false;
 
-        if (!id)
-            have_slot = true;
-    }
-
-    if (!have_slot)
+    if (m_activePlayerData->DailyQuestsCompleted.size() >= PLAYER_MAX_DAILY_QUESTS)
     {
         if (msg)
             SendCanTakeQuestResponse(INVALIDREASON_DAILY_QUESTS_REMAINING);

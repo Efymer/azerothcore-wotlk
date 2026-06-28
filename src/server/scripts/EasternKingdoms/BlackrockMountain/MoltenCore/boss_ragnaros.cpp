@@ -136,7 +136,7 @@ struct boss_ragnaros : public BossAI
             me->SetReactState(REACT_AGGRESSIVE);
             me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
             me->SetImmuneToAll(false);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+            me->SetEmoteState(EMOTE_ONESHOT_NONE);
             me->HandleEmoteCommand(EMOTE_ONESHOT_EMERGE);
         }
 
@@ -144,7 +144,7 @@ struct boss_ragnaros : public BossAI
         _processingMagmaBurst = false;
         _hasSubmergedOnce = false;
         _isKnockbackEmoteAllowed = true;
-        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+        me->SetEmoteState(EMOTE_ONESHOT_NONE);
         me->SetControlled(true, UNIT_STATE_ROOT);
         _lavaBurstGUIDS.clear();
     }
@@ -395,7 +395,7 @@ struct boss_ragnaros : public BossAI
                     me->AttackStop();
                     DoResetThreatList();
                     me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_SUBMERGED);
+                    me->SetEmoteState(EMOTE_STATE_SUBMERGED);
                     DoCastSelf(SPELL_RAGNA_SUBMERGE_VISUAL, true);
                     //me->HandleEmoteCommand(EMOTE_ONESHOT_SUBMERGE);
 
@@ -440,7 +440,7 @@ private:
 
         me->SetReactState(REACT_AGGRESSIVE);
         me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
-        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+        me->SetEmoteState(EMOTE_ONESHOT_NONE);
         me->HandleEmoteCommand(EMOTE_ONESHOT_EMERGE);
 
         me->RemoveAurasDueToSpell(SPELL_RAGNA_SUBMERGE_VISUAL);

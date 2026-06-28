@@ -1894,13 +1894,11 @@ uint32 ObjectMgr::GetModelForShapeshift(ShapeshiftForm form, Player* player) con
 {
     uint8 customizationID;
 
-    if (player->GetTeamId() == TEAM_ALLIANCE)
-        customizationID = player->GetByteValue(PLAYER_BYTES, 3); // Use Hair Color
-    else
-        customizationID = player->GetByteValue(PLAYER_BYTES, 0); // Use Skin Color
+    // [1c.4] TODO: legacy PLAYER_BYTES hair/skin color are gone in 3.4.3 (ChrCustomization choices).
+    // No customization accessor yet, so fall through to the wildcard (255) lookups below.
+    customizationID = 255;
 
-    // getGender() tracks the active display model; real gender lives in PLAYER_BYTES_3
-    uint8 gender = player->GetByteValue(PLAYER_BYTES_3, PLAYER_BYTES_3_OFFSET_GENDER);
+    uint8 gender = player->getGender();
 
     auto itr = _playerShapeshiftModel.find(std::make_tuple(form, player->getRace(), customizationID, gender));
     if (itr != _playerShapeshiftModel.end())

@@ -869,7 +869,7 @@ public:
             if (!player)
                 return false;
 
-            TeamId goTeam = me->GetUInt32Value(GAMEOBJECT_FACTION) == WintergraspFaction[TEAM_HORDE] ? TEAM_HORDE : TEAM_ALLIANCE;
+            TeamId goTeam = me->GetFaction() == WintergraspFaction[TEAM_HORDE] ? TEAM_HORDE : TEAM_ALLIANCE;
             return player->GetTeamId() == goTeam;
         }
 

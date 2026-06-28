@@ -235,6 +235,10 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
 
     WorldPackets::Character::EnumCharactersResult charEnum;
     charEnum.Success = true;
+    // The 343 reference (Xian55) populates these; AC omitted them, so its SMSG_ENUM_CHARACTERS_RESULT byte-0 was
+    // 0x80 (DisabledClassesMask absent) vs the reference's 0x82. Send DisabledClassesMask (present) so the field
+    // layout matches the modern client's expectation.
+    charEnum.DisabledClassesMask = 0;
 
     _legitCharacters.clear();
 
@@ -268,6 +272,8 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
             charInfo.LastLoginVersion = CLIENT_BUILD_3_4_3;
 
             // TODO(3.4.3): populate Customizations/VisualItems/SpecID — needs modern character_customizations schema + DB2 ChrCustomization (next brick)
+
+            charEnum.MaxCharacterLevel = std::max<int32>(charEnum.MaxCharacterLevel, charInfo.ExperienceLevel);
 
             _legitCharacters.insert(guid);
             charEnum.Characters.push_back(std::move(charInfo));
@@ -1028,10 +1034,10 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
 
     // Set FFA PvP for non GM in non-rest mode
     if (sWorld->IsFFAPvPRealm() && !pCurrChar->IsGameMaster() && !pCurrChar->HasPlayerFlag(PLAYER_FLAGS_RESTING))
-        if (!pCurrChar->HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP))
+        if (!pCurrChar->HasPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP))
         {
             sScriptMgr->OnPlayerFfaPvpStateUpdate(pCurrChar,true);
-            pCurrChar->SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
+            pCurrChar->SetUpdateFieldFlagValue(pCurrChar->m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PvpFlags), UNIT_BYTE2_FLAG_FFA_PVP);
         }
 
     if (pCurrChar->HasPlayerFlag(PLAYER_FLAGS_CONTESTED_PVP))
@@ -1077,7 +1083,8 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
         {
             for (uint8 i = 0; i < PLAYER_EXPLORED_ZONES_SIZE; i++)
             {
-                pCurrChar->SetFlag(PLAYER_EXPLORED_ZONES_1 + i, 0xFFFFFFFF);
+                // ExploredZones is now a uint64 array; set every bit explored
+                pCurrChar->SetUpdateFieldValue(pCurrChar->m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ExploredZones, i), UI64LIT(0xFFFFFFFFFFFFFFFF));
             }
         }
 
@@ -1394,7 +1401,7 @@ void WorldSession::HandleSetWatchedFactionOpcode(WorldPacket& recvData)
 {
     uint32 fact;
     recvData >> fact;
-    GetPlayer()->SetUInt32Value(PLAYER_FIELD_WATCHED_FACTION_INDEX, fact);
+    GetPlayer()->SetWatchedFactionIndex(int32(fact));
 }
 
 void WorldSession::HandleSetFactionInactiveOpcode(WorldPacket& recvData)
@@ -1650,11 +1657,13 @@ void WorldSession::HandleAlterAppearance(WorldPacket& recvData)
     _player->ModifyMoney(-int32(cost));                     // it isn't free
     _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GOLD_SPENT_AT_BARBER, cost);
 
-    _player->SetByteValue(PLAYER_BYTES, 2, uint8(bs_hair->hair_id));
-    _player->SetByteValue(PLAYER_BYTES, 3, uint8(Color));
-    _player->SetByteValue(PLAYER_BYTES_2, 0, uint8(bs_facialHair->hair_id));
-    if (bs_skinColor)
-        _player->SetByteValue(PLAYER_BYTES, 0, uint8(bs_skinColor->hair_id));
+    // [1c.4] TODO: legacy PLAYER_BYTES appearance (hair/hair color/facial hair/skin) is gone in 3.4.3;
+    // character appearance is now ChrCustomizationChoice list (Player::SetCustomizations). Barber-shop
+    // restyling needs to be reworked onto that model before it can persist the new look.
+    (void)bs_hair;
+    (void)Color;
+    (void)bs_facialHair;
+    (void)bs_skinColor;
 
     _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_VISIT_BARBER_SHOP, 1);
 

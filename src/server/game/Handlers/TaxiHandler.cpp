@@ -213,7 +213,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recvData)
     ReadMovementInfo(recvData, &movementInfo);
     recvData >> movementCounter;
 
-    if (_player->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_TAXI_FLIGHT)) // taxi spline case
+    if (_player->HasUnitFlag(UNIT_FLAG_TAXI_FLIGHT)) // taxi spline case
     {
         // in taxi flight packet received in 2 case:
         // 1) end taxi path in far (multi-node) flight

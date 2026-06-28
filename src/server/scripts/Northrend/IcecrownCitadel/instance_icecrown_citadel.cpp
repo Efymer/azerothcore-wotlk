@@ -816,11 +816,11 @@ public:
                 case GO_ARTHAS_PLATFORM:
                     // this enables movement at The Frozen Throne, when printed this value is 0.000000f
                     // however, when represented as integer client will accept only this value
-                    go->SetUInt32Value(GAMEOBJECT_PARENTROTATION, 5535469);
+                    // [1c.4] TODO: ParentRotation is now QuaternionData; legacy packed-uint32 index-0 hack (5535469) cannot be set via SetParentRotation alone
                     ArthasPlatformGUID = go->GetGUID();
                     break;
                 case GO_ARTHAS_PRECIPICE:
-                    go->SetUInt32Value(GAMEOBJECT_PARENTROTATION, 4178312);
+                    // [1c.4] TODO: ParentRotation is now QuaternionData; legacy packed-uint32 index-0 hack (4178312) cannot be set via SetParentRotation alone
                     ArthasPrecipiceGUID = go->GetGUID();
                     break;
                 case GO_DOODAD_ICECROWN_THRONEFROSTYEDGE01:

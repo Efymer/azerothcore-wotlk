@@ -309,10 +309,10 @@ void WorldSession::HandleOpenWrappedItemCallback(uint8 bagIndex, uint8 slot, Obj
     uint32 entry = fields[0].Get<uint32>();
     uint32 flags = fields[1].Get<uint32>();
 
-    item->SetGuidValue(ITEM_FIELD_GIFTCREATOR, ObjectGuid::Empty);
+    item->SetGiftCreator(ObjectGuid::Empty);
     item->SetEntry(entry);
-    item->SetUInt32Value(ITEM_FIELD_FLAGS, flags);
-    item->SetUInt32Value(ITEM_FIELD_MAXDURABILITY, item->GetTemplate()->MaxDurability);
+    item->ReplaceAllItemFlags(flags);
+    item->SetMaxDurability(item->GetTemplate()->MaxDurability);
 
     item->SetState(ITEM_CHANGED, GetPlayer());
     GetPlayer()->SaveInventoryAndGoldToDB(trans);
@@ -706,7 +706,9 @@ void WorldSession::HandleSelfResOpcode(WorldPacket& /*recvData*/)
 {
     LOG_DEBUG("network", "WORLD: CMSG_SELF_RES");                  // empty opcode
 
-    if (SpellInfo const* spell = sSpellMgr->GetSpellInfo(_player->GetUInt32Value(PLAYER_SELF_RES_SPELL)))
+    // SelfResSpells is now a dynamic list (was the single PLAYER_SELF_RES_SPELL field)
+    uint32 selfResSpellId = _player->m_activePlayerData->SelfResSpells.empty() ? 0 : uint32(_player->m_activePlayerData->SelfResSpells[0]);
+    if (SpellInfo const* spell = sSpellMgr->GetSpellInfo(selfResSpellId))
     {
         if (_player->HasPreventResurectionAura() && !spell->HasAttribute(SPELL_ATTR7_BYPASS_NO_RESURRECTION_AURA))
         {
@@ -714,7 +716,7 @@ void WorldSession::HandleSelfResOpcode(WorldPacket& /*recvData*/)
         }
 
         _player->CastSpell(_player, spell->Id);
-        _player->SetUInt32Value(PLAYER_SELF_RES_SPELL, 0);
+        _player->ClearDynamicUpdateFieldValues(_player->m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SelfResSpells));
     }
 }
 
@@ -765,11 +767,12 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
     if (creator->IsPlayer())
     {
         Player* player = creator->ToPlayer();
-        data << uint8(player->GetByteValue(PLAYER_BYTES, 0));   // skin
-        data << uint8(player->GetByteValue(PLAYER_BYTES, 1));   // face
-        data << uint8(player->GetByteValue(PLAYER_BYTES, 2));   // hair
-        data << uint8(player->GetByteValue(PLAYER_BYTES, 3));   // haircolor
-        data << uint8(player->GetByteValue(PLAYER_BYTES_2, 0)); // facialhair
+        // [1c.4] TODO: legacy PLAYER_BYTES skin/face/hair/haircolor/facialhair are gone in 3.4.3 (replaced by ChrCustomization choices). Send 0 until a customization accessor exists.
+        data << uint8(0); // skin
+        data << uint8(0); // face
+        data << uint8(0); // hair
+        data << uint8(0); // haircolor
+        data << uint8(0); // facialhair
         data << uint32(player->GetGuildId());                   // unk
 
         static EquipmentSlots const itemSlots[] =

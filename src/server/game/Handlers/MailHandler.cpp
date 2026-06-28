@@ -264,7 +264,7 @@ void WorldSession::HandleSendMail(WorldPacket& recvData)
             return;
         }
 
-        if (item->GetTemplate()->HasFlag(ITEM_FLAG_CONJURED) || item->GetUInt32Value(ITEM_FIELD_DURATION))
+        if (item->GetTemplate()->HasFlag(ITEM_FLAG_CONJURED) || item->GetExpiration())
         {
             player->SendMailResult(0, MAIL_SEND, MAIL_ERR_EQUIP_ERROR, EQUIP_ERR_MAIL_BOUND_ITEM);
             return;
@@ -780,9 +780,9 @@ void WorldSession::HandleGetMailList(WorldPacket& recvData)
             // charges
             data << uint32((item ? item->GetSpellCharges() : 0));
             // durability
-            data << uint32((item ? item->GetUInt32Value(ITEM_FIELD_MAXDURABILITY) : 0));
+            data << uint32((item ? item->GetMaxDurability() : 0));
             // durability
-            data << uint32((item ? item->GetUInt32Value(ITEM_FIELD_DURABILITY) : 0));
+            data << uint32((item ? item->GetDurability() : 0));
             // unknown wotlk
             data << uint8(0);
         }
@@ -843,8 +843,8 @@ void WorldSession::HandleMailCreateTextItem(WorldPacket& recvData)
     else
         bodyItem->SetText(m->body);
 
-    bodyItem->SetUInt32Value(ITEM_FIELD_CREATOR, m->sender);
-    bodyItem->SetFlag(ITEM_FIELD_FLAGS, ITEM_FLAG_MAIL_TEXT_MASK);
+    bodyItem->SetCreator(ObjectGuid::Create<HighGuid::Player>(m->sender));
+    bodyItem->SetItemFlag(ITEM_FLAG_MAIL_TEXT_MASK);
 
     LOG_DEBUG("network.opcode", "HandleMailCreateTextItem mailid={}", mailId);
 

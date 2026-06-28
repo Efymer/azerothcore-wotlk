@@ -778,7 +778,7 @@ public:
                 if (Creature* spawn = me->SummonCreature(WavesInfo[WaveCount].CreatureId, SpawnLocation[i], TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, desptimer))
                 {
                     if (spawn->GetEntry() == 15423)
-                        spawn->SetUInt32Value(UNIT_FIELD_DISPLAYID, 15427 + rand() % 4);
+                        spawn->SetDisplayId(15427 + rand() % 4);
                     if (i >= 30) WaveCount = 1;
                     if (i >= 33) WaveCount = 2;
                     if (i >= 45) WaveCount = 3;
@@ -898,24 +898,24 @@ public:
                 if (Merithra)
                 {
                     Merithra->ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
-                    Merithra->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
-                    Merithra->SetUInt32Value(UNIT_FIELD_DISPLAYID, 15420);
+                    Merithra->SetStandState(0);
+                    Merithra->SetDisplayId(15420);
                     Merithra->SetFaction(FACTION_FRIENDLY);
                 }
 
                 if (Caelestrasz)
                 {
                     Caelestrasz->ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
-                    Caelestrasz->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
-                    Caelestrasz->SetUInt32Value(UNIT_FIELD_DISPLAYID, 15419);
+                    Caelestrasz->SetStandState(0);
+                    Caelestrasz->SetDisplayId(15419);
                     Caelestrasz->SetFaction(FACTION_FRIENDLY);
                 }
 
                 if (Arygos)
                 {
                     Arygos->ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
-                    Arygos->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
-                    Arygos->SetUInt32Value(UNIT_FIELD_DISPLAYID, 15418);
+                    Arygos->SetStandState(0);
+                    Arygos->SetDisplayId(15418);
                     Arygos->SetFaction(FACTION_FRIENDLY);
                 }
 

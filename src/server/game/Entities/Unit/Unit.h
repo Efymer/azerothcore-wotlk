@@ -711,24 +711,24 @@ public:
     /*********************************************************/
     /***                    UNIT HELPERS                   ***/
     /*********************************************************/
-    void SetUInt32Value(uint16 index, uint32 value); /// @todo: move this in Object class or move GetUInt32value here but keep consistency
 
     [[nodiscard]] Unit* GetOwner() const;
 
     // GUID Methods
-    [[nodiscard]] ObjectGuid GetOwnerGUID() const { return GetGuidValue(UNIT_FIELD_SUMMONEDBY); }
+    [[nodiscard]] ObjectGuid GetOwnerGUID() const { return m_unitData->SummonedBy; }
     void SetOwnerGUID(ObjectGuid owner);
-    [[nodiscard]] ObjectGuid GetCreatorGUID() const { return GetGuidValue(UNIT_FIELD_CREATEDBY); }
-    void SetCreatorGUID(ObjectGuid creator) { SetGuidValue(UNIT_FIELD_CREATEDBY, creator); }
-    [[nodiscard]] ObjectGuid GetMinionGUID() const { return GetGuidValue(UNIT_FIELD_SUMMON); }
-    void SetMinionGUID(ObjectGuid guid) { SetGuidValue(UNIT_FIELD_SUMMON, guid); }
-    [[nodiscard]] ObjectGuid GetCharmerGUID() const { return GetGuidValue(UNIT_FIELD_CHARMEDBY); }
-    void SetCharmerGUID(ObjectGuid owner) { SetGuidValue(UNIT_FIELD_CHARMEDBY, owner); }
-    [[nodiscard]] ObjectGuid GetCharmGUID() const { return  GetGuidValue(UNIT_FIELD_CHARM); }
+    [[nodiscard]] ObjectGuid GetCreatorGUID() const { return m_unitData->CreatedBy; }
+    void SetCreatorGUID(ObjectGuid creator) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::CreatedBy), creator); }
+    [[nodiscard]] ObjectGuid GetMinionGUID() const { return m_unitData->Summon; }
+    void SetMinionGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Summon), guid); }
+    [[nodiscard]] ObjectGuid GetCharmerGUID() const { return m_unitData->CharmedBy; }
+    void SetCharmerGUID(ObjectGuid owner) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::CharmedBy), owner); }
+    [[nodiscard]] ObjectGuid GetCharmGUID() const { return m_unitData->Charm; }
+    void SetCharmGUID(ObjectGuid charm) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Charm), charm); }
     void SetPetGUID(ObjectGuid guid) { m_SummonSlot[SUMMON_SLOT_PET] = guid; }
     [[nodiscard]] ObjectGuid GetPetGUID() const { return m_SummonSlot[SUMMON_SLOT_PET]; }
-    void SetCritterGUID(ObjectGuid guid) { SetGuidValue(UNIT_FIELD_CRITTER, guid); }
-    [[nodiscard]] ObjectGuid GetCritterGUID() const { return GetGuidValue(UNIT_FIELD_CRITTER); }
+    void SetCritterGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Critter), guid); }
+    [[nodiscard]] ObjectGuid GetCritterGUID() const { return m_unitData->Critter; }
     [[nodiscard]] ObjectGuid GetTransGUID() const override;
 
     /// @todo: move this in Object ckass as others casting pointers
@@ -749,30 +749,61 @@ public:
     [[nodiscard]] uint32 GetUnitTypeMask() const { return m_unitTypeMask; }
 
     // Unit flags
-    UnitFlags GetUnitFlags() const { return UnitFlags(GetUInt32Value(UNIT_FIELD_FLAGS)); }
-    bool HasUnitFlag(UnitFlags flags) const { return HasFlag(UNIT_FIELD_FLAGS, flags); }   /// @brief UnitFlags available in UnitDefines.h
-    void SetUnitFlag(UnitFlags flags) { SetFlag(UNIT_FIELD_FLAGS, flags); }   /// @brief UnitFlags available in UnitDefines.h
-    void RemoveUnitFlag(UnitFlags flags) { RemoveFlag(UNIT_FIELD_FLAGS, flags); }   /// @brief Remove the Unit flag specify only
-    void ReplaceAllUnitFlags(UnitFlags flags) { SetUInt32Value(UNIT_FIELD_FLAGS, flags); } /// @brief Remove all UnitFlags and set new ones. UnitFlags available in UnitDefines.h
+    UnitFlags GetUnitFlags() const { return UnitFlags(*m_unitData->Flags); }
+    bool HasUnitFlag(UnitFlags flags) const { return (*m_unitData->Flags & flags) != 0; }   /// @brief UnitFlags available in UnitDefines.h
+    void SetUnitFlag(UnitFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags), flags); }   /// @brief UnitFlags available in UnitDefines.h
+    void RemoveUnitFlag(UnitFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags), flags); }   /// @brief Remove the Unit flag specify only
+    void ReplaceAllUnitFlags(UnitFlags flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags), flags); } /// @brief Remove all UnitFlags and set new ones. UnitFlags available in UnitDefines.h
 
-    UnitFlags2 GetUnitFlags2() const { return UnitFlags2(GetUInt32Value(UNIT_FIELD_FLAGS_2)); }
-    bool HasUnitFlag2(UnitFlags2 flags) const { return HasFlag(UNIT_FIELD_FLAGS_2, flags); }
-    void SetUnitFlag2(UnitFlags2 flags) { SetFlag(UNIT_FIELD_FLAGS_2, flags); }
-    void RemoveUnitFlag2(UnitFlags2 flags) { RemoveFlag(UNIT_FIELD_FLAGS_2, flags); }
-    void ReplaceAllUnitFlags2(UnitFlags2 flags) { SetUInt32Value(UNIT_FIELD_FLAGS_2, flags); }
+    UnitFlags2 GetUnitFlags2() const { return UnitFlags2(*m_unitData->Flags2); }
+    bool HasUnitFlag2(UnitFlags2 flags) const { return (*m_unitData->Flags2 & flags) != 0; }
+    void SetUnitFlag2(UnitFlags2 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags2), flags); }
+    void RemoveUnitFlag2(UnitFlags2 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags2), flags); }
+    void ReplaceAllUnitFlags2(UnitFlags2 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Flags2), flags); }
 
-    void SetEmoteState(Emote emoteState) { SetUInt32Value(UNIT_NPC_EMOTESTATE, emoteState); }  /// @brief Sets emote state (looping emote). Emotes available in SharedDefines.h
+    void SetEmoteState(Emote emoteState) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::EmoteState), emoteState); }  /// @brief Sets emote state (looping emote). Emotes available in SharedDefines.h
     void ClearEmoteState() { SetEmoteState(EMOTE_ONESHOT_NONE); }  /// @brief Clears emote state (looping emote)
 
     // NPC flags
-    NPCFlags GetNpcFlags() const { return NPCFlags(GetUInt32Value(UNIT_NPC_FLAGS)); }
-    bool HasNpcFlag(NPCFlags flags) const { return HasFlag(UNIT_NPC_FLAGS, flags) != 0; }
-    void SetNpcFlag(NPCFlags flags) { SetFlag(UNIT_NPC_FLAGS, flags); }
-    void RemoveNpcFlag(NPCFlags flags) { RemoveFlag(UNIT_NPC_FLAGS, flags); }
-    void ReplaceAllNpcFlags(NPCFlags flags) { SetUInt32Value(UNIT_NPC_FLAGS, flags); }
+    NPCFlags GetNpcFlags() const { return NPCFlags(m_unitData->NpcFlags[0]); }
+    bool HasNpcFlag(NPCFlags flags) const { return (m_unitData->NpcFlags[0] & flags) != 0; }
+    void SetNpcFlag(NPCFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 0), flags); }
+    void RemoveNpcFlag(NPCFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 0), flags); }
+    void ReplaceAllNpcFlags(NPCFlags flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 0), flags); }
 
-    uint32 GetDynamicFlags() const override { return GetUInt32Value(UNIT_DYNAMIC_FLAGS); }
-    void ReplaceAllDynamicFlags(uint32 flag) override { SetUInt32Value(UNIT_DYNAMIC_FLAGS, flag); }
+    // Created-by-spell / pet client fields
+    uint32 GetCreatedBySpell() const { return m_unitData->CreatedBySpell; }
+    void SetCreatedBySpell(int32 spellId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::CreatedBySpell), spellId); }
+    void SetPetNumberForClient(uint32 petNumber) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PetNumber), petNumber); }
+    void SetPetNameTimestamp(uint32 timestamp) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PetNameTimestamp), timestamp); }
+    uint32 GetPetExperience() const { return m_unitData->PetExperience; }
+    void SetPetExperience(uint32 xp) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PetExperience), xp); }
+    void SetPetNextLevelExperience(uint32 xp) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PetNextLevelExperience), xp); }
+
+    // Class / sex / display-power setters (3.4.3 split out of the legacy UNIT_FIELD_BYTES_0)
+    void SetClass(uint8 classId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ClassId), classId); }
+    void SetSex(uint8 sex) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Sex), sex); }
+    void SetDisplayPower(uint8 power) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::DisplayPower), power); }
+    void SetModCastingSpeed(float castingSpeed) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ModCastingSpeed), castingSpeed); }
+
+    // Pet flags (UnitRename: UNIT_CAN_BE_RENAMED / UNIT_CAN_BE_ABANDONED) — 3.4.3 dedicated PetFlags field
+    uint8 GetPetFlags() const { return m_unitData->PetFlags; }
+    bool HasPetFlag(uint8 flags) const { return (m_unitData->PetFlags & flags) != 0; }
+    void SetPetFlag(uint8 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PetFlags), flags); }
+    void RemovePetFlag(uint8 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PetFlags), flags); }
+    void ReplaceAllPetFlags(uint8 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PetFlags), flags); }
+
+    // Attack power (3.4.3 splits the legacy single *_MODS field into ModPos/ModNeg)
+    void SetAttackPower(int32 attackPower) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AttackPower), attackPower); }
+    void SetAttackPowerModPos(int32 attackPowerMod) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AttackPowerModPos), attackPowerMod); }
+    void SetAttackPowerModNeg(int32 attackPowerMod) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AttackPowerModNeg), attackPowerMod); }
+    void SetAttackPowerMultiplier(float attackPowerMult) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AttackPowerMultiplier), attackPowerMult); }
+    void SetRangedAttackPower(int32 attackPower) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::RangedAttackPower), attackPower); }
+    void SetRangedAttackPowerModPos(int32 attackPowerMod) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::RangedAttackPowerModPos), attackPowerMod); }
+    void SetRangedAttackPowerModNeg(int32 attackPowerMod) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::RangedAttackPowerModNeg), attackPowerMod); }
+    void SetRangedAttackPowerMultiplier(float attackPowerMult) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::RangedAttackPowerMultiplier), attackPowerMult); }
+
+    // GetDynamicFlags()/ReplaceAllDynamicFlags() are provided by Object (structured m_objectData->DynamicFlags).
 
     // Movement flags
     void AddUnitMovementFlag(uint32 f) { m_movementInfo.flags |= f; }
@@ -787,7 +818,7 @@ public:
     [[nodiscard]] uint16 GetExtraUnitMovementFlags() const { return m_movementInfo.flags2; }
     void SetExtraUnitMovementFlags(uint16 f) { m_movementInfo.flags2 = f; }
 
-    inline bool IsCrowdControlled() const { return HasFlag(UNIT_FIELD_FLAGS, (UNIT_FLAG_CONFUSED | UNIT_FLAG_FLEEING | UNIT_FLAG_STUNNED)); }
+    inline bool IsCrowdControlled() const { return (*m_unitData->Flags & (UNIT_FLAG_CONFUSED | UNIT_FLAG_FLEEING | UNIT_FLAG_STUNNED)) != 0; }
     inline bool IsImmobilizedState() const { return HasUnitState(UNIT_STATE_ROOT | UNIT_STATE_STUNNED); }
 
     void SetAnimTier(AnimTier animTier);
@@ -846,15 +877,15 @@ public:
     [[nodiscard]] DisplayRace GetDisplayRace() const { return GetDisplayRaceFromModelId(GetDisplayId()); };
 
     // Class methods
-    [[nodiscard]] uint8 getClass() const { return GetByteValue(UNIT_FIELD_BYTES_0, 1); }
+    [[nodiscard]] uint8 getClass() const { return m_unitData->ClassId; }
     [[nodiscard]] virtual bool IsClass(Classes unitClass, [[maybe_unused]] ClassContext context = CLASS_CONTEXT_NONE) const { return (getClass() == unitClass); }
     [[nodiscard]] uint32 getClassMask() const { return 1 << (getClass() - 1); }
 
     // Gender methods
-    [[nodiscard]] uint8 getGender() const { return GetByteValue(UNIT_FIELD_BYTES_0, 2); }
+    [[nodiscard]] uint8 getGender() const { return m_unitData->Sex; }
 
     // Factions methods
-    [[nodiscard]] uint32 GetFaction() const { return GetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE); }
+    [[nodiscard]] uint32 GetFaction() const { return m_unitData->FactionTemplate; }
     [[nodiscard]] FactionTemplateEntry const* GetFactionTemplateEntry() const;
     void SetFaction(uint32 faction);
     void RestoreFaction();
@@ -864,7 +895,7 @@ public:
     /***            METHODS RELATED TO COMBATS             ***/
     /*********************************************************/
     // Targets
-    [[nodiscard]] ObjectGuid GetTarget() const { return GetGuidValue(UNIT_FIELD_TARGET); }
+    [[nodiscard]] ObjectGuid GetTarget() const { return m_unitData->Target; }
     virtual void SetTarget(ObjectGuid /*guid*/ = ObjectGuid::Empty) = 0;
 
     bool isTargetableForAttack(bool checkFakeDeath = true, Unit const* byWho = nullptr) const;
@@ -879,9 +910,11 @@ public:
     Player const* GetClientControlling() const;
 
     // Combat range
-    [[nodiscard]] float GetBoundaryRadius() const { return m_floatValues[UNIT_FIELD_BOUNDINGRADIUS]; }
-    [[nodiscard]] float GetCombatReach() const override { return m_floatValues[UNIT_FIELD_COMBATREACH]; }
-    [[nodiscard]] float GetMeleeReach() const { float reach = m_floatValues[UNIT_FIELD_COMBATREACH]; return reach > MIN_MELEE_REACH ? reach : MIN_MELEE_REACH; }
+    [[nodiscard]] float GetBoundaryRadius() const { return m_unitData->BoundingRadius; }
+    void SetBoundingRadius(float boundingRadius) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::BoundingRadius), boundingRadius); }
+    [[nodiscard]] float GetCombatReach() const override { return m_unitData->CombatReach; }
+    void SetCombatReach(float combatReach) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::CombatReach), combatReach); }
+    [[nodiscard]] float GetMeleeReach() const { float reach = m_unitData->CombatReach; return reach > MIN_MELEE_REACH ? reach : MIN_MELEE_REACH; }
     [[nodiscard]] bool IsWithinRange(Unit const* obj, float dist) const;
     bool IsWithinBoundaryRadius(const Unit* obj) const;
     bool IsWithinCombatRange(Unit const* obj, float dist2compare) const;
@@ -919,11 +952,17 @@ public:
 
     [[nodiscard]] uint32 GetAttackTime(WeaponAttackType att) const
     {
-        float f_BaseAttackTime = GetFloatValue(static_cast<uint16>(UNIT_FIELD_BASEATTACKTIME) + att) / m_modAttackSpeedPct[att];
+        float f_BaseAttackTime = (att == RANGED_ATTACK ? float(*m_unitData->RangedAttackRoundBaseTime) : float(m_unitData->AttackRoundBaseTime[att])) / m_modAttackSpeedPct[att];
         return (uint32)f_BaseAttackTime;
     }
 
-    void SetAttackTime(WeaponAttackType att, uint32 val) { SetFloatValue(static_cast<uint16>(UNIT_FIELD_BASEATTACKTIME) + att, val * m_modAttackSpeedPct[att]); }
+    void SetAttackTime(WeaponAttackType att, uint32 val)
+    {
+        if (att == RANGED_ATTACK)
+            SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::RangedAttackRoundBaseTime), uint32(val * m_modAttackSpeedPct[att]));
+        else
+            SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AttackRoundBaseTime, att), uint32(val * m_modAttackSpeedPct[att]));
+    }
     void ApplyAttackTimePercentMod(WeaponAttackType att, float val, bool apply);
     void ApplyCastTimePercentMod(float val, bool apply);
 
@@ -1046,36 +1085,39 @@ public:
 
         return false;
     }
-    [[nodiscard]] bool IsInSanctuary() const { return HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_SANCTUARY); }
-    [[nodiscard]] bool IsPvP() const { return HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_PVP); }
-    [[nodiscard]] bool IsFFAPvP() const { return HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP); }
+    [[nodiscard]] bool IsInSanctuary() const { return (*m_unitData->PvpFlags & UNIT_BYTE2_FLAG_SANCTUARY) != 0; }
+    [[nodiscard]] bool IsPvP() const { return (*m_unitData->PvpFlags & UNIT_BYTE2_FLAG_PVP) != 0; }
+    [[nodiscard]] bool IsFFAPvP() const { return (*m_unitData->PvpFlags & UNIT_BYTE2_FLAG_FFA_PVP) != 0; }
+    [[nodiscard]] uint8 GetPvpFlags() const { return m_unitData->PvpFlags; }
+    [[nodiscard]] bool HasPvpFlag(uint8 flags) const { return (*m_unitData->PvpFlags & flags) != 0; }
+    void ReplaceAllPvpFlags(uint8 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PvpFlags), flags); }
     void SetPvP(bool state)
     {
         if (state)
-            SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_PVP);
+            SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PvpFlags), UNIT_BYTE2_FLAG_PVP);
         else
-            RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_PVP);
+            RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PvpFlags), UNIT_BYTE2_FLAG_PVP);
     }
 
     /*********************************************************/
     /***              METHODS RELATED TO STATS             ***/
     /*********************************************************/
     // stat system
-    [[nodiscard]] float GetStat(Stats stat) const { return float(GetUInt32Value(static_cast<uint16>(UNIT_FIELD_STAT0) + stat)); }
-    void SetStat(Stats stat, int32 val) { SetStatInt32Value(static_cast<uint16>(UNIT_FIELD_STAT0) + stat, val); }
+    [[nodiscard]] float GetStat(Stats stat) const { return float(m_unitData->Stats[stat]); }
+    void SetStat(Stats stat, int32 val) { SetUpdateFieldStatValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Stats, stat), val); }
 
     [[nodiscard]] Stats GetStatByAuraGroup(UnitMods unitMod) const;
 
     [[nodiscard]] float GetCreateStat(Stats stat) const { return m_createStats[stat]; }
     void SetCreateStat(Stats stat, float val) { m_createStats[stat] = val; }
 
-    [[nodiscard]] float GetPosStat(Stats stat) const { return GetFloatValue(static_cast<uint16>(UNIT_FIELD_POSSTAT0) +  stat); }
-    [[nodiscard]] float GetNegStat(Stats stat) const { return GetFloatValue(static_cast<uint16>(UNIT_FIELD_NEGSTAT0) +  stat); }
+    [[nodiscard]] float GetPosStat(Stats stat) const { return m_unitData->StatPosBuff[stat]; }
+    [[nodiscard]] float GetNegStat(Stats stat) const { return m_unitData->StatNegBuff[stat]; }
 
     void InitStatBuffMods()
     {
-        for (uint8 i = STAT_STRENGTH; i < MAX_STATS; ++i) SetFloatValue(static_cast<uint16>(UNIT_FIELD_POSSTAT0) +  i, 0);
-        for (uint8 i = STAT_STRENGTH; i < MAX_STATS; ++i) SetFloatValue(static_cast<uint16>(UNIT_FIELD_NEGSTAT0) +  i, 0);
+        for (uint8 i = STAT_STRENGTH; i < MAX_STATS; ++i) SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::StatPosBuff, i), 0);
+        for (uint8 i = STAT_STRENGTH; i < MAX_STATS; ++i) SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::StatNegBuff, i), 0);
     }
 
     bool HandleStatFlatModifier(UnitMods unitMod, UnitModifierFlatType modifierType, float amount, bool apply);
@@ -1106,16 +1148,16 @@ public:
     void UpdateStatBuffMod(Stats stat);
 
     // Unit level methods
-    [[nodiscard]] uint8 GetLevel() const { return uint8(GetUInt32Value(UNIT_FIELD_LEVEL)); }
+    [[nodiscard]] uint8 GetLevel() const { return uint8(*m_unitData->Level); }
     uint8 getLevelForTarget(WorldObject const* /*target*/) const override { return GetLevel(); }
     void SetLevel(uint8 lvl, bool showLevelChange = true);
 
     // Health methods
-    [[nodiscard]] uint32 GetHealth()    const { return GetUInt32Value(UNIT_FIELD_HEALTH); }
-    [[nodiscard]] uint32 GetMaxHealth() const { return GetUInt32Value(UNIT_FIELD_MAXHEALTH); }
+    [[nodiscard]] uint32 GetHealth()    const { return m_unitData->Health; }
+    [[nodiscard]] uint32 GetMaxHealth() const { return m_unitData->MaxHealth; }
     [[nodiscard]] float GetHealthPct() const { return GetMaxHealth() ? 100.f * GetHealth() / GetMaxHealth() : 0.0f; }
     int32 GetHealthGain(int32 dVal);
-    [[nodiscard]] uint32 GetCreateHealth() const { return GetUInt32Value(UNIT_FIELD_BASE_HEALTH); }
+    [[nodiscard]] uint32 GetCreateHealth() const { return m_unitData->BaseHealth; }
 
     [[nodiscard]] bool IsFullHealth() const { return GetHealth() == GetMaxHealth(); }
 
@@ -1131,15 +1173,15 @@ public:
     void SetMaxHealth(uint32 val);
     inline void SetFullHealth() { SetHealth(GetMaxHealth()); }
     int32 ModifyHealth(int32 val);
-    void SetCreateHealth(uint32 val) { SetUInt32Value(UNIT_FIELD_BASE_HEALTH, val); }
+    void SetCreateHealth(uint32 val) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::BaseHealth), val); }
 
     // Power methods
-    [[nodiscard]] Powers getPowerType() const { return Powers(GetByteValue(UNIT_FIELD_BYTES_0, 3)); }
+    [[nodiscard]] Powers getPowerType() const { return Powers(*m_unitData->DisplayPower); }
     [[nodiscard]] virtual bool HasActivePowerType(Powers power) { return getPowerType() == power; }
     [[nodiscard]] Powers GetPowerTypeByAuraGroup(UnitMods unitMod) const;
 
-    [[nodiscard]] uint32 GetPower(Powers power) const { return GetUInt32Value(static_cast<uint16>(UNIT_FIELD_POWER1) + power); }
-    [[nodiscard]] uint32 GetMaxPower(Powers power) const { return GetUInt32Value(static_cast<uint16>(UNIT_FIELD_MAXPOWER1) + power); }
+    [[nodiscard]] uint32 GetPower(Powers power) const { return m_unitData->Power[power]; }
+    [[nodiscard]] uint32 GetMaxPower(Powers power) const { return m_unitData->MaxPower[power]; }
     [[nodiscard]] float GetPowerPct(Powers power) const { return GetMaxPower(power) ? 100.f * GetPower(power) / GetMaxPower(power) : 0.0f; }
     [[nodiscard]] uint32 GetCreatePowers(Powers power) const;
 
@@ -1151,8 +1193,8 @@ public:
 
     void RewardRage(uint32 damage, uint32 weaponSpeedHitFactor, bool attacker);
 
-    [[nodiscard]] uint32 GetCreateMana() const { return GetUInt32Value(UNIT_FIELD_BASE_MANA); }
-    void SetCreateMana(uint32 val) { SetUInt32Value(UNIT_FIELD_BASE_MANA, val); }
+    [[nodiscard]] uint32 GetCreateMana() const { return m_unitData->BaseMana; }
+    void SetCreateMana(uint32 val) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::BaseMana), val); }
     [[nodiscard]] bool CanRestoreMana(SpellInfo const* spellInfo) const;
     void SetLastManaUse(uint32 spellCastTime) { m_lastManaUse = spellCastTime; }
     [[nodiscard]] bool IsUnderLastManaUseEffect() const;
@@ -1200,10 +1242,10 @@ public:
     // Resistances methods
     int32 GetMechanicResistChance(SpellInfo const* spell);
     [[nodiscard]] uint32 GetResistance(SpellSchoolMask mask) const;
-    [[nodiscard]] uint32 GetResistance(SpellSchools school) const { return GetUInt32Value(static_cast<uint16>(UNIT_FIELD_RESISTANCES) + school); }
+    [[nodiscard]] uint32 GetResistance(SpellSchools school) const { return m_unitData->Resistances[school]; }
     static float GetEffectiveResistChance(Unit const* owner, SpellSchoolMask schoolMask, Unit const* victim, SpellInfo const* spellInfo = nullptr);
 
-    void SetResistance(SpellSchools school, int32 val) { SetStatInt32Value(static_cast<uint16>(UNIT_FIELD_RESISTANCES) + school, val); }
+    void SetResistance(SpellSchools school, int32 val) { SetUpdateFieldStatValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Resistances, school), val); }
     void UpdateResistanceBuffModsMod(SpellSchools school);
 
     ////////////    Need triage   ////////////////
@@ -1723,7 +1765,8 @@ public:
     [[nodiscard]] bool IsFalling() const;
     [[nodiscard]] bool IsRooted() const { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT); }
 
-    [[nodiscard]] float GetHoverHeight() const { return IsHovering() ? GetFloatValue(UNIT_FIELD_HOVERHEIGHT) : 0.0f; }
+    [[nodiscard]] float GetHoverHeight() const { return IsHovering() ? *m_unitData->HoverHeight : 0.0f; }
+    void SetHoverHeight(float hoverHeight) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::HoverHeight), hoverHeight); }
 
     [[nodiscard]] virtual bool IsMovementPreventedByCasting() const;
 
@@ -1783,18 +1826,19 @@ public:
     /***                  MISC METHODS                     ***/
     /*********************************************************/
     // SheathState
-    [[nodiscard]] SheathState GetSheath() const { return SheathState(GetByteValue(UNIT_FIELD_BYTES_2, 0)); }
-    virtual void SetSheath(SheathState sheathed) { SetByteValue(UNIT_FIELD_BYTES_2, 0, sheathed); }
+    [[nodiscard]] SheathState GetSheath() const { return SheathState(*m_unitData->SheatheState); }
+    virtual void SetSheath(SheathState sheathed) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::SheatheState), uint8(sheathed)); }
 
     // StandState
-    [[nodiscard]] uint8 getStandState() const { return GetByteValue(UNIT_FIELD_BYTES_1, 0); }
+    [[nodiscard]] uint8 getStandState() const { return m_unitData->StandState; }
     [[nodiscard]] bool IsSitState() const;
     [[nodiscard]] bool IsStandState() const;
     [[nodiscard]] bool IsStandUpOnMovementState() const;
     void SetStandState(uint8 state);
 
-    void  SetStandFlags(uint8 flags) { SetByteFlag(UNIT_FIELD_BYTES_1,  UNIT_BYTES_1_OFFSET_VIS_FLAG, flags); }
-    void  RemoveStandFlags(uint8 flags) { RemoveByteFlag(UNIT_FIELD_BYTES_1,  UNIT_BYTES_1_OFFSET_VIS_FLAG, flags); }
+    void  SetStandFlags(uint8 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::VisFlags), flags); }
+    void  RemoveStandFlags(uint8 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::VisFlags), flags); }
+    void  ReplaceAllVisFlags(uint8 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::VisFlags), flags); }
 
     // DeathState
     DeathState getDeathState() { return m_deathState; };
@@ -1894,7 +1938,8 @@ public:
 
     // Mount methods
     [[nodiscard]] bool IsMounted() const { return HasUnitFlag(UNIT_FLAG_MOUNT); }
-    [[nodiscard]] uint32 GetMountID() const { return GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID); }
+    [[nodiscard]] uint32 GetMountID() const { return m_unitData->MountDisplayID; }
+    void SetMountDisplayId(uint32 mountDisplayId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MountDisplayID), int32(mountDisplayId)); }
     void Mount(uint32 mount, uint32 vehicleId = 0, uint32 creatureEntry = 0);
     void Dismount();
     [[nodiscard]] bool IsInDisallowedMountForm() const;
@@ -1964,7 +2009,7 @@ public:
     virtual void Whisper(uint32 textId, Player* target, bool isBossWhisper = false);
 
     // ShapeShitForm (use by druid)
-    [[nodiscard]] ShapeshiftForm GetShapeshiftForm() const { return ShapeshiftForm(GetByteValue(UNIT_FIELD_BYTES_2, 3)); }
+    [[nodiscard]] ShapeshiftForm GetShapeshiftForm() const { return ShapeshiftForm(*m_unitData->ShapeshiftForm); }
     void SetShapeshiftForm(ShapeshiftForm form);
     bool IsAttackSpeedOverridenShapeShift() const;
     [[nodiscard]] bool IsInFeralForm() const
@@ -1981,11 +2026,11 @@ public:
     // Unit models
     virtual float GetNativeObjectScale() const { return 1.0f; }
     virtual void RecalculateObjectScale();
-    [[nodiscard]] uint32 GetDisplayId() const { return GetUInt32Value(UNIT_FIELD_DISPLAYID); }
+    [[nodiscard]] uint32 GetDisplayId() const { return m_unitData->DisplayID; }
     virtual void SetDisplayId(uint32 modelId, float displayScale = 1.f);
-    [[nodiscard]] uint32 GetNativeDisplayId() const { return GetUInt32Value(UNIT_FIELD_NATIVEDISPLAYID); }
+    [[nodiscard]] uint32 GetNativeDisplayId() const { return m_unitData->NativeDisplayID; }
     void RestoreDisplayId();
-    void SetNativeDisplayId(uint32 displayId) { SetUInt32Value(UNIT_FIELD_NATIVEDISPLAYID, displayId); }
+    void SetNativeDisplayId(uint32 displayId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NativeDisplayID), displayId); }
 
     [[nodiscard]] uint32 GetModelForForm(ShapeshiftForm form, uint32 spellId);
 
@@ -2123,10 +2168,17 @@ public:
     // Movement info
     Movement::MoveSpline* movespline;
 
+public:
+    UF::UpdateField<UF::UnitData, 0, TYPEID_UNIT> m_unitData;
+
 protected:
     explicit Unit();
 
-    void BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* target) override;
+    UF::UpdateFieldFlag GetUpdateFieldFlagsFor(Player const* target) const override;
+    void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdateWithFlag(ByteBuffer* data, UF::UpdateFieldFlag flags, Player const* target) const override;
+    void ClearUpdateMask(bool remove) override;
 
     void _UpdateSpells(uint32 time);
     void _DeleteRemovedAuras();
@@ -2231,9 +2283,6 @@ private:
     [[nodiscard]] float GetCombatRatingReduction(CombatRating cr) const;
     [[nodiscard]] uint32 GetCombatRatingDamageReduction(CombatRating cr, float rate, float cap, uint32 damage) const;
 
-    void PatchValuesUpdate(ByteBuffer& valuesUpdateBuf, BuildValuesCachePosPointers& posPointers, Player* target);
-    void InvalidateValuesUpdateCache() { _valuesUpdateCache.clear(); }
-
     [[nodiscard]] float processDummyAuras(float TakenTotalMod) const;
 
     void _addAttacker(Unit* pAttacker) { m_attackers.insert(pAttacker); }   ///@note: Call only in Unit::Attack()
@@ -2263,9 +2312,6 @@ private:
     uint32 _lastExtraAttackSpell;
     std::unordered_map<ObjectGuid /*guid*/, uint32 /*count*/> extraAttacksTargets;
     ObjectGuid _lastDamagedTargetGuid;
-
-    typedef std::unordered_map<uint64 /*visibleFlag(uint32) + updateType(uint8)*/, BuildValuesCachedBuffer>  ValuesUpdateCache;
-    ValuesUpdateCache _valuesUpdateCache;
 };
 
 namespace Acore

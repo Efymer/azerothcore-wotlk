@@ -751,7 +751,7 @@ void WorldSession::HandleTextEmoteOpcode(WorldPacket& recvData)
         case EMOTE_ONESHOT_NONE:
             break;
         case EMOTE_STATE_DANCE:
-            GetPlayer()->SetUInt32Value(UNIT_NPC_EMOTESTATE, emote_anim);
+            GetPlayer()->SetEmoteState(Emote(emote_anim));
             break;
         default:
             // Only allow text-emotes for "dead" entities (feign death included)

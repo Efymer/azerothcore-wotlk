@@ -229,7 +229,7 @@ public:
                     events2.ScheduleEvent(EVENT_SVALA_TALK3, 3s);
                     break;
                 case EVENT_SVALA_TALK3:
-                    me->SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 6.0f);
+                    me->SetHoverHeight(6.0f);
                     me->SetHover(true);
                     me->AddUnitState(UNIT_STATE_NO_ENVIRONMENT_UPD);
                     events2.ScheduleEvent(30, 1s);
@@ -247,7 +247,7 @@ public:
                         me->CastSpell(me, SPELL_SVALA_TRANSFORMING1, true);
                         me->UpdateEntry(NPC_SVALA_SORROWGRAVE);
                         me->SetCorpseDelay(sWorld->getIntConfig(CONFIG_CORPSE_DECAY_ELITE));
-                        me->SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 6.0f);
+                        me->SetHoverHeight(6.0f);
                         me->SetImmuneToAll(true);
                         if (Creature* Arthas = ObjectAccessor::GetCreature(*me, ArthasGUID))
                             Arthas->InterruptNonMeleeSpells(false);
@@ -283,7 +283,7 @@ public:
                     events2.ScheduleEvent(EVENT_SVALA_TALK9, 2s);
                     break;
                 case EVENT_SVALA_TALK9:
-                    me->SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 3.0f);
+                    me->SetHoverHeight(3.0f);
                     me->SetImmuneToAll(false);
                     me->LoadEquipment(1, true);
                     me->setActive(false);

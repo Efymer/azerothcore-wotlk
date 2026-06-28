@@ -223,13 +223,7 @@ public:
                 ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_EXPLORE_SET_NOTHING, handler->GetNameLink());
         }
 
-        for (uint8 i = 0; i < PLAYER_EXPLORED_ZONES_SIZE; ++i)
-        {
-            if (reveal)
-                handler->GetSession()->GetPlayer()->SetFlag(PLAYER_EXPLORED_ZONES_1+i, 0xFFFFFFFF);
-            else
-                handler->GetSession()->GetPlayer()->SetFlag(PLAYER_EXPLORED_ZONES_1+i, 0);
-        }
+        (void)reveal; // [1c.4] TODO: ExploredZones is now a uint64[] array with no public bulk setter (was PLAYER_EXPLORED_ZONES_1 + i)
 
         return true;
     }

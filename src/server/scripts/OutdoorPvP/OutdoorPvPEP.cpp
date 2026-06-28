@@ -306,7 +306,7 @@ void OPvPCapturePointEP_NPT::SummonGO(TeamId teamId)
         auto bounds = map->GetGameObjectBySpawnIdStore().equal_range(_objects[EP_NPT_BUFF]);
         for (auto itr = bounds.first; itr != bounds.second; ++itr)
             if (GameObject* go = itr->second)
-                go->SetUInt32Value(GAMEOBJECT_FACTION, (teamId == TEAM_ALLIANCE ? 84 : 83));
+                go->SetFaction((teamId == TEAM_ALLIANCE ? 84 : 83));
     }
 }
 
@@ -582,7 +582,7 @@ void OPvPCapturePointEP_PWT::SummonFlightMaster(TeamId teamId)
 
         Creature* c = HashMapHolder<Creature>::Find(_creatures[EP_PWT_FLIGHTMASTER]);
         //Spawn flight master as friendly to capturing team
-        c->SetUInt32Value(GAMEOBJECT_FACTION, (teamId == TEAM_ALLIANCE ? 55 : 68));
+        c->SetFaction((teamId == TEAM_ALLIANCE ? 55 : 68));
         if (c)
         {
             GossipOption gso;

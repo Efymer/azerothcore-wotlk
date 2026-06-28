@@ -28,9 +28,7 @@ DynamicObject::DynamicObject() : WorldObject(), MovableMapObject(),
     m_objectType |= TYPEMASK_DYNAMICOBJECT;
     m_objectTypeId = TYPEID_DYNAMICOBJECT;
 
-    m_updateFlag = (UPDATEFLAG_LOWGUID | UPDATEFLAG_STATIONARY_POSITION | UPDATEFLAG_POSITION);
-
-    m_valuesCount = DYNAMICOBJECT_END;
+    m_updateFlag.Stationary = true;
 }
 
 DynamicObject::~DynamicObject()
@@ -110,17 +108,17 @@ bool DynamicObject::CreateDynamicObject(ObjectGuid::LowType guidlow, Unit* caste
 
     SetEntry(spellId);
     SetObjectScale(1);
-    SetGuidValue(DYNAMICOBJECT_CASTER, caster->GetGUID());
+    auto dynamicObjectData = m_values.ModifyValue(&DynamicObject::m_dynamicObjectData);
+    SetUpdateFieldValue(dynamicObjectData.ModifyValue(&UF::DynamicObjectData::Caster), caster->GetGUID());
 
-    // The lower word of DYNAMICOBJECT_BYTES must be 0x0001. This value means that the visual radius will be overriden
-    // by client for most of the "ground patch" visual effect spells and a few "skyfall" ones like Hurricane.
-    // If any other value is used, the client will _always_ use the radius provided in DYNAMICOBJECT_RADIUS, but
-    // precompensation is necessary (eg radius *= 2) for many spells. Anyway, blizz sends 0x0001 for all the spells
-    // I saw sniffed...
-    SetByteValue(DYNAMICOBJECT_BYTES, 0, type);
-    SetUInt32Value(DYNAMICOBJECT_SPELLID, spellId);
-    SetFloatValue(DYNAMICOBJECT_RADIUS, radius);
-    SetUInt32Value(DYNAMICOBJECT_CASTTIME, GameTime::GetGameTimeMS().count());
+    // The Type field replaces the lower word of the old DYNAMICOBJECT_BYTES. A value of DYNAMIC_OBJECT_AREA_SPELL
+    // means the visual radius will be overriden by client for most of the "ground patch" visual effect spells and a
+    // few "skyfall" ones like Hurricane. If any other value is used, the client will _always_ use the radius provided
+    // in Radius, but precompensation is necessary (eg radius *= 2) for many spells.
+    SetUpdateFieldValue(dynamicObjectData.ModifyValue(&UF::DynamicObjectData::Type), type);
+    SetUpdateFieldValue(dynamicObjectData.ModifyValue(&UF::DynamicObjectData::SpellID), spellId);
+    SetUpdateFieldValue(dynamicObjectData.ModifyValue(&UF::DynamicObjectData::Radius), radius);
+    SetUpdateFieldValue(dynamicObjectData.ModifyValue(&UF::DynamicObjectData::CastTime), GameTime::GetGameTimeMS().count());
 
     if (!GetMap()->AddToMap(this, true))
     {
@@ -228,9 +226,9 @@ void DynamicObject::SetCasterViewpoint(bool updateViewerVisibility)
     if (Player* caster = _caster->ToPlayer())
     {
         // Remove old farsight viewpoint
-        if (Unit* farsightObject = ObjectAccessor::GetUnit(*caster, caster->GetGuidValue(PLAYER_FARSIGHT)))
+        if (Unit* farsightObject = ObjectAccessor::GetUnit(*caster, caster->m_activePlayerData->FarsightObject))
         {
-            _oldFarsightGUID = caster->GetGuidValue(PLAYER_FARSIGHT);
+            _oldFarsightGUID = caster->m_activePlayerData->FarsightObject;
             caster->SetViewpoint(farsightObject, false);
         }
 
@@ -275,8 +273,41 @@ void DynamicObject::UnbindFromCaster()
 
 bool DynamicObject::IsUpdateNeeded()
 {
-    if (GetByteValue(DYNAMICOBJECT_BYTES, 0) == DYNAMIC_OBJECT_AREA_SPELL)
+    if (m_dynamicObjectData->Type == DYNAMIC_OBJECT_AREA_SPELL)
         return true;
 
     return WorldObject::IsUpdateNeeded();
+}
+
+void DynamicObject::BuildValuesCreate(ByteBuffer* data, Player const* target) const
+{
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
+    std::size_t sizePos = data->wpos();
+    *data << uint32(0);
+    *data << uint8(flags);
+    m_objectData->WriteCreate(*data, flags, this, target);
+    m_dynamicObjectData->WriteCreate(*data, flags, this, target);
+    data->put<uint32>(sizePos, data->wpos() - sizePos - 4);
+}
+
+void DynamicObject::BuildValuesUpdate(ByteBuffer* data, Player const* target) const
+{
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
+    std::size_t sizePos = data->wpos();
+    *data << uint32(0);
+    *data << uint32(m_values.GetChangedObjectTypeMask());
+
+    if (m_values.HasChanged(TYPEID_OBJECT))
+        m_objectData->WriteUpdate(*data, flags, this, target);
+
+    if (m_values.HasChanged(TYPEID_DYNAMICOBJECT))
+        m_dynamicObjectData->WriteUpdate(*data, flags, this, target);
+
+    data->put<uint32>(sizePos, data->wpos() - sizePos - 4);
+}
+
+void DynamicObject::ClearUpdateMask(bool remove)
+{
+    m_values.ClearChangesMask(&DynamicObject::m_dynamicObjectData);
+    Object::ClearUpdateMask(remove);
 }

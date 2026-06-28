@@ -420,7 +420,7 @@ class spell_dru_treant_scaling : public AuraScript
 
             // xinef: Update appropriate player field
             if (owner->IsPlayer())
-                owner->SetUInt32Value(PLAYER_PET_SPELL_POWER, (uint32)amount);
+                { } // [1c.4] TODO: Player::SetPetSpellPower() wrapper missing (was PLAYER_PET_SPELL_POWER UF)
         }
     }
 

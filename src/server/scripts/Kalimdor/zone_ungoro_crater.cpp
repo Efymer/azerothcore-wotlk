@@ -51,7 +51,7 @@ public:
             creature->SetWalk(true);
             CAST_AI(npc_escortAI, (creature->AI()))->Start(false, player->GetGUID());
             creature->AI()->Talk(SAY_READY, player);
-            creature->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
+            creature->SetStandState(0);
             // Change faction so mobs attack
             creature->SetFaction(FACTION_ESCORTEE_N_NEUTRAL_PASSIVE);
         }

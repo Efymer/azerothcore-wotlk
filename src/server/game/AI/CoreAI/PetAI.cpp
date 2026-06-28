@@ -405,7 +405,9 @@ void PetAI::KilledUnit(Unit* victim)
         return;
 
     // Xinef: if pet is channeling a spell and owner killed something different, dont interrupt it
-    if (me->HasUnitState(UNIT_STATE_CASTING) && me->GetGuidValue(UNIT_FIELD_CHANNEL_OBJECT) && me->GetGuidValue(UNIT_FIELD_CHANNEL_OBJECT) != victim->GetGUID())
+    // UNIT_FIELD_CHANNEL_OBJECT is now the ChannelObjects dynamic list
+    ObjectGuid channelGuid = me->m_unitData->ChannelObjects.empty() ? ObjectGuid::Empty : me->m_unitData->ChannelObjects[0];
+    if (me->HasUnitState(UNIT_STATE_CASTING) && channelGuid && channelGuid != victim->GetGUID())
         return;
 
     // Clear target just in case. May help problem where health / focus / mana

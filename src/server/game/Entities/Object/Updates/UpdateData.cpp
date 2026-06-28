@@ -18,59 +18,56 @@
 #include "UpdateData.h"
 #include "ByteBuffer.h"
 #include "Errors.h"
-#include "Log.h"
 #include "Opcodes.h"
-#include "World.h"
 #include "WorldPacket.h"
 
-UpdateData::UpdateData() : m_blockCount(0)
+UpdateData::UpdateData(uint32 map) : m_map(map), m_blockCount(0) { }
+
+void UpdateData::AddDestroyObject(ObjectGuid guid)
 {
-    m_outOfRangeGUIDs.reserve(15);
+    m_destroyGUIDs.insert(guid);
+}
+
+void UpdateData::AddOutOfRangeGUID(GuidSet& guids)
+{
+    m_outOfRangeGUIDs.insert(guids.begin(), guids.end());
 }
 
 void UpdateData::AddOutOfRangeGUID(ObjectGuid guid)
 {
-    m_outOfRangeGUIDs.push_back(guid);
+    m_outOfRangeGUIDs.insert(guid);
 }
 
-void UpdateData::AddUpdateBlock(const ByteBuffer& block)
+bool UpdateData::BuildPacket(WorldPacket* packet)
 {
-    m_data.append(block);
-    ++m_blockCount;
-}
+    ASSERT(packet->empty());                                // shouldn't happen
+    packet->Initialize(SMSG_UPDATE_OBJECT, 4 + 2 + 1 + (2 + 4 + 17 * (m_destroyGUIDs.size() + m_outOfRangeGUIDs.size())) + m_data.wpos());
 
-void UpdateData::AddUpdateBlock(const UpdateData& block)
-{
-    m_data.append(block.m_data);
-    m_blockCount += block.m_blockCount;
-}
+    *packet << uint32(m_blockCount);
+    *packet << uint16(m_map);
 
-bool UpdateData::BuildPacket(WorldPacket& packet)
-{
-    ASSERT(packet.empty());
-
-    packet.reserve(4 + (m_outOfRangeGUIDs.empty() ? 0 : 1 + 4 + 9 * m_outOfRangeGUIDs.size()) + m_data.wpos());
-
-    packet << (uint32) (!m_outOfRangeGUIDs.empty() ? m_blockCount + 1 : m_blockCount);
-
-    if (!m_outOfRangeGUIDs.empty())
+    if (packet->WriteBit(!m_outOfRangeGUIDs.empty() || !m_destroyGUIDs.empty()))
     {
-        packet << (uint8) UPDATETYPE_OUT_OF_RANGE_OBJECTS;
-        packet << (uint32) m_outOfRangeGUIDs.size();
+        *packet << uint16(m_destroyGUIDs.size());
+        *packet << uint32(m_destroyGUIDs.size() + m_outOfRangeGUIDs.size());
 
-        for (ObjectGuid const& guid : m_outOfRangeGUIDs)
-            packet << guid.WriteAsPacked();
+        for (ObjectGuid const& destroyGuid : m_destroyGUIDs)
+            *packet << destroyGuid;
+
+        for (ObjectGuid const& outOfRangeGuid : m_outOfRangeGUIDs)
+            *packet << outOfRangeGuid;
     }
 
-    packet.append(m_data);
-    packet.SetOpcode(SMSG_UPDATE_OBJECT);
-
+    *packet << uint32(m_data.size());
+    packet->append(m_data);
     return true;
 }
 
 void UpdateData::Clear()
 {
     m_data.clear();
+    m_destroyGUIDs.clear();
     m_outOfRangeGUIDs.clear();
     m_blockCount = 0;
+    m_map = 0;
 }

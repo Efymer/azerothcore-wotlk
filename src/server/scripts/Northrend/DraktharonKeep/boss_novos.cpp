@@ -171,7 +171,7 @@ struct boss_novos : public BossAI
             }, timer);
         }
 
-        me->SetGuidValue(UNIT_FIELD_TARGET, ObjectGuid::Empty);
+        me->SetTarget(ObjectGuid::Empty);
         me->RemoveAllAuras();
         me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
 

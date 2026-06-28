@@ -388,12 +388,12 @@ public:
                         switch (Step)
                         {
                             case 0:
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 133);
+                                me->SetEmoteState(Emote(133));
                                 EventTimer = 5000;
                                 Step = 1;
                                 break;
                             case 1:
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+                                me->SetEmoteState(EMOTE_ONESHOT_NONE);
                                 // Needs text
                                 EventOnWait = false;
                                 break;
@@ -403,12 +403,12 @@ public:
                         switch (Step)
                         {
                             case 0:
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 133);
+                                me->SetEmoteState(Emote(133));
                                 EventTimer = 5000;
                                 Step = 1;
                                 break;
                             case 1:
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+                                me->SetEmoteState(EMOTE_ONESHOT_NONE);
                                 EventOnWait = false;
                                 break;
                         }
@@ -447,12 +447,12 @@ public:
                         switch (Step)
                         {
                             case 0:
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 133);
+                                me->SetEmoteState(Emote(133));
                                 EventTimer = 5000;
                                 Step = 1;
                                 break;
                             case 1:
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+                                me->SetEmoteState(EMOTE_ONESHOT_NONE);
                                 EventOnWait = false;
                                 break;
                         }
@@ -474,14 +474,14 @@ public:
                         switch (Step)
                         {
                             case 0:
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 2);
+                                me->SetEmoteState(Emote(2));
                                 // Needs text
                                 player->CompleteQuest(10965);
                                 EventTimer = 1500;
                                 Step = 1;
                                 break;
                             case 1:
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+                                me->SetEmoteState(EMOTE_ONESHOT_NONE);
                                 EventTimer = 3000;
                                 Step = 2;
                                 break;

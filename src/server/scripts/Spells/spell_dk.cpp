@@ -225,10 +225,8 @@ class spell_dk_raise_ally : public SpellScript
                 ghoul->AddAura(SPELL_HUNTER_PET_SCALING_04, ghoul);
 
                 // DK Ghoul haste refresh
-                float val = (GetCaster()->m_modAttackSpeedPct[BASE_ATTACK] - 1.0f) * 100.0f;
-                val = 2000.0f * (100.0f + val) / 100.0f;
                 ghoul->m_modAttackSpeedPct[BASE_ATTACK] = GetCaster()->m_modAttackSpeedPct[BASE_ATTACK];
-                ghoul->SetFloatValue(UNIT_FIELD_BASEATTACKTIME, val);
+                ghoul->SetAttackTime(BASE_ATTACK, 2000);
 
                 // Strength + Stamina
                 for (uint8 i = STAT_STRENGTH; i <= STAT_STAMINA; ++i)
@@ -260,9 +258,9 @@ class spell_dk_raise_ally : public SpellScript
 
                 // Attack Power
                 ghoul->SetStatFlatModifier(UNIT_MOD_ATTACK_POWER, BASE_VALUE, 589 + ghoul->GetStat(STAT_STRENGTH) + ghoul->GetStat(STAT_AGILITY));
-                ghoul->SetInt32Value(UNIT_FIELD_ATTACK_POWER, (int32)ghoul->GetFlatModifierValue(UNIT_MOD_ATTACK_POWER, BASE_VALUE) * ghoul->GetPctModifierValue(UNIT_MOD_ATTACK_POWER, BASE_PCT));
-                ghoul->SetInt32Value(UNIT_FIELD_ATTACK_POWER_MODS, (int32)ghoul->GetFlatModifierValue(UNIT_MOD_ATTACK_POWER, TOTAL_VALUE));
-                ghoul->SetFloatValue(UNIT_FIELD_ATTACK_POWER_MULTIPLIER, ghoul->GetPctModifierValue(UNIT_MOD_ATTACK_POWER, TOTAL_PCT) - 1.0f);
+                ghoul->SetAttackPower((int32)ghoul->GetFlatModifierValue(UNIT_MOD_ATTACK_POWER, BASE_VALUE) * ghoul->GetPctModifierValue(UNIT_MOD_ATTACK_POWER, BASE_PCT));
+                ghoul->SetAttackPowerModPos((int32)ghoul->GetFlatModifierValue(UNIT_MOD_ATTACK_POWER, TOTAL_VALUE));
+                ghoul->SetAttackPowerMultiplier(ghoul->GetPctModifierValue(UNIT_MOD_ATTACK_POWER, TOTAL_PCT) - 1.0f);
 
                 // Health
                 ghoul->SetStatFlatModifier(UNIT_MOD_HEALTH, TOTAL_VALUE, (ghoul->GetStat(STAT_STAMINA) - ghoul->GetCreateStat(STAT_STAMINA)) * 10.0f);
@@ -571,7 +569,7 @@ class spell_dk_rune_of_the_fallen_crusader : public SpellScript
         std::list<TargetInfo>* targetsInfo = GetSpell()->GetUniqueTargetInfo();
         for (std::list<TargetInfo>::iterator ihit = targetsInfo->begin(); ihit != targetsInfo->end(); ++ihit)
             if (ihit->targetGUID == GetCaster()->GetGUID())
-                ihit->crit = roll_chance_f(GetCaster()->GetFloatValue(PLAYER_CRIT_PERCENTAGE));
+                ihit->crit = roll_chance_f(0.0f); // [1c.4] TODO: Player melee crit% getter missing (was PLAYER_CRIT_PERCENTAGE)
     }
 
     void Register() override
@@ -712,9 +710,9 @@ class spell_dk_dancing_rune_weapon : public AuraScript
         {
             // xinef: ugly hack
             if (!procSpell->IsAffectingArea())
-                GetUnitOwner()->SetFloatValue(UNIT_FIELD_COMBATREACH, 10.0f);
+                GetUnitOwner()->SetCombatReach(10.0f);
             dancingRuneWeapon->CastSpell(target, procSpell->Id, true, nullptr, aurEff, dancingRuneWeapon->GetGUID());
-            GetUnitOwner()->SetFloatValue(UNIT_FIELD_COMBATREACH, 0.01f);
+            GetUnitOwner()->SetCombatReach(0.01f);
         }
         else if (eventInfo.GetDamageInfo())
         {
@@ -750,9 +748,14 @@ class spell_dk_dancing_rune_weapon_visual : public AuraScript
         PreventDefaultAction();
         if (Unit* owner = GetUnitOwner()->ToTempSummon()->GetSummonerUnit())
         {
-            GetUnitOwner()->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, owner->GetUInt32Value(PLAYER_VISIBLE_ITEM_16_ENTRYID));
-            GetUnitOwner()->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, owner->GetUInt32Value(PLAYER_VISIBLE_ITEM_17_ENTRYID));
-            GetUnitOwner()->SetFloatValue(UNIT_FIELD_COMBATREACH, 0.01f);
+            if (Player* ownerPlayer = owner->ToPlayer())
+            {
+                Item* mainHand = ownerPlayer->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+                Item* offHand = ownerPlayer->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+                GetUnitOwner()->SetVirtualItem(0, mainHand ? mainHand->GetEntry() : 0);
+                GetUnitOwner()->SetVirtualItem(1, offHand ? offHand->GetEntry() : 0);
+            }
+            GetUnitOwner()->SetCombatReach(0.01f);
         }
     }
 
@@ -836,7 +839,7 @@ class spell_dk_pet_scaling : public AuraScript
 
             // xinef: Update appropriate player field
             if (owner->IsPlayer())
-                owner->SetUInt32Value(PLAYER_PET_SPELL_POWER, (uint32)amount);
+                { } // [1c.4] TODO: Player::SetPetSpellPower() wrapper missing (was PLAYER_PET_SPELL_POWER UF)
         }
     }
 

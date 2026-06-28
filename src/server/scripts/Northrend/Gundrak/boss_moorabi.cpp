@@ -213,9 +213,9 @@ class spell_moorabi_mojo_frenzy_aura : public AuraScript
         PreventDefaultAction();
 
         if (GetUnitOwner()->GetMap()->IsHeroic())
-            GetUnitOwner()->SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f * (GetUnitOwner()->GetHealthPct()*GetUnitOwner()->GetHealthPct() / 10000.0f));
+            GetUnitOwner()->SetModCastingSpeed(1.0f * (GetUnitOwner()->GetHealthPct()*GetUnitOwner()->GetHealthPct() / 10000.0f));
         else
-            GetUnitOwner()->SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f * (GetUnitOwner()->GetHealthPct() / 100.0f));
+            GetUnitOwner()->SetModCastingSpeed(1.0f * (GetUnitOwner()->GetHealthPct() / 100.0f));
     }
 
     void Register() override

@@ -1555,7 +1555,7 @@ public:
 
         void Reset() override
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+            me->SetEmoteState(EMOTE_ONESHOT_NONE);
             locked = false;
             changeTimer = 0;
 
@@ -1680,7 +1680,7 @@ public:
                 if (changeTimer >= 2500 && changeTimer < 10000)
                 {
                     me->CastSpell(me, SPELL_GREEN_VISUAL_AURA, true);
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_COWER);
+                    me->SetEmoteState(EMOTE_STATE_COWER);
                     changeTimer = 10000;
                 }
                 else if (changeTimer >= 14500 && changeTimer < 20000)

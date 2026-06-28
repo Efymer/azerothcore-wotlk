@@ -492,8 +492,8 @@ bool Guild::BankTab::SetItem(CharacterDatabaseTransaction trans, uint8 slotId, I
         stmt->SetData(3, item->GetGUID().GetCounter());
         CharacterDatabase.ExecuteOrAppend(trans, stmt);
 
-        item->SetGuidValue(ITEM_FIELD_CONTAINED, ObjectGuid::Empty);
-        item->SetGuidValue(ITEM_FIELD_OWNER, ObjectGuid::Empty);
+        item->SetContainedIn(ObjectGuid::Empty);
+        item->SetOwnerGUID(ObjectGuid::Empty);
         item->FSetState(ITEM_NEW);
         item->SaveToDB(trans);                                 // Not in inventory and can be saved standalone
     }
@@ -2885,7 +2885,7 @@ void Guild::_SendBankList(WorldSession* session /* = nullptr*/, uint8 tabId /*= 
                     itemInfo.Count = int32(tabItem->GetCount());
                     itemInfo.Charges = int32(std::abs(tabItem->GetSpellCharges()));
                     itemInfo.EnchantmentID = int32(tabItem->GetEnchantmentId(PERM_ENCHANTMENT_SLOT));
-                    itemInfo.Flags = tabItem->GetInt32Value(ITEM_FIELD_FLAGS);
+                    itemInfo.Flags = int32(tabItem->GetItemFlags());
                     itemInfo.RandomPropertiesID = tabItem->GetItemRandomPropertyId();
                     itemInfo.RandomPropertiesSeed = int32(tabItem->GetItemSuffixFactor());
 

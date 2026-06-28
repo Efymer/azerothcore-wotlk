@@ -30,8 +30,7 @@ Corpse::Corpse(CorpseType type) : WorldObject(), m_type(type)
 {
     m_objectType |= TYPEMASK_CORPSE;
     m_objectTypeId = TYPEID_CORPSE;
-    m_updateFlag = (UPDATEFLAG_LOWGUID | UPDATEFLAG_STATIONARY_POSITION | UPDATEFLAG_POSITION);
-    m_valuesCount = CORPSE_END;
+    m_updateFlag.Stationary = true;
     m_time = GameTime::GetGameTime().count();
     lootRecipient = nullptr;
 }
@@ -80,7 +79,7 @@ bool Corpse::Create(ObjectGuid::LowType guidlow, Player* owner)
     WorldObject::_Create(guidlow, HighGuid::Corpse, owner->GetPhaseMask());
 
     SetObjectScale(1);
-    SetGuidValue(CORPSE_FIELD_OWNER, owner->GetGUID());
+    SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Owner), owner->GetGUID());
 
     _cellCoord = Acore::ComputeCellCoord(GetPositionX(), GetPositionY());
 
@@ -100,13 +99,21 @@ void Corpse::SaveToDB()
     stmt->SetData (3, GetPositionZ());                                         // posZ
     stmt->SetData (4, GetOrientation());                                       // orientation
     stmt->SetData(5, GetMapId());                                             // mapId
-    stmt->SetData(6, GetUInt32Value(CORPSE_FIELD_DISPLAY_ID));                // displayId
-    stmt->SetData(7, _ConcatFields(CORPSE_FIELD_ITEM, EQUIPMENT_SLOT_END));   // itemCache
-    stmt->SetData(8, GetUInt32Value(CORPSE_FIELD_BYTES_1));                   // bytes1
-    stmt->SetData(9, GetUInt32Value(CORPSE_FIELD_BYTES_2));                   // bytes2
-    stmt->SetData(10, GetUInt32Value(CORPSE_FIELD_GUILD));                    // guildId
-    stmt->SetData (11, GetUInt32Value(CORPSE_FIELD_FLAGS));                    // flags
-    stmt->SetData (12, GetUInt32Value(CORPSE_FIELD_DYNAMIC_FLAGS));            // dynFlags
+    stmt->SetData(6, uint32(m_corpseData->DisplayID));                        // displayId
+    // itemCache: serialize the 19-slot Items array as the legacy space-separated field string
+    {
+        std::ostringstream items;
+        for (std::size_t i = 0; i < m_corpseData->Items.size(); ++i)
+            items << uint32(m_corpseData->Items[i]) << ' ';
+        stmt->SetData(7, items.str());                                       // itemCache
+    }
+    // Legacy bytes1 layout: byte1=race, byte2=gender; appearance (skin/face/hair) is genuinely-absent
+    // in the structured CorpseData (now ChrCustomizationChoice array) -> see [1c.4] TODO below.
+    stmt->SetData(8, uint32((uint32(m_corpseData->RaceID) << 8) | (uint32(m_corpseData->Sex) << 16))); // bytes1
+    stmt->SetData(9, uint32(0));                                              // bytes2 // [1c.4] TODO: appearance customizations
+    stmt->SetData(10, uint32(m_corpseData->GuildGUID->GetCounter()));         // guildId
+    stmt->SetData (11, uint32(m_corpseData->Flags));                           // flags
+    stmt->SetData (12, uint32(m_corpseData->DynamicFlags));                    // dynFlags
     stmt->SetData(13, uint32(m_time));                                        // time
     stmt->SetData (14, GetType());                                             // corpseType
     stmt->SetData(15, GetInstanceId());                                       // instanceId
@@ -143,20 +150,29 @@ bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields)
     Object::_Create(guid, 0, HighGuid::Corpse);
 
     SetObjectScale(1.0f);
-    SetUInt32Value(CORPSE_FIELD_DISPLAY_ID, fields[5].Get<uint32>());
+    auto corpseData = m_values.ModifyValue(&Corpse::m_corpseData);
+    SetUpdateFieldValue(corpseData.ModifyValue(&UF::CorpseData::DisplayID), fields[5].Get<uint32>());
 
-    if (!_LoadIntoDataField(fields[6].Get<std::string>(), CORPSE_FIELD_ITEM, EQUIPMENT_SLOT_END))
+    // itemCache: parse the legacy space-separated field string back into the Items array
     {
-        LOG_ERROR("entities.player", "Corpse ({}, owner: {}) is not created, given equipment info is not valid ('{}')",
-            GetGUID().ToString(), GetOwnerGUID().ToString(), fields[6].Get<std::string>());
+        std::string const itemCache = fields[6].Get<std::string>();
+        std::istringstream iss(itemCache);
+        uint32 itemValue;
+        for (uint32 i = 0; i < EQUIPMENT_SLOT_END && (iss >> itemValue); ++i)
+            SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Items, i), itemValue);
     }
 
-    SetUInt32Value(CORPSE_FIELD_BYTES_1, fields[7].Get<uint32>());
-    SetUInt32Value(CORPSE_FIELD_BYTES_2, fields[8].Get<uint32>());
-    SetUInt32Value(CORPSE_FIELD_GUILD, fields[9].Get<uint32>());
-    SetUInt32Value(CORPSE_FIELD_FLAGS, fields[10].Get<uint8>());
-    SetUInt32Value(CORPSE_FIELD_DYNAMIC_FLAGS, fields[11].Get<uint8>());
-    SetGuidValue(CORPSE_FIELD_OWNER, ObjectGuid::Create<HighGuid::Player>(ownerGuid));
+    // Legacy bytes1 -> RaceID (byte1) + Sex (byte2); bytes2 held appearance (skin/face/hair) which is
+    // now ChrCustomizationChoice data and is genuinely-absent here. [1c.4] TODO: rebuild Customizations.
+    uint32 const bytes1 = fields[7].Get<uint32>();
+    SetUpdateFieldValue(corpseData.ModifyValue(&UF::CorpseData::RaceID), uint8(bytes1 >> 8));
+    SetUpdateFieldValue(corpseData.ModifyValue(&UF::CorpseData::Sex), uint8(bytes1 >> 16));
+    // fields[8] (bytes2) -> [1c.4] TODO: appearance customizations
+    // fields[9] (guildId) -> [1c.4] TODO: CorpseData::GuildGUID is an ObjectGuid but AC 3.3.5 has no
+    // HighGuid::Guild; guild-guid mapping is KNOWN-absent, left empty.
+    SetUpdateFieldValue(corpseData.ModifyValue(&UF::CorpseData::Flags), uint32(fields[10].Get<uint8>()));
+    SetUpdateFieldValue(corpseData.ModifyValue(&UF::CorpseData::DynamicFlags), uint32(fields[11].Get<uint8>()));
+    SetUpdateFieldValue(corpseData.ModifyValue(&UF::CorpseData::Owner), ObjectGuid::Create<HighGuid::Player>(ownerGuid));
 
     m_time = time_t(fields[12].Get<uint32>());
 
@@ -197,64 +213,39 @@ void Corpse::ResetGhostTime()
     m_time = GameTime::GetGameTime().count();
 }
 
-void Corpse::BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* target)
+// Legacy 3.3.5 Corpse::BuildValuesUpdate(uint8 updateType, ...) removed in the 54261 structured-UF cutover.
+// Two-sided-raid corpse appearance masking (CORPSE_FIELD_BYTES_1/2) must be reimplemented via
+// ViewerDependentValues for CorpseData when the call-site sweep reaches Corpse.
+
+void Corpse::BuildValuesCreate(ByteBuffer* data, Player const* target) const
 {
-    if (!target)
-        return;
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
+    std::size_t sizePos = data->wpos();
+    *data << uint32(0);
+    *data << uint8(flags);
+    m_objectData->WriteCreate(*data, flags, this, target);
+    m_corpseData->WriteCreate(*data, flags, this, target);
+    data->put<uint32>(sizePos, data->wpos() - sizePos - 4);
+}
 
-    ByteBuffer fieldBuffer;
-    UpdateMask updateMask;
-    updateMask.SetCount(m_valuesCount);
+void Corpse::BuildValuesUpdate(ByteBuffer* data, Player const* target) const
+{
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
+    std::size_t sizePos = data->wpos();
+    *data << uint32(0);
+    *data << uint32(m_values.GetChangedObjectTypeMask());
 
-    uint32* flags = nullptr;
-    uint32 visibleFlag = GetUpdateFieldData(target, flags);
+    if (m_values.HasChanged(TYPEID_OBJECT))
+        m_objectData->WriteUpdate(*data, flags, this, target);
 
-    for (uint16 index = 0; index < m_valuesCount; ++index)
-    {
-        if (_fieldNotifyFlags & flags[index] || ((updateType == UPDATETYPE_VALUES ? _changesMask.GetBit(index) : m_uint32Values[index]) && (flags[index] & visibleFlag)))
-        {
-            updateMask.SetBit(index);
+    if (m_values.HasChanged(TYPEID_CORPSE))
+        m_corpseData->WriteUpdate(*data, flags, this, target);
 
-            if (index == CORPSE_FIELD_BYTES_1 || index == CORPSE_FIELD_BYTES_2)
-            {
-                Player* owner = ObjectAccessor::GetPlayer(*this, GetOwnerGUID());
-                if (owner && owner != target && sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GROUP) && owner->IsInRaidWith(target) && owner->GetTeamId() != target->GetTeamId())
-                {
-                    uint32 playerBytes = target->GetUInt32Value(PLAYER_BYTES);
-                    uint32 playerBytes2 = target->GetUInt32Value(PLAYER_BYTES_2);
+    data->put<uint32>(sizePos, data->wpos() - sizePos - 4);
+}
 
-                    uint8 race = target->getRace();
-                    uint8 skin = (uint8)(playerBytes);
-                    uint8 face = (uint8)(playerBytes >> 8);
-                    uint8 hairstyle = (uint8)(playerBytes >> 16);
-                    uint8 haircolor = (uint8)(playerBytes >> 24);
-                    uint8 facialhair = (uint8)(playerBytes2);
-
-                    uint32 corpseBytes1 = ((0x00) | (race << 8) | (target->GetByteValue(PLAYER_BYTES_3, 0) << 16) | (skin << 24));
-                    uint32 corpseBytes2 = ((face) | (hairstyle << 8) | (haircolor << 16) | (facialhair << 24));
-
-                    if (index == CORPSE_FIELD_BYTES_1)
-                    {
-                        fieldBuffer << corpseBytes1;
-                    }
-                    else
-                    {
-                        fieldBuffer << corpseBytes2;
-                    }
-                }
-                else
-                {
-                    fieldBuffer << m_uint32Values[index];
-                }
-            }
-            else
-            {
-                fieldBuffer << m_uint32Values[index];
-            }
-        }
-    }
-
-    *data << uint8(updateMask.GetBlockCount());
-    updateMask.AppendToPacket(data);
-    data->append(fieldBuffer);
+void Corpse::ClearUpdateMask(bool remove)
+{
+    m_values.ClearChangesMask(&Corpse::m_corpseData);
+    Object::ClearUpdateMask(remove);
 }

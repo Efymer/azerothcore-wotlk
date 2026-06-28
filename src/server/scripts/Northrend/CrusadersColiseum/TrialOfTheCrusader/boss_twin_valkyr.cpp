@@ -528,7 +528,7 @@ public:
     {
         boss_eydisAI(Creature* pCreature) : boss_twin_valkyrAI(pCreature)
         {
-            me->SetFlag(UNIT_FIELD_AURASTATE, 1 << (19 - 1));
+            me->ModifyAuraState(AuraStateType(19), true);
             SetEquipmentSlots(false, EQUIP_MAIN_2, EQUIP_OFFHAND_2, EQUIP_RANGED_2);
             if (Creature* c = me->SummonCreature(NPC_DARK_ESSENCE, Locs[LOC_DARKESS_1]))
                 boss_twin_valkyrAI::JustSummoned(c);
@@ -554,7 +554,7 @@ public:
     {
         boss_fjolaAI(Creature* pCreature) : boss_twin_valkyrAI(pCreature)
         {
-            me->SetFlag(UNIT_FIELD_AURASTATE, 1 << (22 - 1));
+            me->ModifyAuraState(AuraStateType(22), true);
             SetEquipmentSlots(false, EQUIP_MAIN_1, EQUIP_OFFHAND_1, EQUIP_RANGED_1);
             if (Creature* c = me->SummonCreature(NPC_LIGHT_ESSENCE, Locs[LOC_LIGHTESS_1]))
                 boss_twin_valkyrAI::JustSummoned(c);

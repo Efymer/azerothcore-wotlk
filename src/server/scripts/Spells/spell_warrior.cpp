@@ -1062,9 +1062,9 @@ class spell_warr_deep_wounds_aura : public AuraScript
 
         int32 basepoints;
         if (eventInfo.GetTypeMask() & PROC_FLAG_DONE_OFFHAND_ATTACK)
-            basepoints = int32((caster->GetFloatValue(UNIT_FIELD_MAXOFFHANDDAMAGE) + caster->GetFloatValue(UNIT_FIELD_MINOFFHANDDAMAGE)) / 2.0f);
+            basepoints = int32((caster->GetWeaponDamageRange(OFF_ATTACK, MAXDAMAGE) + caster->GetWeaponDamageRange(OFF_ATTACK, MINDAMAGE)) / 2.0f);
         else
-            basepoints = int32((caster->GetFloatValue(UNIT_FIELD_MAXDAMAGE) + caster->GetFloatValue(UNIT_FIELD_MINDAMAGE)) / 2.0f);
+            basepoints = int32((caster->GetWeaponDamageRange(BASE_ATTACK, MAXDAMAGE) + caster->GetWeaponDamageRange(BASE_ATTACK, MINDAMAGE)) / 2.0f);
 
         uint32 triggeredSpellId = GetSpellInfo()->Effects[EFFECT_0].TriggerSpell;
         if (Unit* target = eventInfo.GetActionTarget())

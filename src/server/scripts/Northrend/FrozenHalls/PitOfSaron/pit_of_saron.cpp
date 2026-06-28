@@ -95,7 +95,7 @@ public:
                                 summon->RemoveUnitMovementFlag(MOVEMENTFLAG_WALKING);
                                 summon->SetSpeed(MOVE_RUN, 0.8f);
                                 summon->GetMotionMaster()->MovePoint(1, introPositions[counter].endPosition);
-                                summon->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+                                summon->SetEmoteState(EMOTE_STATE_READY1H);
                             }
 
                             ++counter;
@@ -135,13 +135,13 @@ public:
                             {
                                 n1->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
                                 n1->GetMotionMaster()->MovePoint(1, NecrolytePos1);
-                                n1->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+                                n1->SetEmoteState(EMOTE_STATE_READY1H);
                             }
                             if (!n2->IsInCombat() && n2->IsAlive())
                             {
                                 n2->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
                                 n2->GetMotionMaster()->MovePoint(1, NecrolytePos2);
-                                n2->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+                                n2->SetEmoteState(EMOTE_STATE_READY1H);
                             }
                             /// @todo This spell check is invalid
                             //                            if (SPELL_NECROLYTE_CHANNELING)
@@ -329,7 +329,7 @@ public:
                     {
                         for (uint8 i = 0; i < 2; ++i)
                             if (Creature* c = pInstance->instance->GetCreature(pInstance->GetGuidData(DATA_GUARD_1_GUID + i)))
-                                c->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+                                c->SetEmoteState(EMOTE_ONESHOT_NONE);
 
                         for (SummonList::iterator itr = summons.begin(); itr != summons.end(); ++itr)
                             if (Creature* c = pInstance->instance->GetCreature(*itr))
@@ -922,7 +922,7 @@ public:
         npc_pos_martin_or_gorkun_secondAI(Creature* creature) : NullCreatureAI(creature), summons(me)
         {
             pInstance = me->GetInstanceScript();
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+            me->SetEmoteState(EMOTE_STATE_READY1H);
             i = 0;
             events.Reset();
             events.RescheduleEvent(1, 500ms);
@@ -968,7 +968,7 @@ public:
                 if (!pInstance)
                     return;
 
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                me->SetEmoteState(EMOTE_ONESHOT_NONE);
                 me->GetMotionMaster()->MovePoint(2, TSCenterPos);
 
                 TSSpawnPos.GetAngle(&TSMidPos);
@@ -978,7 +978,7 @@ public:
                     {
                         float hx, hy, hz, ho;
                         c->GetHomePosition(hx, hy, hz, ho);
-                        c->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_CHEER);
+                        c->SetEmoteState(EMOTE_ONESHOT_CHEER);
                         float ang = frand(1.92f, 2.36f);
                         float dist = urand(50, 85);
                         c->GetMotionMaster()->MovePoint(0, TSSpawnPos.GetPositionX() + cos(ang)*dist, TSSpawnPos.GetPositionY() + std::sin(ang)*dist, 628.2f);
@@ -1022,7 +1022,7 @@ public:
                     {
                         if (Creature* c = me->SummonCreature(TSData[i].entry, TSSpawnPos))
                         {
-                            c->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+                            c->SetEmoteState(EMOTE_STATE_READY1H);
                             c->GetMotionMaster()->MovePoint(0, TSData[i].x, TSData[i].y, TSHeight);
                         }
                         ++i;
@@ -1370,7 +1370,7 @@ class spell_pos_slave_trigger_closest : public SpellScript
     void HandleDummy(SpellEffIndex /*effIndex*/)
     {
         if (Unit* target = GetHitUnit())
-            if (target->GetUInt32Value(UNIT_NPC_EMOTESTATE)) // prevent using multiple times
+            if (true) // [1c.4] TODO: GetEmoteState() wrapper missing on Unit (was UNIT_NPC_EMOTESTATE guard "prevent using multiple times")
             {
                 if (Unit* caster = GetCaster())
                     if (Player* p = caster->ToPlayer())
@@ -1378,7 +1378,7 @@ class spell_pos_slave_trigger_closest : public SpellScript
                         p->RewardPlayerAndGroupAtEvent(36764, caster); // alliance
                         p->RewardPlayerAndGroupAtEvent(36770, caster); // horde
 
-                        target->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+                        target->SetEmoteState(EMOTE_ONESHOT_NONE);
                         if (Creature* c = target->ToCreature())
                         {
                             c->DespawnOrUnsummon(7s);

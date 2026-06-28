@@ -1390,12 +1390,13 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                         if (!area)
                             break;
 
-                        uint32 playerIndexOffset = uint32(area->AreaBit) / 32;
+                        // ExploredZones is now a uint64 array (was uint32[]); bit math is base-64
+                        uint32 playerIndexOffset = uint32(area->AreaBit) / 64;
                         if (playerIndexOffset >= PLAYER_EXPLORED_ZONES_SIZE)
                             continue;
 
-                        uint32 mask = 1 << (uint32(area->AreaBit) % 32);
-                        if (GetPlayer()->GetUInt32Value(PLAYER_EXPLORED_ZONES_1 + playerIndexOffset) & mask)
+                        uint64 mask = UI64LIT(1) << (uint32(area->AreaBit) % 64);
+                        if (GetPlayer()->m_activePlayerData->ExploredZones[playerIndexOffset] & mask)
                         {
                             matchFound = true;
                             break;
@@ -1626,7 +1627,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                     break;
                 }
             case ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL:
-                SetCriteriaProgress(achievementCriteria, GetPlayer()->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS));
+                SetCriteriaProgress(achievementCriteria, GetPlayer()->m_activePlayerData->LifetimeHonorableKills);
                 break;
             case ACHIEVEMENT_CRITERIA_TYPE_HK_CLASS:
                 if (!miscValue1 || miscValue1 != achievementCriteria->hk_class.classID)

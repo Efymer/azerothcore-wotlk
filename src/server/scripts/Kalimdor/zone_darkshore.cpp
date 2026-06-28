@@ -441,7 +441,7 @@ public:
         void Initialize()
         {
             me->SetEntry(NPC_RABID_THISTLE_BEAR);
-            me->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
+            me->SetStandState(0);
             _playerGUID.Clear();
         }
 
@@ -587,7 +587,7 @@ public:
                     case EVENT_POST_QUEST_TWO:
                         if (Creature* bear = ObjectAccessor::GetCreature(*me, _bearGUID))
                         {
-                            bear->SetUInt32Value(UNIT_FIELD_BYTES_1, 7);
+                            bear->SetStandState(7);
                         }
                         _events.ScheduleEvent(EVENT_POST_QUEST_THREE, 1s);
                         break;

@@ -191,9 +191,10 @@ void WorldSession::HandlePetitionBuyOpcode(WorldPacket& recvData)
 
     // Use a 31-bit safe petition id instead of the raw item guid
     uint32 petitionId = sPetitionMgr->GeneratePetitionId();
-    charter->SetUInt32Value(ITEM_FIELD_ENCHANTMENT_1_1, petitionId);
-    // ITEM_FIELD_ENCHANTMENT_1_1 is guild/arenateam id
-    // ITEM_FIELD_ENCHANTMENT_1_1+1 is current signatures count (showed on item)
+    // Enchantment slot 0 ID holds the guild/arenateam petition id (was ITEM_FIELD_ENCHANTMENT_1_1).
+    // Item's structured-UF setter is protected, so go through the public SetEnchantment API (charter is owned by _player here).
+    charter->SetEnchantment(EnchantmentSlot(0), petitionId, 0, 0);
+    // enchantment slot 0 charges is current signatures count (showed on item)
     charter->SetState(ITEM_CHANGED, _player);
     _player->SendNewItem(charter, 1, true, false);
 

@@ -55,16 +55,22 @@ public:
     [[nodiscard]] Unit* GetCaster() const { return _caster; }
     void BindToCaster();
     void UnbindFromCaster();
-    [[nodiscard]] uint32 GetSpellId() const {  return GetUInt32Value(DYNAMICOBJECT_SPELLID); }
-    [[nodiscard]] ObjectGuid GetCasterGUID() const { return GetGuidValue(DYNAMICOBJECT_CASTER); }
-    [[nodiscard]] float GetRadius() const { return GetFloatValue(DYNAMICOBJECT_RADIUS); }
+    [[nodiscard]] uint32 GetSpellId() const {  return m_dynamicObjectData->SpellID; }
+    [[nodiscard]] ObjectGuid GetCasterGUID() const { return m_dynamicObjectData->Caster; }
+    [[nodiscard]] float GetRadius() const { return m_dynamicObjectData->Radius; }
     [[nodiscard]] bool IsViewpoint() const { return _isViewpoint; }
 
     ObjectGuid const& GetOldFarsightGUID() const { return _oldFarsightGUID; }
 
     bool IsUpdateNeeded() override;
 
+    UF::UpdateField<UF::DynamicObjectData, 0, TYPEID_DYNAMICOBJECT> m_dynamicObjectData;
+
 protected:
+    void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+    void ClearUpdateMask(bool remove) override;
+
     Aura* _aura;
     Aura* _removedAura;
     Unit* _caster;

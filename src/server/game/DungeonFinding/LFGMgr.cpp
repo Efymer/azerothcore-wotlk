@@ -1155,8 +1155,8 @@ namespace lfg
                     p->GetTalentTreePoints(talents);
                     spellDamage = p->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_ALL);
                     spellHeal = p->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_ALL);
-                    mp5 = p->GetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER);
-                    mp5combat = p->GetFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER);
+                    mp5 = p->m_unitData->PowerRegenFlatModifier[POWER_MANA];
+                    mp5combat = p->m_unitData->PowerRegenInterruptedFlatModifier[POWER_MANA];
                     baseAP = p->GetTotalAttackPowerValue(BASE_ATTACK);
                     rangedAP = p->GetTotalAttackPowerValue(RANGED_ATTACK);
                     maxPower = 0;
@@ -1168,9 +1168,9 @@ namespace lfg
                     currInternalInfoMap[sitr->first] = RBInternalInfo(guid, sitr->second.comment, !groupGuid.IsEmpty(), groupGuid, sitr->second.roles, encounterMask, instanceGuid,
                                                        1, p->GetLevel(), p->getClass(), p->getRace(), p->GetAverageItemLevel(),
                                                        talents, p->GetAreaId(), p->GetArmor(), (uint32)std::max<int32>(0, spellDamage), (uint32)std::max<int32>(0, spellHeal),
-                                                       p->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_CRIT_MELEE)), p->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_CRIT_RANGED)), p->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_CRIT_SPELL)), std::max<float>(0.0f, mp5), std::max<float>(0.0f, mp5combat),
+                                                       uint32(p->GetCombatRatingValue(CR_CRIT_MELEE)), uint32(p->GetCombatRatingValue(CR_CRIT_RANGED)), uint32(p->GetCombatRatingValue(CR_CRIT_SPELL)), std::max<float>(0.0f, mp5), std::max<float>(0.0f, mp5combat),
                                                        std::max<uint32>(baseAP, rangedAP), (uint32)p->GetStat(STAT_AGILITY), p->GetMaxHealth(), maxPower, p->GetDefenseSkillValue(),
-                                                       p->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_DODGE)), p->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_BLOCK)), p->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_PARRY)), p->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_HASTE_SPELL)), p->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_EXPERTISE)));
+                                                       uint32(p->GetCombatRatingValue(CR_DODGE)), uint32(p->GetCombatRatingValue(CR_BLOCK)), uint32(p->GetCombatRatingValue(CR_PARRY)), uint32(p->GetCombatRatingValue(CR_HASTE_SPELL)), uint32(p->GetCombatRatingValue(CR_EXPERTISE)));
 
                     if (!groupGuid)
                         continue;

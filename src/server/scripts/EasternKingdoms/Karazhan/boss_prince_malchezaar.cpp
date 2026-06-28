@@ -300,7 +300,7 @@ struct npc_netherspite_infernal : public ScriptedAI
     {
         if (spell->Id == SPELL_INFERNAL_RELAY)
         {
-            me->SetDisplayId(me->GetUInt32Value(UNIT_FIELD_NATIVEDISPLAYID));
+            me->SetDisplayId(me->GetNativeDisplayId());
             me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
 
             scheduler.Schedule(4s, [this](TaskContext /*context*/)

@@ -1727,7 +1727,7 @@ void Spell::SelectImplicitTargetDestTargets(SpellEffIndex effIndex, SpellImplici
 
             if (targetType.GetTarget() == TARGET_DEST_TARGET_BACK)
             {
-                dist += target->GetFloatValue(UNIT_FIELD_BOUNDINGRADIUS);
+                dist += target->m_unitData->BoundingRadius;
             }
 
             Position pos = dest._position;
@@ -3171,7 +3171,7 @@ SpellMissInfo Spell::DoSpellHitOnUnit(Unit* unit, uint32 effectMask, bool scaleA
 
                     // xinef: haste affects duration of those spells twice
                     if (m_originalCaster->HasAuraTypeWithAffectMask(SPELL_AURA_PERIODIC_HASTE, aurSpellInfo) || m_spellInfo->HasAttribute(SPELL_ATTR5_SPELL_HASTE_AFFECTS_PERIODIC))
-                        duration = int32(duration * m_originalCaster->GetFloatValue(UNIT_MOD_CAST_SPEED));
+                        duration = int32(duration * m_originalCaster->m_unitData->ModCastingSpeed);
 
                     if (m_spellValue->AuraDuration != 0)
                     {
@@ -4085,7 +4085,7 @@ void Spell::handle_immediate()
 
             // Apply haste mods
             if (m_caster->HasAuraTypeWithAffectMask(SPELL_AURA_PERIODIC_HASTE, m_spellInfo) || m_spellInfo->HasAttribute(SPELL_ATTR5_SPELL_HASTE_AFFECTS_PERIODIC))
-                duration = int32(duration * m_caster->GetFloatValue(UNIT_MOD_CAST_SPEED));
+                duration = int32(duration * m_caster->m_unitData->ModCastingSpeed);
 
             m_spellState = SPELL_STATE_CASTING;
             m_caster->AddInterruptMask(m_spellInfo->ChannelInterruptFlags);
@@ -4470,7 +4470,7 @@ void Spell::finish(bool ok)
         if (Unit* charm = m_caster->GetCharm())
             if (charm->IsCreature()
                     && charm->ToCreature()->HasUnitTypeMask(UNIT_MASK_PUPPET)
-                    && charm->GetUInt32Value(UNIT_CREATED_BY_SPELL) == m_spellInfo->Id)
+                    && charm->GetCreatedBySpell() == m_spellInfo->Id)
                 ((Puppet*)charm)->UnSummon();
     }
 
@@ -4504,7 +4504,7 @@ void Spell::finish(bool ok)
     if (m_caster->IsCreature() && m_caster->ToCreature()->IsSummon())
     {
         // Unsummon statue
-        uint32 spell = m_caster->GetUInt32Value(UNIT_CREATED_BY_SPELL);
+        uint32 spell = m_caster->GetCreatedBySpell();
         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spell);
         if (spellInfo && spellInfo->SpellIconID == 2056)
         {
@@ -4911,7 +4911,7 @@ void Spell::WriteAmmoToPacket(WorldPacket* data)
                 ammoDisplayID = pItem->GetTemplate()->DisplayInfoID;
             else
             {
-                uint32 ammoID = m_caster->ToPlayer()->GetUInt32Value(PLAYER_AMMO_ID);
+                uint32 ammoID = m_caster->ToPlayer()->GetAmmoId();
                 if (ammoID)
                 {
                     ItemTemplate const* pProto = sObjectMgr->GetItemTemplate(ammoID);
@@ -4935,7 +4935,7 @@ void Spell::WriteAmmoToPacket(WorldPacket* data)
         uint32 nonRangedAmmoInventoryType = 0;
         for (uint8 i = 0; i < 3; ++i)
         {
-            if (uint32 item_id = m_caster->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + i))
+            if (uint32 item_id = m_caster->GetVirtualItemId(i))
             {
                 if (ItemEntry const* itemEntry = sItemStore.LookupEntry(item_id))
                 {
@@ -5169,8 +5169,8 @@ void Spell::SendChannelUpdate(uint32 time)
 {
     if (time == 0)
     {
-        m_caster->SetGuidValue(UNIT_FIELD_CHANNEL_OBJECT, ObjectGuid::Empty);
-        m_caster->SetUInt32Value(UNIT_CHANNEL_SPELL, 0);
+        m_caster->ClearChannelObjects();
+        m_caster->SetChannelSpellId(0);
     }
 
     WorldPacket data(SMSG_SPELL_CHANNEL_UPDATE, 8 + 4);
@@ -5199,9 +5199,9 @@ void Spell::SendChannelStart(uint32 duration)
 
     m_timer = duration;
     if (channelTarget)
-        m_caster->SetGuidValue(UNIT_FIELD_CHANNEL_OBJECT, channelTarget);
+        m_caster->AddChannelObject(channelTarget);
 
-    m_caster->SetUInt32Value(UNIT_CHANNEL_SPELL, m_spellInfo->Id);
+    m_caster->SetChannelSpellId(m_spellInfo->Id);
 }
 
 void Spell::SendResurrectRequest(Player* target)
@@ -5378,7 +5378,7 @@ void Spell::TakeAmmo()
             }
         }
         else if (!sWorld->getBoolConfig(CONFIG_ENABLE_INFINITEAMMO))
-            if (uint32 ammo = m_caster->ToPlayer()->GetUInt32Value(PLAYER_AMMO_ID))
+            if (uint32 ammo = m_caster->ToPlayer()->GetAmmoId())
                 m_caster->ToPlayer()->DestroyItemCount(ammo, 1, true);
     }
 }
@@ -7679,7 +7679,7 @@ SpellCastResult Spell::CheckItems(uint32* param1, uint32* param2)
                         case ITEM_SUBCLASS_WEAPON_BOW:
                         case ITEM_SUBCLASS_WEAPON_CROSSBOW:
                             {
-                                uint32 ammo = m_caster->ToPlayer()->GetUInt32Value(PLAYER_AMMO_ID);
+                                uint32 ammo = m_caster->ToPlayer()->GetAmmoId();
                                 if (!ammo)
                                 {
                                     // Requires No Ammo
@@ -7714,7 +7714,7 @@ SpellCastResult Spell::CheckItems(uint32* param1, uint32* param2)
 
                                 if (!m_caster->ToPlayer()->HasItemCount(ammo))
                                 {
-                                    m_caster->ToPlayer()->SetUInt32Value(PLAYER_AMMO_ID, 0);
+                                    m_caster->ToPlayer()->SetAmmoId(0);
                                     return SPELL_FAILED_NO_AMMO;
                                 }
                             };
@@ -8039,7 +8039,7 @@ bool Spell::CheckEffectTarget(Unit const* target, uint32 eff) const
                 if (target->GetGUID() != corpse->GetOwnerGUID())
                     return false;
 
-                if (!corpse->HasFlag(CORPSE_FIELD_FLAGS, CORPSE_FLAG_LOOTABLE))
+                if (!corpse->HasCorpseDynamicFlag(CORPSE_DYNFLAG_LOOTABLE))
                     return false;
 
                 if (!corpse->IsWithinLOSInMap(m_caster, VMAP::ModelIgnoreFlags::M2))
@@ -8931,7 +8931,7 @@ void Spell::TriggerGlobalCooldown()
         if (m_spellInfo->StartRecoveryCategory == 133 && m_spellInfo->StartRecoveryTime == 1500 && m_spellInfo->DmgClass != SPELL_DAMAGE_CLASS_MELEE &&
             m_spellInfo->DmgClass != SPELL_DAMAGE_CLASS_RANGED && !m_spellInfo->HasAttribute(SPELL_ATTR0_USES_RANGED_SLOT) && !m_spellInfo->HasAttribute(SPELL_ATTR0_IS_ABILITY))
         {
-            gcd = int32(float(gcd) * m_caster->GetFloatValue(UNIT_MOD_CAST_SPEED));
+            gcd = int32(float(gcd) * m_caster->m_unitData->ModCastingSpeed);
         }
 
         if (gcd < MIN_GCD)

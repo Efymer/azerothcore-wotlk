@@ -1951,7 +1951,7 @@ class spell_icc_stoneform_aura : public AuraScript
             target->SetReactState(REACT_PASSIVE);
             target->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
             target->SetImmuneToPC(true);
-            target->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_CUSTOM_SPELL_02);
+            target->SetEmoteState(EMOTE_STATE_CUSTOM_SPELL_02);
         }
     }
 
@@ -1962,7 +1962,7 @@ class spell_icc_stoneform_aura : public AuraScript
             target->SetReactState(REACT_AGGRESSIVE);
             target->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
             target->SetImmuneToPC(false);
-            target->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+            target->SetEmoteState(EMOTE_ONESHOT_NONE);
         }
     }
 
@@ -2768,11 +2768,11 @@ public:
                         if (Player* p = target->ToPlayer())
                         {
                             if (Item* i = p->GetWeaponForAttack(BASE_ATTACK))
-                                me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, i->GetEntry());
+                                me->SetVirtualItem(0, i->GetEntry());
                             if (Item* i = p->GetWeaponForAttack(OFF_ATTACK))
-                                me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, i->GetEntry());
+                                me->SetVirtualItem(1, i->GetEntry());
                             if (Item* i = p->GetWeaponForAttack(RANGED_ATTACK))
-                                me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2, i->GetEntry());
+                                me->SetVirtualItem(2, i->GetEntry());
 
                             target->CastSpell(c, 60352, true); // Mirror Image, clone visual appearance
                         }
@@ -2973,8 +2973,8 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
         {
             me->SetCanFly(false);
             me->SetDisableGravity(false);
-            me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
-            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+            me->SetAnimTier(AnimTier::Ground); // [1c.4] was RemoveByteFlag(UNIT_FIELD_BYTES_1, ANIM_TIER, ALWAYS_STAND|HOVER)
+            me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
         }
     }
 
@@ -3017,7 +3017,7 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
         {
             me->SetCanFly(false);
             me->SetDisableGravity(false);
-            me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
+            me->SetAnimTier(AnimTier::Ground); // [1c.4] was RemoveByteFlag(UNIT_FIELD_BYTES_1, ANIM_TIER, ALWAYS_STAND|HOVER)
             _canResetFlyingEffects = false;
         }
     }
@@ -3029,7 +3029,7 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
         {
             me->SetCanFly(false);
             me->SetDisableGravity(false);
-            me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
+            me->SetAnimTier(AnimTier::Ground); // [1c.4] was RemoveByteFlag(UNIT_FIELD_BYTES_1, ANIM_TIER, ALWAYS_STAND|HOVER)
         }
     }
 
@@ -3250,7 +3250,7 @@ public:
         {
             me->SetDisableGravity(true);
             me->SetImmuneToAll(true);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_CUSTOM_SPELL_03);
+            me->SetEmoteState(EMOTE_STATE_CUSTOM_SPELL_03);
         }
 
         void Reset() override
@@ -3272,7 +3272,7 @@ public:
                 DoCastSelf(SPELL_WEB_BEAM);
                 me->SetHomePosition(nx, ny, nz, me->GetOrientation());
                 me->GetMotionMaster()->MoveLand(POINT_LAND, nx, ny, nz, false);
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                me->SetEmoteState(EMOTE_ONESHOT_NONE);
                 return;
             }
 

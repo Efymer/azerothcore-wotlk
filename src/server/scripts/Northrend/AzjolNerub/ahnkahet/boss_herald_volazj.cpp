@@ -349,8 +349,8 @@ class spell_herald_volzaj_insanity : public SpellScript
                     summon->SetInCombatWith(plrTarget);
                     plrTarget->SetInCombatWith(summon);
                     summon->SetPhaseMask(1 | (1 << (4 + insanityCounter)), true);
-                    summon->SetUInt32Value(UNIT_FIELD_MINDAMAGE, plrClone->GetUInt32Value(UNIT_FIELD_MINDAMAGE));
-                    summon->SetUInt32Value(UNIT_FIELD_MAXDAMAGE, plrClone->GetUInt32Value(UNIT_FIELD_MAXDAMAGE));
+                    summon->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, plrClone->GetWeaponDamageRange(BASE_ATTACK, MINDAMAGE));
+                    summon->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, plrClone->GetWeaponDamageRange(BASE_ATTACK, MAXDAMAGE));
                 }
             }
 

@@ -420,8 +420,8 @@ void Player::UpdateDuelFlag(time_t currTime)
     {
         sScriptMgr->OnPlayerDuelStart(this, duel->Opponent);
 
-        SetUInt32Value(PLAYER_DUEL_TEAM, 1);
-        duel->Opponent->SetUInt32Value(PLAYER_DUEL_TEAM, 2);
+        SetDuelTeam(1);
+        duel->Opponent->SetDuelTeam(2);
 
         duel->State = DUEL_STATE_IN_PROGRESS;
         duel->Opponent->duel->State = DUEL_STATE_IN_PROGRESS;

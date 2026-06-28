@@ -184,7 +184,7 @@ bool BattlefieldWG::SetupBattlefield()
     {
         GameObject* go = SpawnGameObject(WGPortalDefenderData[i].entry, WGPortalDefenderData[i].x, WGPortalDefenderData[i].y, WGPortalDefenderData[i].z, WGPortalDefenderData[i].o);
         DefenderPortalList.insert(go);
-        go->SetUInt32Value(GAMEOBJECT_FACTION, WintergraspFaction[GetDefenderTeam()]);
+        go->SetFaction(WintergraspFaction[GetDefenderTeam()]);
     }
 
     UpdateCounterVehicle(true);
@@ -252,7 +252,7 @@ void BattlefieldWG::OnBattleStart()
     if (go)
     {
         // Update faction of relic, only attacker can click on
-        go->SetUInt32Value(GAMEOBJECT_FACTION, WintergraspFaction[GetAttackerTeam()]);
+        go->SetFaction(WintergraspFaction[GetAttackerTeam()]);
         // Set in use (not allow to click on before last door is broken)
         go->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
 
@@ -417,7 +417,7 @@ void BattlefieldWG::OnBattleEnd(bool endByTimer)
 
     // Update portal defender faction
     for (GameObject* go : DefenderPortalList)
-        go->SetUInt32Value(GAMEOBJECT_FACTION, WintergraspFaction[GetDefenderTeam()]);
+        go->SetFaction(WintergraspFaction[GetDefenderTeam()]);
 
     // Saving data
     for (BfWGGameObjectBuilding* building : BuildingsInZone)

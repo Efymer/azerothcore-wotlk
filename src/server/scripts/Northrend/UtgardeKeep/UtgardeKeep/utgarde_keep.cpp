@@ -76,7 +76,7 @@ struct npc_dragonflayer_forge_master : public ScriptedAI
             }
             pInstance->SetData(dataId, IN_PROGRESS);
         }
-        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+        me->SetEmoteState(EMOTE_ONESHOT_NONE);
     }
 };
 

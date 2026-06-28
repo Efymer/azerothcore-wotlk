@@ -268,7 +268,6 @@ Creature::Creature(): Unit(), MovableMapObject(), m_groupLootTimer(0), lootingGr
     _isMissingSwimmingFlagOutOfCombat(false), m_assistanceTimer(0), _playerDamageReq(0), _damagedByPlayer(false), _highestPlayerAttackerLevel(0), _isCombatMovementAllowed(true)
 {
     m_regenTimer = CREATURE_REGEN_INTERVAL;
-    m_valuesCount = UNIT_END;
 
     for (uint8 i = 0; i < MAX_CREATURE_SPELLS; ++i)
         m_spells[i] = 0;
@@ -511,10 +510,10 @@ bool Creature::InitEntry(uint32 Entry, const CreatureData* data)
     m_creatureInfo = cinfo;                                 // map mode related always
 
     // equal to player Race field, but creature does not have race
-    SetByteValue(UNIT_FIELD_BYTES_0, 0, 0);
+    setRace(0);
 
     // known valid are: CLASS_WARRIOR, CLASS_PALADIN, CLASS_ROGUE, CLASS_MAGE
-    SetByteValue(UNIT_FIELD_BYTES_0, 1, uint8(cinfo->unit_class));
+    SetClass(uint8(cinfo->unit_class));
 
     // Cancel load if no model defined
     if (!(cinfo->GetFirstValidModel()))
@@ -551,7 +550,7 @@ bool Creature::InitEntry(uint32 Entry, const CreatureData* data)
 
     SetName(normalInfo->Name);                              // at normal entry always
 
-    SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);
+    SetModCastingSpeed(1.0f);
 
     SetSpeed(MOVE_WALK, cinfo->speed_walk);
     SetSpeed(MOVE_RUN, cinfo->speed_run);
@@ -561,7 +560,7 @@ bool Creature::InitEntry(uint32 Entry, const CreatureData* data)
     // Will set UNIT_FIELD_BOUNDINGRADIUS and UNIT_FIELD_COMBATREACH
     SetObjectScale(GetNativeObjectScale());
 
-    SetFloatValue(UNIT_FIELD_HOVERHEIGHT, cinfo->HoverHeight);
+    SetHoverHeight(cinfo->HoverHeight);
 
     if (cinfo->HasFlagsExtra(CREATURE_FLAG_EXTRA_USE_OFFHAND_ATTACK))
         SetDualWieldMode(DualWieldMode::ENABLED);
@@ -763,7 +762,7 @@ void Creature::Update(uint32 diff)
             else if (m_corpseRemoveTime <= GameTime::GetGameTime().count())
             {
                 RemoveCorpse(false);
-                LOG_DEBUG("entities.unit", "Removing corpse... {} ", GetUInt32Value(OBJECT_FIELD_ENTRY));
+                LOG_DEBUG("entities.unit", "Removing corpse... {} ", GetEntry());
             }
             break;
         }
@@ -1793,7 +1792,7 @@ void Creature::LoadEquipment(int8 id, bool force /*= false*/)
         if (force)
         {
             for (uint8 i = 0; i < MAX_EQUIPMENT_ITEMS; ++i)
-                SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + i, 0);
+                SetVirtualItem(i, 0);
             m_equipmentId = 0;
         }
         return;
@@ -1805,7 +1804,7 @@ void Creature::LoadEquipment(int8 id, bool force /*= false*/)
 
     m_equipmentId = id;
     for (uint8 i = 0; i < 3; ++i)
-        SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + i, einfo->ItemEntry[i]);
+        SetVirtualItem(i, einfo->ItemEntry[i]);
 }
 
 bool Creature::hasQuest(uint32 quest_id) const
@@ -2767,11 +2766,10 @@ bool Creature::LoadCreaturesAddon(bool reload)
         // 2 StandFlags
         // 3 StandMiscFlags
 
-        SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_STAND_STATE, uint8(cainfo->bytes1 & 0xFF));
-        //SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_PET_TALENTS, uint8((cainfo->bytes1 >> 8) & 0xFF));
-        SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_PET_TALENTS, 0);
-        SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_VIS_FLAG, uint8((cainfo->bytes1 >> 16) & 0xFF));
-        SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_ANIM_TIER, uint8((cainfo->bytes1 >> 24) & 0xFF));
+        SetStandState(uint8(cainfo->bytes1 & 0xFF));
+        // byte 1 (pet free talent points) has no 3.4.3 UnitData equivalent
+        ReplaceAllVisFlags(uint8((cainfo->bytes1 >> 16) & 0xFF));
+        SetAnimTier(AnimTier(uint8((cainfo->bytes1 >> 24) & 0xFF)));
 
         //! Suspected correlation between UNIT_FIELD_BYTES_1, offset 3, value 0x2:
         //! If no inhabittype_fly (if no MovementFlag_DisableGravity or MovementFlag_CanFly flag found in sniffs)
@@ -2789,15 +2787,13 @@ bool Creature::LoadCreaturesAddon(bool reload)
         // 2 UnitRename         Pet only, so always 0 for default creature
         // 3 ShapeshiftForm     Must be determined/set by shapeshift spell/aura
 
-        SetByteValue(UNIT_FIELD_BYTES_2, 0, uint8(cainfo->bytes2 & 0xFF));
-        //SetByteValue(UNIT_FIELD_BYTES_2, 1, uint8((cainfo->bytes2 >> 8) & 0xFF));
-        //SetByteValue(UNIT_FIELD_BYTES_2, 2, uint8((cainfo->bytes2 >> 16) & 0xFF));
-        SetByteValue(UNIT_FIELD_BYTES_2, 2, 0);
-        //SetByteValue(UNIT_FIELD_BYTES_2, 3, uint8((cainfo->bytes2 >> 24) & 0xFF));
-        SetByteValue(UNIT_FIELD_BYTES_2, 3, 0);
+        SetSheath(SheathState(uint8(cainfo->bytes2 & 0xFF)));
+        // byte 1 (PvP flags) handled elsewhere
+        ReplaceAllPetFlags(0);
+        SetShapeshiftForm(FORM_NONE);
     }
 
-    SetUInt32Value(UNIT_NPC_EMOTESTATE, cainfo->emote);
+    SetEmoteState(Emote(cainfo->emote));
 
     // Check if visibility distance different
     if (cainfo->visibilityDistanceType != VisibilityDistanceType::Normal)
@@ -3333,7 +3329,7 @@ bool Creature::HasWeapon(WeaponAttackType type) const
     }
 
     const uint8 slot = uint8(type);
-    ItemEntry const* item = sItemStore.LookupEntry(GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + slot));
+    ItemEntry const* item = sItemStore.LookupEntry(GetVirtualItemId(slot));
     return (item && item->ClassID == ITEM_CLASS_WEAPON);
 }
 
@@ -3461,7 +3457,7 @@ void Creature::UpdateMovementFlags()
     float ground = GetFloorZ();
 
     bool canHover = CanHover();
-    bool isInAir  = (G3D::fuzzyGt(GetPositionZ(), ground + (canHover ? GetFloatValue(UNIT_FIELD_HOVERHEIGHT) : 0.0f) + GROUND_HEIGHT_TOLERANCE) || G3D::fuzzyLt(GetPositionZ(), ground - GROUND_HEIGHT_TOLERANCE)); // Can be underground too, prevent the falling
+    bool isInAir  = (G3D::fuzzyGt(GetPositionZ(), ground + (canHover ? *m_unitData->HoverHeight : 0.0f) + GROUND_HEIGHT_TOLERANCE) || G3D::fuzzyLt(GetPositionZ(), ground - GROUND_HEIGHT_TOLERANCE)); // Can be underground too, prevent the falling
 
     if (GetMovementTemplate().IsFlightAllowed() && isInAir && !IsFalling())
     {
@@ -3519,7 +3515,7 @@ void Creature::SetObjectScale(float scale)
 
     if (CreatureModelInfo const* minfo = sObjectMgr->GetCreatureModelInfo(GetDisplayId()))
     {
-        SetFloatValue(UNIT_FIELD_BOUNDINGRADIUS, (IsPet() ? 1.0f : minfo->bounding_radius) * scale);
+        SetBoundingRadius((IsPet() ? 1.0f : minfo->bounding_radius) * scale);
         if (minfo->combat_reach > 0)
             combatReach = minfo->combat_reach;
     }
@@ -3527,7 +3523,7 @@ void Creature::SetObjectScale(float scale)
     if (IsPet())
         combatReach = DEFAULT_COMBAT_REACH;
 
-    SetFloatValue(UNIT_FIELD_COMBATREACH, combatReach * scale);
+    SetCombatReach(combatReach * scale);
 }
 
 void Creature::SetDisplayId(uint32 modelId, float displayScale /*= 1.f*/)
@@ -3538,7 +3534,7 @@ void Creature::SetDisplayId(uint32 modelId, float displayScale /*= 1.f*/)
 
     if (CreatureModelInfo const* minfo = sObjectMgr->GetCreatureModelInfo(modelId))
     {
-        SetFloatValue(UNIT_FIELD_BOUNDINGRADIUS, (IsPet() ? 1.0f : minfo->bounding_radius) * GetObjectScale());
+        SetBoundingRadius((IsPet() ? 1.0f : minfo->bounding_radius) * GetObjectScale());
         if (minfo->combat_reach > 0)
             combatReach = minfo->combat_reach;
     }
@@ -3548,7 +3544,7 @@ void Creature::SetDisplayId(uint32 modelId, float displayScale /*= 1.f*/)
 
     SetObjectScale(displayScale);
 
-    SetFloatValue(UNIT_FIELD_COMBATREACH, combatReach * GetObjectScale());
+    SetCombatReach(combatReach * GetObjectScale());
 }
 
 void Creature::SetDisplayFromModel(uint32 modelIdx)
@@ -3562,7 +3558,7 @@ void Creature::SetTarget(ObjectGuid guid)
     if (_focusSpell)
         _spellFocusTarget = guid;
     else
-        SetGuidValue(UNIT_FIELD_TARGET, guid);
+        SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Target), guid);
 }
 
 void Creature::FocusTarget(Spell const* focusSpell, WorldObject const* target)
@@ -3572,9 +3568,9 @@ void Creature::FocusTarget(Spell const* focusSpell, WorldObject const* target)
         return;
 
     _focusSpell = focusSpell;
-    _spellFocusTarget = GetGuidValue(UNIT_FIELD_TARGET);
+    _spellFocusTarget = GetTarget();
 
-    SetGuidValue(UNIT_FIELD_TARGET, this == target ? ObjectGuid::Empty : target->GetGUID());
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Target), this == target ? ObjectGuid::Empty : target->GetGUID());
     if (focusSpell->GetSpellInfo()->HasAttribute(SPELL_ATTR5_AI_DOESNT_FACE_TARGET))
         AddUnitState(UNIT_STATE_ROTATING);
 
@@ -3602,7 +3598,7 @@ void Creature::ReleaseFocus(Spell const* focusSpell)
         return;
 
     _focusSpell = nullptr;
-    SetGuidValue(UNIT_FIELD_TARGET, _spellFocusTarget);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Target), _spellFocusTarget);
     _spellFocusTarget.Clear();
 
     if (focusSpell->GetSpellInfo()->HasAttribute(SPELL_ATTR5_AI_DOESNT_FACE_TARGET))
@@ -3885,7 +3881,7 @@ bool Creature::CanCastSpell(uint32 spellID) const
     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellID);
     int32 currentPower = GetPower(getPowerType());
 
-    if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SILENCED) || IsSpellProhibited(spellInfo->GetSchoolMask()))
+    if (HasUnitFlag(UNIT_FLAG_SILENCED) || IsSpellProhibited(spellInfo->GetSchoolMask()))
     {
         return false;
     }

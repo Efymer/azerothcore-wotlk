@@ -218,7 +218,7 @@ struct boss_vezax : public BossAI
                     {
                         me->setAttackTimer(BASE_ATTACK, 2000);
                         Player* target = players.at(urand(0, players.size() - 1));
-                        me->SetGuidValue(UNIT_FIELD_TARGET, target->GetGUID());
+                        me->SetTarget(target->GetGUID());
                         me->CastSpell(target, SPELL_VEZAX_SHADOW_CRASH, false);
                         events.ScheduleEvent(EVENT_RESTORE_TARGET, 750ms);
                     }
@@ -226,7 +226,7 @@ struct boss_vezax : public BossAI
                 break;
             case EVENT_RESTORE_TARGET:
                 if (me->GetVictim())
-                    me->SetGuidValue(UNIT_FIELD_TARGET, me->GetVictim()->GetGUID());
+                    me->SetTarget(me->GetVictim()->GetGUID());
                 break;
             case EVENT_SPELL_SEARING_FLAMES:
                 if (!me->HasAura(SPELL_SARONITE_BARRIER))

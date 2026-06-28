@@ -55,7 +55,7 @@ struct npc_ranger_lilatha : public npc_escortAI
         switch (waypointId)
         {
         case 0:
-            me->SetUInt32Value(UNIT_FIELD_BYTES_1, UNIT_STAND_STATE_STAND);
+            me->SetStandState(UNIT_STAND_STATE_STAND);
             if (GameObject* Cage = me->FindNearestGameObject(GO_CAGE, 20.0f))
                 Cage->SetGoState(GO_STATE_ACTIVE);
             Talk(SAY_START, player);

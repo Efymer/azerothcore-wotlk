@@ -238,7 +238,7 @@ void BattlegroundIC::PostUpdateImpl(uint32 diff)
                 DelObject(nodePoint[i].gameobject_type);
                 AddObject(nodePoint[i].gameobject_type, nodePoint[i].gameobject_entry, cords[0], cords[1], cords[2], cords[3], 0, 0, 0, 0, RESPAWN_ONE_DAY);
 
-                GetBGObject(nodePoint[i].gameobject_type)->SetUInt32Value(GAMEOBJECT_FACTION, nodePoint[i].faction == TEAM_ALLIANCE ? BG_IC_Factions[1] : BG_IC_Factions[0]);
+                GetBGObject(nodePoint[i].gameobject_type)->SetFaction(nodePoint[i].faction == TEAM_ALLIANCE ? BG_IC_Factions[1] : BG_IC_Factions[0]);
 
                 UpdateNodeWorldState(&nodePoint[i]);
                 HandleCapturedNodes(&nodePoint[i], false);
@@ -473,13 +473,13 @@ bool BattlegroundIC::SetupBattleground()
     // Flags
     if (GameObject* go = GetBGObject(BG_IC_GO_ALLIANCE_BANNER))
     {
-        go->SetUInt32Value(GAMEOBJECT_FACTION, BG_IC_Factions[1]);
-        go->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+        go->SetFaction(BG_IC_Factions[1]);
+        go->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
     }
     if (GameObject* go = GetBGObject(BG_IC_GO_HORDE_BANNER))
     {
-        go->SetUInt32Value(GAMEOBJECT_FACTION, BG_IC_Factions[0]);
-        go->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+        go->SetFaction(BG_IC_Factions[0]);
+        go->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
     }
 
     // correcting spawn time for keeps bombs
@@ -656,7 +656,7 @@ void BattlegroundIC::EventPlayerClickedOnFlag(Player* player, GameObject* gameOb
             DelObject(point.gameobject_type);
             AddObject(point.gameobject_type, point.gameobject_entry, cords[0], cords[1], cords[2], cords[3], 0, 0, 0, 0, RESPAWN_ONE_DAY);
 
-            GetBGObject(point.gameobject_type)->SetUInt32Value(GAMEOBJECT_FACTION, point.faction == TEAM_ALLIANCE ? BG_IC_Factions[1] : BG_IC_Factions[0]);
+            GetBGObject(point.gameobject_type)->SetFaction(point.faction == TEAM_ALLIANCE ? BG_IC_Factions[1] : BG_IC_Factions[0]);
 
             UpdateNodeWorldState(&point);
             // we dont need iterating if we are here
@@ -979,7 +979,7 @@ void BattlegroundIC::HandleCapturedNodes(ICNodePoint* nodePoint, bool recapture)
                     if (GameObject* seaforiumBombs = GetBGObject(BG_IC_GO_SEAFORIUM_BOMBS_1 + i))
                     {
                         seaforiumBombs->SetRespawnTime(10);
-                        seaforiumBombs->SetUInt32Value(GAMEOBJECT_FACTION, BG_IC_Factions[(nodePoint->faction == TEAM_ALLIANCE ? 0 : 1)]);
+                        seaforiumBombs->SetFaction(BG_IC_Factions[(nodePoint->faction == TEAM_ALLIANCE ? 0 : 1)]);
                     }
                 }
                 break;
@@ -1040,12 +1040,12 @@ void BattlegroundIC::DestroyGate(Player*  /*player*/, GameObject* go)
     if (teamId == TEAM_ALLIANCE)
     {
         DoorOpen(BG_IC_GO_HORDE_KEEP_PORTCULLIS);
-        GetBGObject(BG_IC_GO_HORDE_BANNER)->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+        GetBGObject(BG_IC_GO_HORDE_BANNER)->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
     }
     else
     {
         DoorOpen(BG_IC_GO_DOODAD_PORTCULLISACTIVE02);
-        GetBGObject(BG_IC_GO_ALLIANCE_BANNER)->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+        GetBGObject(BG_IC_GO_ALLIANCE_BANNER)->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
     }
 
     TurnBosses(true);

@@ -736,7 +736,7 @@ public:
                 summon->SetWalk(true);
             else if (summon->GetEntry() != NPC_INVOKER_BASALEPH)
             {
-                summon->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                summon->SetEmoteState(EMOTE_STATE_READY2H);
                 summon->SetImmuneToAll(true);
                 summon->GetMotionMaster()->MovePoint(4, 6135.97f, 2753.84f, 573.92f);
             }
@@ -791,7 +791,7 @@ public:
                                 summon->GetMotionMaster()->MovePoint(1, summon->GetPositionX() - param, summon->GetPositionY() + param * 2 + 3, summon->GetPositionZ());
                                 break;
                             case ACTION_SUMMON_EMOTE:
-                                summon->SetUInt32Value(UNIT_NPC_EMOTESTATE, param);
+                                summon->SetEmoteState(Emote(param));
                                 break;
                             case ACTION_SUMMON_DESPAWN:
                                 summon->DespawnOrUnsummon(Milliseconds(param));
@@ -935,7 +935,7 @@ public:
                         me->GetCreaturesWithEntryInRange(zealotList, 100.0f, NPC_CHOSEN_ZEALOT);
                         for (std::list<Creature*>::const_iterator itr = zealotList.begin(); itr != zealotList.end(); ++itr)
                         {
-                            (*itr)->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY_UNARMED);
+                            (*itr)->SetEmoteState(EMOTE_STATE_READY_UNARMED);
                             if ((*itr)->GetPositionX() > 6150.0f)
                             {
                                 Position tpos = pos1;

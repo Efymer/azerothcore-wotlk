@@ -1265,7 +1265,7 @@ public:
                     {
                         if (Creature* c = instance->GetCreature(NPC_LichKingGUID))
                         {
-                            c->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_TALK);
+                            c->SetEmoteState(EMOTE_STATE_TALK);
                         }
 
                         break;

@@ -1667,7 +1667,7 @@ struct npc_chesspiece : public ScriptedAI
 
     void UpdateAI(uint32 diff) override
     {
-        if (me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE) || me->IsNonMeleeSpellCast(false))
+        if (me->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE) || me->IsNonMeleeSpellCast(false))
         {
             return;
         }
@@ -1895,7 +1895,7 @@ struct npc_chesspiece : public ScriptedAI
             return;
         }
 
-        if (target->GetEntry() != NPC_CHESS_MOVE_TRIGGER || me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE))
+        if (target->GetEntry() != NPC_CHESS_MOVE_TRIGGER || me->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE))
         {
             return;
         }

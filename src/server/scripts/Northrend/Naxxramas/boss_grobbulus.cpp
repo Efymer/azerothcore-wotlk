@@ -198,7 +198,7 @@ public:
         {
             sizeTimer = 0;
             auraVisualTimer = 1;
-            me->SetFloatValue(UNIT_FIELD_COMBATREACH, 2.0f);
+            me->SetCombatReach(2.0f);
             me->SetFaction(FACTION_BOOTY_BAY);
         }
 
@@ -220,7 +220,7 @@ public:
                 }
             }
             sizeTimer += diff; // increase size to 15yd in 60 seconds, 0.00025 is the growth of size in 1ms
-            me->SetFloatValue(UNIT_FIELD_COMBATREACH, 2.0f + (0.00025f * sizeTimer));
+            me->SetCombatReach(2.0f + (0.00025f * sizeTimer));
         }
     };
 };

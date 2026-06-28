@@ -63,7 +63,6 @@
 #include "Tokenize.h"
 #include "Transport.h"
 #include "Unit.h"
-#include "UpdateFieldFlags.h"
 #include "Util.h"
 #include "World.h"
 #include "WorldPacket.h"
@@ -2573,7 +2572,7 @@ void Player::SetAmmo(uint32 item)
         return;
 
     // already set
-    if (GetUInt32Value(PLAYER_AMMO_ID) == item)
+    if (GetAmmoId() == item)
         return;
 
     // check ammo
@@ -2584,14 +2583,14 @@ void Player::SetAmmo(uint32 item)
         return;
     }
 
-    SetUInt32Value(PLAYER_AMMO_ID, item);
+    SetAmmoId(item);
 
     _ApplyAmmoBonuses();
 }
 
 void Player::RemoveAmmo()
 {
-    SetUInt32Value(PLAYER_AMMO_ID, 0);
+    SetAmmoId(0);
 
     m_ammoDPS = 0.0f;
 
@@ -2633,7 +2632,7 @@ Item* Player::StoreNewItem(ItemPosCountVec const& dest, uint32 item, bool update
         if (allowedLooters.size() > 1 && pItem->GetTemplate()->GetMaxStackSize() == 1 && pItem->IsSoulBound() && sWorld->getBoolConfig(CONFIG_SET_BOP_ITEM_TRADEABLE))
         {
             pItem->SetSoulboundTradeable(allowedLooters);
-            pItem->SetUInt32Value(ITEM_FIELD_CREATE_PLAYED_TIME, GetTotalPlayedTime());
+            pItem->SetCreatePlayedTime(GetTotalPlayedTime());
             AddTradeableItem(pItem);
 
             // save data
@@ -2711,9 +2710,9 @@ Item* Player::_StoreItem(uint16 pos, Item* pItem, uint32 count, bool clone, bool
         if (!pBag)
         {
             m_items[slot] = pItem;
-            SetGuidValue(PLAYER_FIELD_INV_SLOT_HEAD + (slot * 2), pItem->GetGUID());
-            pItem->SetGuidValue(ITEM_FIELD_CONTAINED, GetGUID());
-            pItem->SetGuidValue(ITEM_FIELD_OWNER, GetGUID());
+            SetInvSlot(slot, pItem->GetGUID());
+            pItem->SetContainedIn(GetGUID());
+            pItem->SetOwnerGUID(GetGUID());
 
             pItem->SetSlot(slot);
             pItem->SetContainer(nullptr);
@@ -2934,16 +2933,20 @@ void Player::QuickEquipItem(uint16 pos, Item* pItem)
 
 void Player::SetVisibleItemSlot(uint8 slot, Item* pItem)
 {
+    // Old flat layout (entry + perm/temp enchant ids) -> structured VisibleItem{ItemID, ItemAppearanceModID, ItemVisual}.
+    // ItemVisual carries the single visible enchant glow; only the perm enchant is shown in 3.4.3.
+    auto itemField = m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::VisibleItems, slot);
     if (pItem)
     {
-        SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2), pItem->GetEntry());
-        SetUInt16Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + (slot * 2), 0, pItem->GetEnchantmentId(PERM_ENCHANTMENT_SLOT));
-        SetUInt16Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + (slot * 2), 1, pItem->GetEnchantmentId(TEMP_ENCHANTMENT_SLOT));
+        SetUpdateFieldValue(itemField.ModifyValue(&UF::VisibleItem::ItemID), int32(pItem->GetEntry()));
+        SetUpdateFieldValue(itemField.ModifyValue(&UF::VisibleItem::ItemAppearanceModID), uint16(0));
+        SetUpdateFieldValue(itemField.ModifyValue(&UF::VisibleItem::ItemVisual), uint16(pItem->GetEnchantmentId(PERM_ENCHANTMENT_SLOT)));
     }
     else
     {
-        SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2), 0);
-        SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + (slot * 2), 0);
+        SetUpdateFieldValue(itemField.ModifyValue(&UF::VisibleItem::ItemID), 0);
+        SetUpdateFieldValue(itemField.ModifyValue(&UF::VisibleItem::ItemAppearanceModID), uint16(0));
+        SetUpdateFieldValue(itemField.ModifyValue(&UF::VisibleItem::ItemVisual), uint16(0));
     }
 
     sScriptMgr->OnPlayerAfterSetVisibleItemSlot(this, slot, pItem);
@@ -2961,9 +2964,9 @@ void Player::VisualizeItem(uint8 slot, Item* pItem)
     LOG_DEBUG("entities.player.items", "STORAGE: EquipItem slot = {}, item = {}", slot, pItem->GetEntry());
 
     m_items[slot] = pItem;
-    SetGuidValue(PLAYER_FIELD_INV_SLOT_HEAD + (slot * 2), pItem->GetGUID());
-    pItem->SetGuidValue(ITEM_FIELD_CONTAINED, GetGUID());
-    pItem->SetGuidValue(ITEM_FIELD_OWNER, GetGUID());
+    SetInvSlot(slot, pItem->GetGUID());
+    pItem->SetContainedIn(GetGUID());
+    pItem->SetOwnerGUID(GetGUID());
     pItem->SetSlot(slot);
     pItem->SetContainer(nullptr);
 
@@ -3030,7 +3033,7 @@ void Player::RemoveItem(uint8 bag, uint8 slot, bool update)
                 }
             }
 
-            SetGuidValue(PLAYER_FIELD_INV_SLOT_HEAD + (slot * 2), ObjectGuid::Empty);
+            SetInvSlot(slot, ObjectGuid::Empty);
 
             if (slot < EQUIPMENT_SLOT_END)
                 SetVisibleItemSlot(slot, nullptr);
@@ -3038,7 +3041,7 @@ void Player::RemoveItem(uint8 bag, uint8 slot, bool update)
         else if (Bag* pBag = GetBagByPos(bag))
             pBag->RemoveItem(slot, update);
 
-        pItem->SetGuidValue(ITEM_FIELD_CONTAINED, ObjectGuid::Empty);
+        pItem->SetContainedIn(ObjectGuid::Empty);
         // pItem->SetGuidValue(ITEM_FIELD_OWNER, ObjectGuid::Empty); not clear owner at remove (it will be set at store). This used in mail and auction code
         pItem->SetSlot(NULL_SLOT);
         if (IsInWorld() && update)
@@ -3126,7 +3129,7 @@ void Player::DestroyItem(uint8 bag, uint8 slot, bool update)
 
         if (bag == INVENTORY_SLOT_BAG_0)
         {
-            SetGuidValue(PLAYER_FIELD_INV_SLOT_HEAD + (slot * 2), ObjectGuid::Empty);
+            SetInvSlot(slot, ObjectGuid::Empty);
 
             // equipment and equipped bags can have applied bonuses
             if (slot < INVENTORY_SLOT_BAG_END)
@@ -3179,7 +3182,7 @@ void Player::DestroyItem(uint8 bag, uint8 slot, bool update)
         }
 
         //pItem->SetOwnerGUID(0);
-        pItem->SetGuidValue(ITEM_FIELD_CONTAINED, ObjectGuid::Empty);
+        pItem->SetContainedIn(ObjectGuid::Empty);
         pItem->SetSlot(NULL_SLOT);
         pItem->SetState(ITEM_REMOVED, this);
     }
@@ -4014,7 +4017,7 @@ void Player::AddItemToBuyBackSlot(Item* pItem, uint32 money)
         // if current back slot non-empty search oldest or free
         if (m_items[slot])
         {
-            uint32 oldest_time = GetUInt32Value(PLAYER_FIELD_BUYBACK_TIMESTAMP_1);
+            uint32 oldest_time = GetBuybackTimestamp(0);
             uint32 oldest_slot = BUYBACK_SLOT_START;
 
             for (uint32 i = BUYBACK_SLOT_START + 1; i < BUYBACK_SLOT_END; ++i)
@@ -4026,7 +4029,7 @@ void Player::AddItemToBuyBackSlot(Item* pItem, uint32 money)
                     break;
                 }
 
-                uint32 i_time = GetUInt32Value(PLAYER_FIELD_BUYBACK_TIMESTAMP_1 + i - BUYBACK_SLOT_START);
+                uint32 i_time = GetBuybackTimestamp(i - BUYBACK_SLOT_START);
 
                 if (oldest_time > i_time)
                 {
@@ -4047,9 +4050,9 @@ void Player::AddItemToBuyBackSlot(Item* pItem, uint32 money)
         uint32 etime = uint32(base - m_logintime + (30 * 3600));
         uint32 eslot = slot - BUYBACK_SLOT_START;
 
-        SetGuidValue(PLAYER_FIELD_VENDORBUYBACK_SLOT_1 + (eslot * 2), pItem->GetGUID());
-        SetUInt32Value(PLAYER_FIELD_BUYBACK_PRICE_1 + eslot, money);
-        SetUInt32Value(PLAYER_FIELD_BUYBACK_TIMESTAMP_1 + eslot, (uint32)etime);
+        SetInvSlot(slot, pItem->GetGUID());
+        SetBuybackPrice(eslot, money);
+        SetBuybackTimestamp(eslot, (uint32)etime);
 
         // move to next (for non filled list is move most optimized choice)
         if (m_currentBuybackSlot < BUYBACK_SLOT_END - 1)
@@ -4081,9 +4084,9 @@ void Player::RemoveItemFromBuyBackSlot(uint32 slot, bool del)
         m_items[slot] = nullptr;
 
         uint32 eslot = slot - BUYBACK_SLOT_START;
-        SetGuidValue(PLAYER_FIELD_VENDORBUYBACK_SLOT_1 + (eslot * 2), ObjectGuid::Empty);
-        SetUInt32Value(PLAYER_FIELD_BUYBACK_PRICE_1 + eslot, 0);
-        SetUInt32Value(PLAYER_FIELD_BUYBACK_TIMESTAMP_1 + eslot, 0);
+        SetInvSlot(slot, ObjectGuid::Empty);
+        SetBuybackPrice(eslot, 0);
+        SetBuybackTimestamp(eslot, 0);
 
         // if current backslot is filled set to now free slot
         if (m_items[m_currentBuybackSlot])
@@ -4722,12 +4725,9 @@ void Player::ApplyEnchantment(Item* item, EnchantmentSlot slot, bool apply, bool
         }                                                   /*for*/
     }
 
-    // visualize enchantment at player and equipped items
-    if (slot == PERM_ENCHANTMENT_SLOT)
-        SetUInt16Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + (item->GetSlot() * 2), 0, apply ? item->GetEnchantmentId(slot) : 0);
-
-    if (slot == TEMP_ENCHANTMENT_SLOT)
-        SetUInt16Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + (item->GetSlot() * 2), 1, apply ? item->GetEnchantmentId(slot) : 0);
+    // visualize enchantment at player and equipped items (single ItemVisual now; perm/temp share the field, last write wins)
+    if (slot == PERM_ENCHANTMENT_SLOT || slot == TEMP_ENCHANTMENT_SLOT)
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::VisibleItems, item->GetSlot()).ModifyValue(&UF::VisibleItem::ItemVisual), uint16(apply ? item->GetEnchantmentId(slot) : 0));
 
     if (apply_dur)
     {
@@ -4863,8 +4863,8 @@ void Player::_LoadDeclinedNames(PreparedQueryResult result)
 
 void Player::_LoadArenaTeamInfo()
 {
-    memset((void*)&m_uint32Values[PLAYER_FIELD_ARENA_TEAM_INFO_1_1], 0, sizeof(uint32) * MAX_ARENA_SLOT * ARENA_TEAM_END);
-
+    // [1c.4] TODO: PLAYER_FIELD_ARENA_TEAM_INFO_* is KNOWN-absent in 3.4.3 ActivePlayerData (and the flat
+    // m_uint32Values backing store is gone). SetArenaTeamInfoField is stubbed; arena info is not pushed to the client.
     for (auto const& itr : ArenaTeam::ArenaSlotByType)
         if (uint32 arenaTeamId = sCharacterCache->GetCharacterArenaTeamIdByGuid(GetGUID(), itr.second))
         {
@@ -5048,31 +5048,31 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
         return false;
     }
 
-    // overwrite some data fields
-    uint32 bytes0 = 0;
-    bytes0 |= fields[3].Get<uint8>();                         // race
-    bytes0 |= fields[4].Get<uint8>() << 8;                    // class
-    bytes0 |= Gender << 16;                                 // gender
-    SetUInt32Value(UNIT_FIELD_BYTES_0, bytes0);
+    // overwrite some data fields (legacy UNIT_FIELD_BYTES_0 split into Race/ClassId/Sex/DisplayPower)
+    setRace(fields[3].Get<uint8>());                          // race
+    SetClass(fields[4].Get<uint8>());                        // class
+    SetSex(Gender);                                          // gender
 
     m_realRace = fields[3].Get<uint8>(); // set real race
     m_race = fields[3].Get<uint8>(); // set real race
 
-    SetUInt32Value(UNIT_FIELD_LEVEL, fields[6].Get<uint8>());
-    SetUInt32Value(PLAYER_XP, fields[7].Get<uint32>());
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Level), int32(fields[6].Get<uint8>()));
+    SetXP(fields[7].Get<uint32>());
 
-    if (!_LoadIntoDataField(fields[66].Get<std::string>(), PLAYER_EXPLORED_ZONES_1, PLAYER_EXPLORED_ZONES_SIZE))
-    {
-        LOG_WARN("entities.player.loading", "Player::LoadFromDB: Player ({}) has invalid exploredzones data ({}). Forcing partial load.", guid, fields[66].Get<std::string_view>());
-    }
+    // exploredzones: legacy uint32[] DB string packed into the uint64 ExploredZones array (two uint32 per entry)
+    std::vector<std::string_view> exploredZones = Acore::Tokenize(fields[66].Get<std::string_view>(), ' ', false);
+    for (std::size_t i = 0; i < exploredZones.size() && i / 2 < PLAYER_EXPLORED_ZONES_SIZE; ++i)
+        SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ExploredZones, i / 2),
+            Acore::StringTo<uint64>(exploredZones[i]).value_or(UI64LIT(0)) << (32 * (i % 2)));
 
-    if (!_LoadIntoDataField(fields[69].Get<std::string>(), PLAYER__FIELD_KNOWN_TITLES, KNOWN_TITLES_SIZE * 2))
-    {
-        LOG_WARN("entities.player.loading", "Player::LoadFromDB: Player ({}) has invalid knowntitles mask ({}). Forcing partial load.", guid, fields[69].Get<std::string_view>());
-    }
+    // knowntitles: legacy uint32[] DB string packed into the dynamic uint64 KnownTitles list
+    std::vector<std::string_view> knownTitles = Acore::Tokenize(fields[69].Get<std::string_view>(), ' ', false);
+    for (std::size_t i = 0; i < knownTitles.size(); ++i)
+        SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::KnownTitles, i / 2),
+            Acore::StringTo<uint64>(knownTitles[i]).value_or(UI64LIT(0)) << (32 * (i % 2)));
 
     SetObjectScale(1.0f);
-    SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 1.0f);
+    SetHoverHeight(1.0f);
 
     // load character creation date, relevant for achievements of type average
     SetCreationTime(fields[74].Get<Seconds>());
@@ -5085,31 +5085,24 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
         money = MAX_MONEY_AMOUNT;
     SetMoney(money);
 
-    SetByteValue(PLAYER_BYTES, 0, fields[9].Get<uint8>());
-    SetByteValue(PLAYER_BYTES, 1, fields[10].Get<uint8>());
-    SetByteValue(PLAYER_BYTES, 2, fields[11].Get<uint8>());
-    SetByteValue(PLAYER_BYTES, 3, fields[12].Get<uint8>());
-    SetByteValue(PLAYER_BYTES_2, 0, fields[13].Get<uint8>());
-    SetByteValue(PLAYER_BYTES_2, 2, fields[14].Get<uint8>());
-    SetByteValue(PLAYER_BYTES_2, 3, fields[15].Get<uint8>());
-    SetByteValue(PLAYER_BYTES_3, 0, fields[5].Get<uint8>());
-    SetByteValue(PLAYER_BYTES_3, 1, fields[54].Get<uint8>());
+    // [1c.4] TODO: appearance (PLAYER_BYTES/PLAYER_BYTES_2 skin/face/hair/facial) is genuinely-absent in 3.4.3 -
+    // it is now ChrCustomizationChoice data (PlayerData::Customizations) sourced from a customizations table; not ported.
+    // PLAYER_BYTES_3 byte0 (gender) is already applied via SetSex above; byte1 (drunk) handled by inebriation logic.
     ReplaceAllPlayerFlags((PlayerFlags)fields[16].Get<uint32>());
-    SetInt32Value(PLAYER_FIELD_WATCHED_FACTION_INDEX, fields[53].Get<uint32>());
+    SetWatchedFactionIndex(int32(fields[53].Get<uint32>()));
 
-    SetUInt64Value(PLAYER_FIELD_KNOWN_CURRENCIES, fields[52].Get<uint64>());
+    // [1c.4] TODO: PLAYER_FIELD_KNOWN_CURRENCIES is KNOWN-absent in 3.4.3 (currencies are a separate DB2 subsystem); not ported.
 
-    SetUInt32Value(PLAYER_AMMO_ID, fields[68].Get<uint32>());
+    SetAmmoId(fields[68].Get<uint32>());
 
-    // set which actionbars the client has active - DO NOT REMOVE EVER AGAIN (can be changed though, if it does change fieldwise)
-    SetByteValue(PLAYER_FIELD_BYTES, 2, fields[70].Get<uint8>());
+    // [1c.4] TODO: active action bars (legacy PLAYER_FIELD_BYTES byte2) -> ActivePlayerData::MultiActionBars; not ported, stubbed.
 
     InitDisplayIds();
 
     // cleanup inventory related item value fields (its will be filled correctly in _LoadInventory)
     for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
     {
-        SetGuidValue(PLAYER_FIELD_INV_SLOT_HEAD + (slot * 2), ObjectGuid::Empty);
+        SetInvSlot(slot, ObjectGuid::Empty);
         SetVisibleItemSlot(slot, nullptr);
 
         delete m_items[slot];
@@ -5158,11 +5151,13 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
     SetArenaPoints(fields[44].Get<uint32>());
 
     SetHonorPoints(fields[45].Get<uint32>());
-    SetUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION, fields[46].Get<uint32>());
-    SetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION, fields[47].Get<uint32>());
-    SetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, fields[48].Get<uint32>());
-    SetUInt16Value(PLAYER_FIELD_KILLS, 0, fields[49].Get<uint16>());
-    SetUInt16Value(PLAYER_FIELD_KILLS, 1, fields[50].Get<uint16>());
+    // [1c.4] TODO: PLAYER_FIELD_TODAY/YESTERDAY_CONTRIBUTION (old honor points) KNOWN-absent in 3.4.3; not loaded.
+    {
+        auto activePlayerData = m_values.ModifyValue(&Player::m_activePlayerData);
+        SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::LifetimeHonorableKills), fields[48].Get<uint32>());
+        SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::TodayHonorableKills), fields[49].Get<uint16>());
+        SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::YesterdayHonorableKills), fields[50].Get<uint16>());
+    }
 
     _LoadInstanceTimeRestrictions(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_INSTANCE_LOCK_TIMES));
     _LoadEntryPointData(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_ENTRY_POINT));
@@ -5431,26 +5426,27 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
         m_deathExpireTime = now + MAX_DEATH_COUNT * DEATH_EXPIRE_STEP - 1;
 
     // clear channel spell data (if saved at channel spell casting)
-    SetGuidValue(UNIT_FIELD_CHANNEL_OBJECT, ObjectGuid::Empty);
-    SetUInt32Value(UNIT_CHANNEL_SPELL, 0);
+    ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelObjects));
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ChannelData).ModifyValue(&UF::UnitChannel::SpellID), 0);
 
     // clear charm/summon related fields
     SetOwnerGUID(ObjectGuid::Empty);
-    SetGuidValue(UNIT_FIELD_CHARMEDBY, ObjectGuid::Empty);
-    SetGuidValue(UNIT_FIELD_CHARM, ObjectGuid::Empty);
-    SetGuidValue(UNIT_FIELD_SUMMON, ObjectGuid::Empty);
-    SetGuidValue(PLAYER_FARSIGHT, ObjectGuid::Empty);
+    SetCharmerGUID(ObjectGuid::Empty);
+    SetCharmGUID(ObjectGuid::Empty);
+    SetMinionGUID(ObjectGuid::Empty);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::FarsightObject), ObjectGuid::Empty);
     SetCreatorGUID(ObjectGuid::Empty);
 
     RemoveUnitFlag2(UNIT_FLAG2_FORCE_MOVEMENT);
 
     // reset some aura modifiers before aura apply
-    SetUInt32Value(PLAYER_TRACK_CREATURES, 0);
-    SetUInt32Value(PLAYER_TRACK_RESOURCES, 0);
+    SetTrackCreatureMask(0);
+    SetTrackResourceMask(0, 0);
+    SetTrackResourceMask(1, 0);
 
     // make sure the unit is considered not in duel for proper loading
-    SetGuidValue(PLAYER_DUEL_ARBITER, ObjectGuid::Empty);
-    SetUInt32Value(PLAYER_DUEL_TEAM, 0);
+    SetDuelArbiter(ObjectGuid::Empty);
+    SetDuelTeam(0);
 
     // reset stats before loading any modifiers
     InitStatsForLevel();
@@ -5477,7 +5473,7 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
                        : bubble0 * sWorld->getRate(RATE_REST_OFFLINE_IN_WILDERNESS);
 
         // Client automatically doubles the value sent so we have to divide it by 2
-        SetRestBonus(GetRestBonus() + time_diff * ((float)GetUInt32Value(PLAYER_NEXT_LEVEL_XP) / 144000)*bubble);
+        SetRestBonus(GetRestBonus() + time_diff * ((float)GetXPForNextLevel() / 144000)*bubble);
     }
 
     uint32 innTriggerId = fields[72].Get<uint32>();
@@ -5550,7 +5546,7 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
     if (curTitle && !HasTitle(curTitle))
         curTitle = 0;
 
-    SetUInt32Value(PLAYER_CHOSEN_TITLE, curTitle);
+    SetChosenTitle(curTitle);
 
     // has to be called after last Relocate() in Player::LoadFromDB
     SetFallInformation(GameTime::GetGameTime().count(), GetPositionZ());
@@ -5645,8 +5641,8 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
     if (GetSession()->IsARecruiter() || (GetSession()->GetRecruiterId() != 0))
         SetDynamicFlag(UNIT_DYNFLAG_REFER_A_FRIEND);
 
-    if (m_grantableLevels > 0)
-        SetByteValue(PLAYER_FIELD_BYTES, 1, 0x01);
+    // [1c.4] TODO: legacy PLAYER_FIELD_BYTES byte1 (recruit-a-friend grantable-level indicator) is genuinely-absent
+    // in 3.4.3 PlayerData; the client RAF indicator is not driven here. m_grantableLevels logic remains server-side.
 
     _LoadDeclinedNames(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_DECLINED_NAMES));
 
@@ -5667,12 +5663,13 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
 
     // Fix aurastate auras, depending on health!
     // Set aurastate manualy, prevents aura switching
+    // set the AuraState field bits directly (manual set, intentionally bypassing ModifyAuraState side effects)
     if (HealthBelowPct(20))
-        SetFlag(UNIT_FIELD_AURASTATE, 1 << (AURA_STATE_HEALTHLESS_20_PERCENT - 1));
+        SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AuraState), 1 << (AURA_STATE_HEALTHLESS_20_PERCENT - 1));
     if (HealthBelowPct(35))
-        SetFlag(UNIT_FIELD_AURASTATE, 1 << (AURA_STATE_HEALTHLESS_35_PERCENT - 1));
+        SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AuraState), 1 << (AURA_STATE_HEALTHLESS_35_PERCENT - 1));
     if (HealthAbovePct(75))
-        SetFlag(UNIT_FIELD_AURASTATE, 1 << (AURA_STATE_HEALTH_ABOVE_75_PERCENT - 1));
+        SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::AuraState), 1 << (AURA_STATE_HEALTH_ABOVE_75_PERCENT - 1));
 
     // unapply aura stats if dont meet requirements
     AuraApplicationMap const& Auras = GetAppliedAuras();
@@ -5898,7 +5895,8 @@ void Player::LoadCorpse(PreparedQueryResult result)
         {
             Field* fields = result->Fetch();
             _corpseLocation.WorldRelocate(fields[0].Get<uint16>(), fields[1].Get<float>(), fields[2].Get<float>(), fields[3].Get<float>(), fields[4].Get<float>());
-            ApplyModFlag(PLAYER_FIELD_BYTES, PLAYER_FIELD_BYTE_RELEASE_TIMER, !sMapStore.LookupEntry(_corpseLocation.GetMapId())->Instanceable());
+            // [1c.4] TODO: PLAYER_FIELD_BYTES PLAYER_FIELD_BYTE_RELEASE_TIMER (spirit release timer flag) is
+            // genuinely-absent in 3.4.3 PlayerData; release-timer client hint not set.
         }
         else
             ResurrectPlayer(0.5f);
@@ -6076,7 +6074,7 @@ Item* Player::_LoadItem(CharacterDatabaseTransaction trans, uint32 zoneId, uint3
                     stmt->SetData(0, item->GetGUID().GetCounter());
                     trans->Append(stmt);
 
-                    item->RemoveFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_REFUNDABLE);
+                    item->RemoveItemFlag(ITEM_FIELD_FLAG_REFUNDABLE);
                 }
                 else
                 {
@@ -6095,7 +6093,7 @@ Item* Player::_LoadItem(CharacterDatabaseTransaction trans, uint32 zoneId, uint3
                     {
                         LOG_DEBUG("entities.player.loading", "Player::_LoadInventory: player ({}, name: '{}') has item ({}, entry: {}) with refundable flags, but without data in item_refund_instance. Removing flag.",
                                   GetGUID().ToString(), GetName(), item->GetGUID().ToString(), item->GetEntry());
-                        item->RemoveFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_REFUNDABLE);
+                        item->RemoveItemFlag(ITEM_FIELD_FLAG_REFUNDABLE);
                     }
                 }
             }
@@ -6131,7 +6129,7 @@ Item* Player::_LoadItem(CharacterDatabaseTransaction trans, uint32 zoneId, uint3
                 {
                     LOG_DEBUG("entities.player.loading", "Player::_LoadInventory: player ({}, name: '{}') has item ({}, entry: {}) with ITEM_FIELD_FLAG_BOP_TRADEABLE flag, but without data in item_soulbound_trade_data. Removing flag.",
                               GetGUID().ToString(), GetName(), item->GetGUID().ToString(), item->GetEntry());
-                    item->RemoveFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_BOP_TRADEABLE);
+                    item->RemoveItemFlag(ITEM_FIELD_FLAG_BOP_TRADEABLE);
                 }
             }
             else if (proto->HolidayId)
@@ -6234,10 +6232,10 @@ Item* Player::_LoadMailedItem(ObjectGuid const& playerGuid, Player* player, uint
             if (looters.size() > 1 && proto->GetMaxStackSize() == 1 && item->IsSoulBound())
                 item->SetSoulboundTradeable(looters);
             else
-                item->RemoveFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_BOP_TRADEABLE);
+                item->RemoveItemFlag(ITEM_FIELD_FLAG_BOP_TRADEABLE);
         }
         else
-            item->RemoveFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_BOP_TRADEABLE);
+            item->RemoveItemFlag(ITEM_FIELD_FLAG_BOP_TRADEABLE);
     }
 
     if (mail)
@@ -6450,8 +6448,8 @@ void Player::_LoadQuestStatusRewarded(PreparedQueryResult result)
 
 void Player::_LoadDailyQuestStatus(PreparedQueryResult result)
 {
-    for (uint32 quest_daily_idx = 0; quest_daily_idx < PLAYER_MAX_DAILY_QUESTS; ++quest_daily_idx)
-        SetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1 + quest_daily_idx, 0);
+    // DailyQuestsCompleted is now a dynamic list (was the fixed PLAYER_FIELD_DAILY_QUESTS_1 array)
+    ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::DailyQuestsCompleted));
 
     m_DFQuests.clear();
 
@@ -6489,7 +6487,7 @@ void Player::_LoadDailyQuestStatus(PreparedQueryResult result)
             if (!quest)
                 continue;
 
-            SetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1 + quest_daily_idx, quest_id);
+            AddDynamicUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::DailyQuestsCompleted)) = int32(quest_id);
             ++quest_daily_idx;
 
             LOG_DEBUG("entities.player.loading", "Daily quest ({}) cooldown for player ({})", quest_id, GetGUID().ToString());
@@ -7639,16 +7637,16 @@ void Player::_SaveDailyQuestStatus(CharacterDatabaseTransaction trans)
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_QUEST_STATUS_DAILY_CHAR);
     stmt->SetData(0, GetGUID().GetCounter());
     trans->Append(stmt);
-    for (uint32 quest_daily_idx = 0; quest_daily_idx < PLAYER_MAX_DAILY_QUESTS; ++quest_daily_idx)
+    for (int32 questId : m_activePlayerData->DailyQuestsCompleted)
     {
-        if (GetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1 + quest_daily_idx))
-        {
-            stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHARACTER_DAILYQUESTSTATUS);
-            stmt->SetData(0, GetGUID().GetCounter());
-            stmt->SetData(1, GetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1 + quest_daily_idx));
-            stmt->SetData(2, uint64(m_lastDailyQuestTime));
-            trans->Append(stmt);
-        }
+        if (!questId)
+            continue;
+
+        stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHARACTER_DAILYQUESTSTATUS);
+        stmt->SetData(0, GetGUID().GetCounter());
+        stmt->SetData(1, uint32(questId));
+        stmt->SetData(2, uint64(m_lastDailyQuestTime));
+        trans->Append(stmt);
     }
 
     if (!m_DFQuests.empty())
@@ -7766,9 +7764,8 @@ void Player::_SaveSkills(CharacterDatabaseTransaction trans)
             continue;
         }
 
-        uint32 valueData = GetUInt32Value(PLAYER_SKILL_VALUE_INDEX(itr->second.pos));
-        uint16 value = SKILL_VALUE(valueData);
-        uint16 max = SKILL_MAX(valueData);
+        uint16 value = GetSkillRank(itr->second.pos);
+        uint16 max = GetSkillMaxRank(itr->second.pos);
 
         switch (itr->second.uState)
         {
@@ -7873,16 +7870,16 @@ void Player::_SaveStats(CharacterDatabaseTransaction trans)
     for (int i = 0; i < MAX_SPELL_SCHOOL; ++i)
         stmt->SetData(index++, GetResistance(SpellSchools(i)));
 
-    stmt->SetData(index++, GetFloatValue(PLAYER_BLOCK_PERCENTAGE));
-    stmt->SetData(index++, GetFloatValue(PLAYER_DODGE_PERCENTAGE));
-    stmt->SetData(index++, GetFloatValue(PLAYER_PARRY_PERCENTAGE));
-    stmt->SetData(index++, GetFloatValue(PLAYER_CRIT_PERCENTAGE));
-    stmt->SetData(index++, GetFloatValue(PLAYER_RANGED_CRIT_PERCENTAGE));
-    stmt->SetData(index++, GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1));
-    stmt->SetData(index++, GetUInt32Value(UNIT_FIELD_ATTACK_POWER));
-    stmt->SetData(index++, GetUInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER));
+    stmt->SetData(index++, float(m_activePlayerData->BlockPercentage));
+    stmt->SetData(index++, float(m_activePlayerData->DodgePercentage));
+    stmt->SetData(index++, float(m_activePlayerData->ParryPercentage));
+    stmt->SetData(index++, float(m_activePlayerData->CritPercentage));
+    stmt->SetData(index++, float(m_activePlayerData->RangedCritPercentage));
+    stmt->SetData(index++, float(m_activePlayerData->SpellCritPercentage[0]));
+    stmt->SetData(index++, uint32(m_unitData->AttackPower));
+    stmt->SetData(index++, uint32(m_unitData->RangedAttackPower));
     stmt->SetData(index++, GetBaseSpellPowerBonus());
-    stmt->SetData(index++, GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + static_cast<uint16>(CR_CRIT_TAKEN_SPELL)));
+    stmt->SetData(index++, uint32(GetCombatRatingValue(CR_CRIT_TAKEN_SPELL)));
 
     trans->Append(stmt);
 }
@@ -7896,12 +7893,13 @@ void Player::outDebugValues() const
     LOG_DEBUG("entities.player", "AGILITY is: \t\t{}\t\tSTRENGTH is: \t\t{}", GetStat(STAT_AGILITY), GetStat(STAT_STRENGTH));
     LOG_DEBUG("entities.player", "INTELLECT is: \t\t{}\t\tSPIRIT is: \t\t{}", GetStat(STAT_INTELLECT), GetStat(STAT_SPIRIT));
     LOG_DEBUG("entities.player", "STAMINA is: \t\t{}", GetStat(STAT_STAMINA));
-    LOG_DEBUG("entities.player", "Armor is: \t\t{}\t\tBlock is: \t\t{}", GetArmor(), GetFloatValue(PLAYER_BLOCK_PERCENTAGE));
+    LOG_DEBUG("entities.player", "Armor is: \t\t{}\t\tBlock is: \t\t{}", GetArmor(), float(m_activePlayerData->BlockPercentage));
     LOG_DEBUG("entities.player", "HolyRes is: \t\t{}\t\tFireRes is: \t\t{}", GetResistance(SPELL_SCHOOL_HOLY), GetResistance(SPELL_SCHOOL_FIRE));
     LOG_DEBUG("entities.player", "NatureRes is: \t\t{}\t\tFrostRes is: \t\t{}", GetResistance(SPELL_SCHOOL_NATURE), GetResistance(SPELL_SCHOOL_FROST));
     LOG_DEBUG("entities.player", "ShadowRes is: \t\t{}\t\tArcaneRes is: \t\t{}", GetResistance(SPELL_SCHOOL_SHADOW), GetResistance(SPELL_SCHOOL_ARCANE));
-    LOG_DEBUG("entities.player", "MIN_DAMAGE is: \t\t{}\tMAX_DAMAGE is: \t\t{}", GetFloatValue(UNIT_FIELD_MINDAMAGE), GetFloatValue(UNIT_FIELD_MAXDAMAGE));
-    LOG_DEBUG("entities.player", "MIN_OFFHAND_DAMAGE is: \t{}\tMAX_OFFHAND_DAMAGE is: \t{}", GetFloatValue(UNIT_FIELD_MINOFFHANDDAMAGE), GetFloatValue(UNIT_FIELD_MAXOFFHANDDAMAGE));
-    LOG_DEBUG("entities.player", "MIN_RANGED_DAMAGE is: \t{}\tMAX_RANGED_DAMAGE is: \t{}", GetFloatValue(UNIT_FIELD_MINRANGEDDAMAGE), GetFloatValue(UNIT_FIELD_MAXRANGEDDAMAGE));
+    LOG_DEBUG("entities.player", "MIN_DAMAGE is: \t\t{}\tMAX_DAMAGE is: \t\t{}", float(m_unitData->MinDamage), float(m_unitData->MaxDamage));
+    LOG_DEBUG("entities.player", "MIN_OFFHAND_DAMAGE is: \t{}\tMAX_OFFHAND_DAMAGE is: \t{}", float(m_unitData->MinOffHandDamage), float(m_unitData->MaxOffHandDamage));
+    // [1c.4] UNIT_FIELD_MIN/MAXRANGEDDAMAGE genuinely-absent in 3.4.3 UnitData; debug-only, reported as 0.
+    LOG_DEBUG("entities.player", "MIN_RANGED_DAMAGE is: \t{}\tMAX_RANGED_DAMAGE is: \t{}", 0.0f, 0.0f);
     LOG_DEBUG("entities.player", "ATTACK_TIME is: \t{}\t\tRANGE_ATTACK_TIME is: \t{}", GetAttackTime(BASE_ATTACK), GetAttackTime(RANGED_ATTACK));
 }

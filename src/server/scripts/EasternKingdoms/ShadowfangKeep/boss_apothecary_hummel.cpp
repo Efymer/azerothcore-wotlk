@@ -297,7 +297,7 @@ struct npc_apothecary_genericAI : public ScriptedAI
     {
         if (type == POINT_MOTION_TYPE && pointId == 1)
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_USE_STANDING);
+            me->SetEmoteState(EMOTE_STATE_USE_STANDING);
         }
     }
 

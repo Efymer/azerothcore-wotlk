@@ -181,10 +181,10 @@ public:
                         creature->DespawnOrUnsummon();
                     break;
             }
-            if (creature->GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID))
+            if (creature->GetMountDisplayId())
                 if (const CreatureAddon* ca = creature->GetCreatureAddon())
-                    if (ca->mount != creature->GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID))
-                        creature->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, ca->mount);
+                    if (ca->mount != creature->GetMountDisplayId())
+                        creature->SetMountDisplayId(ca->mount);
         }
 
         void OnGameObjectCreate(GameObject* go) override

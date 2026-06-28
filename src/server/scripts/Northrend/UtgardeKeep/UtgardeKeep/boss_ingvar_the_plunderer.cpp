@@ -304,7 +304,7 @@ struct boss_ingvar_the_plunderer : public ScriptedAI
             events.Repeat(15s, 20s);
             break;
         case EVENT_SPELL_CLEAVE_OR_WOE_STRIKE:
-            if (me->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID) == 0)
+            if (me->GetVirtualItemId(0) == 0)
             {
                 events.Repeat(3s);
                 break;
@@ -316,7 +316,7 @@ struct boss_ingvar_the_plunderer : public ScriptedAI
             events.Repeat(3s, 7s);
             break;
         case EVENT_SPELL_SMASH:
-            if (me->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID) == 0)
+            if (me->GetVirtualItemId(0) == 0)
             {
                 events.Repeat(3s);
                 break;

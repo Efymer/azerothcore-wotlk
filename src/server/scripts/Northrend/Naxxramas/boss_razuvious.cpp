@@ -307,7 +307,7 @@ public:
 
         void ScheduleAttackDummy()
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+            me->SetEmoteState(EMOTE_STATE_READY1H);
             if (Creature* targetDummy = me->FindNearestCreature(NPC_TARGET_DUMMY, 10.0f))
             {
                 me->SetFacingToObject(targetDummy);
@@ -327,7 +327,7 @@ public:
                 {
                     scheduler.CancelGroup(GROUP_OOC_RP);
                     me->SetSheath(SHEATH_STATE_UNARMED);
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+                    me->SetEmoteState(EMOTE_STATE_NONE);
 
                     if (Creature* creature = me->GetInstanceScript()->GetCreature(DATA_RAZUVIOUS_BOSS))
                         me->SetFacingToObject(creature);

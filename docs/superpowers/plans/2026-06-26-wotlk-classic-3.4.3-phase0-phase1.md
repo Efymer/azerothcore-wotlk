@@ -58,7 +58,13 @@ code + git history:
     (RelWithDebInfo/MSVC), codestyle clean. Adaptations: TC `Field::GetUInt32()`/`setBool` → AC `Field::Get<T>()`/
     `PreparedStatement::SetData`; `ABORT_MSG` → `ABORT` (`{}`-style); `LocalizedString::operator[]` →
     `.Str[locale]` (AC's has no `operator[]`); added `Field.h`+`QueryResult.h` includes.
-  - **1c.2 (in progress)** — store layer + boot wiring in `src/server/game/DataStores/`
+  - **1c.2 ✅ COMPLETE** (reconfirmed 2026-06-27) — every applicable subset store is defined + registered; 33 DB2
+    stores load live in `DB2Stores.cpp`. The one nominal subset member NOT done — `sAreaTriggerStore` — **does not
+    apply to AzerothCore**: AC has no AreaTrigger DBC/DB2 store (the only reference is a commented-out Xinef leftover
+    at `ObjectMgr.cpp:7838`); AC drives area triggers from world-DB `areatrigger_*` tables, so it was never a gap.
+    The DBC-colliding members of the subset were defined-and-repointed per-store under 1c.3 (see below). Original
+    DB2-only notes:
+  - **1c.2 (DB2-only subset)** — store layer + boot wiring in `src/server/game/DataStores/`
     `{DB2Structure.h, DB2LoadInfo.h, DB2Stores.{h,cpp}}`, `LoadDB2Stores()` called after `LoadDBCStores` in
     `World.cpp`. **6 DB2-only stores load live** (boot log, no errors): LiquidMaterial(3), SpellName(446921),
     CharacterLoadout(1828), CharacterLoadoutItem(25516), ChrCustomizationOption(1932), ChrCustomizationReq(599),
@@ -145,6 +151,15 @@ code + git history:
     searches the skill's abilities for the one that supercedes the current spell. `DBCStores.cpp` post-load
     (pet-family spells, ability index) now reads the DB2 store; `SkillLineAbilityEntry` forward-declared in
     `DBCStores.h` (pointer-only use). Verified live: full World Initialized.
+  - **Remaining DBC-colliding subset migrated DBC→DB2 (committed, not previously logged here)** — completes the
+    1c.2/1c.3 subset. In commit order: **Light + WorldMapOverlay + SkillRaceClassInfo + CharTitles** (`9d4e6c32e`);
+    **Taxi trio** TaxiNodes/TaxiPath/TaxiPathNode (`d3bbf3e88`); **Faction + FactionTemplate** (`d380b18cc`, plus
+    `0ab23af7e` fixing Creature LOS aggro to iterate all `MAX_FACTION_RELATIONS` enemy slots); **AreaTable**
+    (`115b9df17`, plus `c589f1326` — `IsFlyable()` must read `MountFlags`, not the repurposed Outland bit);
+    **Map** (`d6b9f3a25`); **MapDifficulty** (`50168a1f4`); **Item** (`6aa9009c5`); **CinematicCamera +
+    CinematicSequences** (`dc45fcc4a`); **CurrencyTypes** (`3e48489ad`). With these, **33 DB2 stores load live** and
+    the entire applicable Phase-1c world-entry subset is on DB2 — **Task 1c.2 and the store-side of Task 1c.3 are
+    done.** (`sAreaTriggerStore` is N/A in AC — see the 1c.2 note above.)
   - **1c.4–1c.5** — not started. ⚠️ Note: AC's `DB2Meta` stays a designated-init aggregate (do NOT add TC's
     constructor — it would break the extractor's + runtime's designated-init metadata).
 - **Phase 1d** — not started.

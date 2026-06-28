@@ -935,7 +935,7 @@ public:
             return false;
         }
 
-        target->SetUInt32Value(UNIT_NPC_EMOTESTATE, emote);
+        target->SetEmoteState(Emote(emote));
 
         return true;
     }

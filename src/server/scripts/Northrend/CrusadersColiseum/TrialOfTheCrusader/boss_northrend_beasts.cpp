@@ -895,7 +895,7 @@ public:
                     me->SetReactState(REACT_PASSIVE);
                     me->AttackStop();
                     me->GetMotionMaster()->MoveJump(Locs[LOC_CENTER].GetPositionX(), Locs[LOC_CENTER].GetPositionY(), Locs[LOC_CENTER].GetPositionZ(), 40.0f, 12.0f);
-                    me->SetGuidValue(UNIT_FIELD_TARGET, ObjectGuid::Empty);
+                    me->SetTarget(ObjectGuid::Empty);
                     events.Reset();
                     events.RescheduleEvent(EVENT_SPELL_MASSIVE_CRASH, 2s);
                     break;
@@ -909,7 +909,7 @@ public:
                     if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 500.0f, true))
                     {
                         TargetGUID = target->GetGUID();
-                        me->SetGuidValue(UNIT_FIELD_TARGET, TargetGUID);
+                        me->SetTarget(TargetGUID);
                         me->SetFacingToObject(target);
                         Talk(EMOTE_TRAMPLE_STARE, target);
                         me->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
@@ -971,7 +971,7 @@ public:
                     me->DisableSpline();
                     me->GetMotionMaster()->Clear();
                     me->GetMotionMaster()->MoveCharge(destX, destY, destZ + 1.0f, 65.0f);
-                    me->SetGuidValue(UNIT_FIELD_TARGET, ObjectGuid::Empty);
+                    me->SetTarget(ObjectGuid::Empty);
                     events.RescheduleEvent(EVENT_CHECK_TRAMPLE_PLAYERS, 100ms);
 
                     break;

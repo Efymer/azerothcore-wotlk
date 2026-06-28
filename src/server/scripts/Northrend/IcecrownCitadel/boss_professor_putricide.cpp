@@ -453,7 +453,7 @@ public:
                     break;
                 case POINT_TABLE:
                     me->SetFacingTo(tablePos.GetOrientation());
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_USE_STANDING);
+                    me->SetEmoteState(EMOTE_STATE_USE_STANDING);
                     break;
                 case POINT_TABLE_COMBAT:
                     me->SetFacingTo(tablePos.GetOrientation());
@@ -886,7 +886,7 @@ class spell_putricide_slime_puddle : public SpellScript
 
     void ScaleRange(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::AllWorldObjectsInExactRange(GetCaster(), 2.5f * GetCaster()->GetFloatValue(OBJECT_FIELD_SCALE_X), true));
+        targets.remove_if(Acore::AllWorldObjectsInExactRange(GetCaster(), 2.5f * GetCaster()->GetObjectScale(), true));
     }
 
     // big hax to unlock Abomination Eat Ooze ability, requires caster aura spell from difficulty X, but unlocks clientside when got base aura
@@ -1424,8 +1424,7 @@ class spell_putricide_mutated_transformation : public SpellScript
         summon->setPowerType(POWER_ENERGY);
         summon->SetMaxPower(POWER_ENERGY, 100);
         summon->SetPower(POWER_ENERGY, 0);
-        summon->SetStatFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER, 0);
-        summon->SetStatFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER, 0);
+        // [1c.4] TODO: power-regen flat modifier setters missing (were UNIT_FIELD_POWER_REGEN_(INTERRUPTED_)FLAT_MODIFIER = 0)
     }
 
     void Register() override

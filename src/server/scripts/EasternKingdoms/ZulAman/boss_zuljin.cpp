@@ -141,7 +141,7 @@ struct boss_zuljin : public BossAI
     void Reset() override
     {
         _Reset();
-        me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, 33975);
+        me->SetVirtualItem(0, 33975);
         me->SetCombatMovement(true);
         me->m_Events.KillAllEvents(false);
         _nextPhase = 0;
@@ -315,7 +315,7 @@ struct boss_zuljin : public BossAI
                 if (Creature* spirit = summons.GetCreatureWithEntry(Transform[_nextPhase - 1].spiritEntry))
                 {
                     spirit->CastStop();
-                    spirit->SetUInt32Value(UNIT_FIELD_BYTES_1, UNIT_STAND_STATE_DEAD);
+                    spirit->SetStandState(UNIT_STAND_STATE_DEAD);
                 }
 
             Talk(Transform[_nextPhase].text);
@@ -348,7 +348,7 @@ struct boss_zuljin : public BossAI
         DoStopAttack();
         me->GetMotionMaster()->Clear();
 
-        me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, 0);
+        me->SetVirtualItem(0, 0);
         me->RemoveAurasDueToSpell(Transform[NextPhase].unaura);
 
         me->m_Events.AddEventAtOffset([&] {

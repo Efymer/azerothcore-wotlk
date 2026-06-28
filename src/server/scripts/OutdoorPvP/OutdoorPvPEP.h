@@ -136,7 +136,7 @@ enum EP_TowerStates
 // when spawning, pay attention at setting the faction manually!
 const creature_type EP_PWT_FlightMaster = {17209, MAP_EASTERN_KINGDOMS, 2987.5f, -3049.11f, 120.126f, 5.75959f};
 
-// after spawning, modify the faction so that only the controller will be able to use it with SetUInt32Value(GAMEOBJECT_FACTION, faction_id);
+// after spawning, modify the faction so that only the controller will be able to use it with SetFaction(faction_id);
 const go_type EP_NPT_LordaeronShrine = {181682, MAP_EASTERN_KINGDOMS, 3167.72f, -4355.91f, 138.785f, 1.69297f, 0.0f, 0.0f, 0.748956f, 0.66262f};
 
 class OutdoorPvPEP;

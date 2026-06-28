@@ -391,7 +391,7 @@ public:
                     ResetEvent();
                     me->ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
                     DoCast(me, 58506, false);
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY_UNARMED);
+                    me->SetEmoteState(EMOTE_STATE_READY_UNARMED);
                     me->SendMovementFlagUpdate();
                     me->SetImmuneToAll(true);
                     break;
@@ -402,7 +402,7 @@ public:
                     if (pInstance)
                         pInstance->SetData(BRANN_BRONZEBEARD, 5);
                     SetEscortPaused(false);
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_STAND);
+                    me->SetEmoteState(EMOTE_STATE_STAND);
                     me->ReplaceAllNpcFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                     me->SetOrientation(3.132660f);
                     me->SendMovementFlagUpdate();
@@ -412,7 +412,7 @@ public:
                 case ACTION_SJONNIR_WIPE_START:
                     Reset();
                     SetNextWaypoint(33, true);
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY_UNARMED);
+                    me->SetEmoteState(EMOTE_STATE_READY_UNARMED);
                     me->StopMovingOnCurrentPos();
                     DoCast(me, 58506, false);
                     if (GameObject* door = ObjectAccessor::GetGameObject(*me, pInstance->GetGuidData(GO_SJONNIR_DOOR)))
@@ -644,7 +644,7 @@ public:
                             me->CastSpell(me, SPELL_TRIBUNAL_CREDIT_MARKER, true); // credit
                         }
 
-                        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_STAND);
+                        me->SetEmoteState(EMOTE_STATE_STAND);
                         me->SendMovementFlagUpdate();
 
                         break;
@@ -676,7 +676,7 @@ public:
                             if (GameObject* door = ObjectAccessor::GetGameObject(*me, pInstance->GetGuidData(GO_SJONNIR_DOOR)))
                             {
                                 door->SetGoState(GO_STATE_ACTIVE);
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY_UNARMED);
+                                me->SetEmoteState(EMOTE_STATE_READY_UNARMED);
                                 me->SendMovementFlagUpdate();
                             }
                         }
@@ -841,7 +841,7 @@ void brann_bronzebeard::brann_bronzebeardAI::WaypointReached(uint32 id)
             if (pInstance)
             {
                 pInstance->SetData(BOSS_TRIBUNAL_OF_AGES, IN_PROGRESS);
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_USE_STANDING);
+                me->SetEmoteState(EMOTE_STATE_USE_STANDING);
                 if (GameObject* tribunal = ObjectAccessor::GetGameObject(*me, pInstance->GetGuidData(GO_TRIBUNAL_CONSOLE)))
                     tribunal->SetGoState(GO_STATE_ACTIVE);
             }
@@ -875,7 +875,7 @@ void brann_bronzebeard::brann_bronzebeardAI::WaypointReached(uint32 id)
         //Walk to the door, run after opening it
         case 34:
             SetEscortPaused(true);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_USE_STANDING);
+            me->SetEmoteState(EMOTE_STATE_USE_STANDING);
             me->SendMovementFlagUpdate();
             events.ScheduleEvent(EVENT_DOOR_OPEN, 1500ms);
             me->SetWalk(false);
@@ -885,14 +885,14 @@ void brann_bronzebeard::brann_bronzebeardAI::WaypointReached(uint32 id)
         //Brann stops in front of Sjonnir and awaits the start of the battle.
         case 36:
             SetEscortPaused(true);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY_UNARMED);
+            me->SetEmoteState(EMOTE_STATE_READY_UNARMED);
             me->SendMovementFlagUpdate();
             Talk(SAY_BRANN_FRONT_OF_SJONNIR);
             break;
         //Brann steps back and uses the Sjonnir console.
         case 38:
             SetEscortPaused(true);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_USE_STANDING);
+            me->SetEmoteState(EMOTE_STATE_USE_STANDING);
             if (pInstance)
             {
                 if (GameObject* console = ObjectAccessor::GetGameObject(*me, pInstance->GetGuidData(GO_SJONNIR_CONSOLE)))
@@ -906,7 +906,7 @@ void brann_bronzebeard::brann_bronzebeardAI::WaypointReached(uint32 id)
         //Brann steps back and uses the Sjonnir console.
         case 40:
             SetEscortPaused(true);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_USE_STANDING);
+            me->SetEmoteState(EMOTE_STATE_USE_STANDING);
             break;
     }
 }

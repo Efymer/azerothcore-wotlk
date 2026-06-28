@@ -64,7 +64,7 @@ class Pet;
 class PlayerMenu;
 class PlayerSocial;
 class SpellCastTargets;
-class UpdateMask;
+// UpdateMask is a template<uint32 Bits> class included via Object.h -> UpdateMask.h
 
 typedef std::deque<Mail*> PlayerMails;
 typedef void(*bgZoneRef)(Battleground*, WorldPackets::WorldState::InitWorldStates&);
@@ -1099,8 +1099,8 @@ public:
     void SetObjectScale(float scale) override
     {
         Unit::SetObjectScale(scale);
-        SetFloatValue(UNIT_FIELD_BOUNDINGRADIUS, scale * DEFAULT_WORLD_OBJECT_SIZE);
-        SetFloatValue(UNIT_FIELD_COMBATREACH, scale * DEFAULT_COMBAT_REACH);
+        SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::BoundingRadius), scale * DEFAULT_WORLD_OBJECT_SIZE);
+        SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::CombatReach), scale * DEFAULT_COMBAT_REACH);
     }
 
     bool TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options = 0, Unit* target = nullptr, bool newInstance = false);
@@ -1120,11 +1120,38 @@ public:
 
     void Update(uint32 time) override;
 
-    PlayerFlags GetPlayerFlags() const { return PlayerFlags(GetUInt32Value(PLAYER_FLAGS)); }
-    bool HasPlayerFlag(PlayerFlags flags) const { return HasFlag(PLAYER_FLAGS, flags) != 0; }
-    void SetPlayerFlag(PlayerFlags flags) { SetFlag(PLAYER_FLAGS, flags); }
-    void RemovePlayerFlag(PlayerFlags flags) { RemoveFlag(PLAYER_FLAGS, flags); }
-    void ReplaceAllPlayerFlags(PlayerFlags flags) { SetUInt32Value(PLAYER_FLAGS, flags); }
+    PlayerFlags GetPlayerFlags() const { return PlayerFlags(*m_playerData->PlayerFlags); }
+    bool HasPlayerFlag(PlayerFlags flags) const { return (*m_playerData->PlayerFlags & flags) != 0; }
+    void SetPlayerFlag(PlayerFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlags), flags); }
+    void RemovePlayerFlag(PlayerFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlags), flags); }
+    void ReplaceAllPlayerFlags(PlayerFlags flags) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlags), flags); }
+
+    [[nodiscard]] ObjectGuid GetDuelArbiter() const { return m_playerData->DuelArbiter; }
+    void SetDuelArbiter(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::DuelArbiter), guid); }
+    [[nodiscard]] uint32 GetDuelTeam() const { return m_playerData->DuelTeam; }
+    void SetDuelTeam(uint32 duelTeam) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::DuelTeam), duelTeam); }
+
+    [[nodiscard]] uint32 GetXP() const { return m_activePlayerData->XP; }
+    void SetXP(uint32 xp) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::XP), int32(xp)); }
+    [[nodiscard]] uint32 GetXPForNextLevel() const { return m_activePlayerData->NextLevelXP; }
+    void SetXPForNextLevel(uint32 xp) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::NextLevelXP), int32(xp)); }
+    void SetCombatRating(uint32 combatRating, uint32 value) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::CombatRatings, combatRating), int32(value)); }
+    [[nodiscard]] int32 GetCombatRatingValue(uint32 combatRating) const { return m_activePlayerData->CombatRatings[combatRating]; }
+
+    // Structured ActivePlayerData / PlayerData accessors replacing removed flat PLAYER_* fields.
+    void SetInvSlot(uint32 slot, ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::InvSlots, slot), guid); }
+    [[nodiscard]] ObjectGuid GetInvSlot(uint32 slot) const { return m_activePlayerData->InvSlots[slot]; }
+    [[nodiscard]] uint32 GetAmmoId() const { return m_activePlayerData->AmmoID; }
+    void SetAmmoId(uint32 ammoId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AmmoID), int32(ammoId)); }
+    void SetWatchedFactionIndex(int32 index) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::WatchedFactionIndex), index); }
+    void SetTrackCreatureMask(uint32 mask) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TrackCreatureMask), mask); }
+    void SetTrackResourceMask(uint32 index, uint32 mask) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TrackResourceMask, index), mask); }
+    [[nodiscard]] int32 GetChosenTitle() const { return m_playerData->PlayerTitle; }
+    void SetChosenTitle(int32 title) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerTitle), title); }
+    void SetBuybackPrice(uint32 slot, uint32 price) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::BuybackPrice, slot), price); }
+    [[nodiscard]] uint32 GetBuybackPrice(uint32 slot) const { return m_activePlayerData->BuybackPrice[slot]; }
+    void SetBuybackTimestamp(uint32 slot, uint64 timestamp) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::BuybackTimestamp, slot), int64(timestamp)); }
+    [[nodiscard]] uint64 GetBuybackTimestamp(uint32 slot) const { return m_activePlayerData->BuybackTimestamp[slot]; }
 
     static bool BuildEnumData(PreparedQueryResult result, WorldPacket* data);
 
@@ -1166,9 +1193,9 @@ public:
     // mount_id can be used in scripting calls
 
     [[nodiscard]] bool IsCommentator() const { return HasPlayerFlag(PLAYER_FLAGS_COMMENTATOR2); }
-    void SetCommentator(bool on) { ApplyModFlag(PLAYER_FLAGS, PLAYER_FLAGS_COMMENTATOR2, on); }
+    void SetCommentator(bool on) { if (on) SetPlayerFlag(PLAYER_FLAGS_COMMENTATOR2); else RemovePlayerFlag(PLAYER_FLAGS_COMMENTATOR2); }
     [[nodiscard]] bool IsDeveloper() const { return HasPlayerFlag(PLAYER_FLAGS_DEVELOPER); }
-    void SetDeveloper(bool on) { ApplyModFlag(PLAYER_FLAGS, PLAYER_FLAGS_DEVELOPER, on); }
+    void SetDeveloper(bool on) { if (on) SetPlayerFlag(PLAYER_FLAGS_DEVELOPER); else RemovePlayerFlag(PLAYER_FLAGS_DEVELOPER); }
     void SetBeastMaster(bool on) { if (on) SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE); else RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE); }
     [[nodiscard]] bool isAcceptWhispers() const { return m_ExtraFlags & PLAYER_EXTRA_ACCEPT_WHISPERS; }
     void SetAcceptWhispers(bool on) { if (on) m_ExtraFlags |= PLAYER_EXTRA_ACCEPT_WHISPERS; else m_ExtraFlags &= ~PLAYER_EXTRA_ACCEPT_WHISPERS; }
@@ -1285,8 +1312,8 @@ public:
     static bool IsBankPos(uint8 bag, uint8 slot);
     bool IsValidPos(uint16 pos, bool explicit_pos) { return IsValidPos(pos >> 8, pos & 255, explicit_pos); }
     bool IsValidPos(uint8 bag, uint8 slot, bool explicit_pos);
-    [[nodiscard]] uint8 GetBankBagSlotCount() const { return GetByteValue(PLAYER_BYTES_2, 2); }
-    void SetBankBagSlotCount(uint8 count) { SetByteValue(PLAYER_BYTES_2, 2, count); }
+    [[nodiscard]] uint8 GetBankBagSlotCount() const { return m_playerData->NumBankSlots; }
+    void SetBankBagSlotCount(uint8 count) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::NumBankSlots), count); }
     [[nodiscard]] bool HasItemCount(uint32 item, uint32 count = 1, bool inBankAlso = false) const;
     bool HasItemFitToSpellRequirements(SpellInfo const* spellInfo, Item const* ignoreItem = nullptr) const;
     bool CanNoReagentCast(SpellInfo const* spellInfo) const;
@@ -1503,37 +1530,50 @@ public:
     void ResetSeasonalQuestStatus(uint16 event_id);
 
     [[nodiscard]] uint16 FindQuestSlot(uint32 quest_id) const;
-    [[nodiscard]] uint32 GetQuestSlotQuestId(uint16 slot) const { return GetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_ID_OFFSET); }
-    [[nodiscard]] uint32 GetQuestSlotState(uint16 slot)   const { return GetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_STATE_OFFSET); }
-    [[nodiscard]] uint16 GetQuestSlotCounter(uint16 slot, uint8 counter) const { return (uint16)(GetUInt64Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_COUNTS_OFFSET) >> (counter * 16)); }
-    [[nodiscard]] uint32 GetQuestSlotTime(uint16 slot)    const { return GetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_TIME_OFFSET); }
+    [[nodiscard]] uint32 GetQuestSlotQuestId(uint16 slot) const { return m_playerData->QuestLog[slot].QuestID; }
+    [[nodiscard]] uint32 GetQuestSlotState(uint16 slot)   const { return m_playerData->QuestLog[slot].StateFlags; }
+    [[nodiscard]] uint16 GetQuestSlotCounter(uint16 slot, uint8 counter) const { return counter < QUEST_OBJECTIVES_COUNT ? uint16(m_playerData->QuestLog[slot].ObjectiveProgress[counter]) : uint16(0); }
+    [[nodiscard]] uint32 GetQuestSlotTime(uint16 slot)    const { return uint32(m_playerData->QuestLog[slot].EndTime); }
     void SetQuestSlot(uint16 slot, uint32 quest_id, uint32 timer = 0)
     {
-        SetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_ID_OFFSET, quest_id);
-        SetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_STATE_OFFSET, 0);
-        SetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_COUNTS_OFFSET, 0);
-        SetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_COUNTS_OFFSET + 1, 0);
-        SetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_TIME_OFFSET, timer);
+        auto questLogField = m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::QuestLog, slot);
+        SetUpdateFieldValue(questLogField.ModifyValue(&UF::QuestLog::QuestID), quest_id);
+        SetUpdateFieldValue(questLogField.ModifyValue(&UF::QuestLog::StateFlags), 0u);
+        SetUpdateFieldValue(questLogField.ModifyValue(&UF::QuestLog::EndTime), int64(timer));
+        for (uint32 i = 0; i < QUEST_OBJECTIVES_COUNT; ++i)
+            SetUpdateFieldValue(questLogField.ModifyValue(&UF::QuestLog::ObjectiveProgress, i), uint16(0));
     }
     void SetQuestSlotCounter(uint16 slot, uint8 counter, uint16 count)
     {
-        uint64 val = GetUInt64Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_COUNTS_OFFSET);
-        val &= ~((uint64)0xFFFF << (counter * 16));
-        val |= ((uint64)count << (counter * 16));
-        SetUInt64Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_COUNTS_OFFSET, val);
+        if (counter >= QUEST_OBJECTIVES_COUNT)
+            return;
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::QuestLog, slot).ModifyValue(&UF::QuestLog::ObjectiveProgress, counter), count);
     }
-    void SetQuestSlotState(uint16 slot, uint32 state) { SetFlag(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_STATE_OFFSET, state); }
-    void RemoveQuestSlotState(uint16 slot, uint32 state) { RemoveFlag(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_STATE_OFFSET, state); }
-    void SetQuestSlotTimer(uint16 slot, uint32 timer) { SetUInt32Value(PLAYER_QUEST_LOG_1_1 + slot * MAX_QUEST_OFFSET + QUEST_TIME_OFFSET, timer); }
+    void SetQuestSlotState(uint16 slot, uint32 state) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::QuestLog, slot).ModifyValue(&UF::QuestLog::StateFlags), state); }
+    void RemoveQuestSlotState(uint16 slot, uint32 state) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::QuestLog, slot).ModifyValue(&UF::QuestLog::StateFlags), state); }
+    void SetQuestSlotTimer(uint16 slot, uint32 timer) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::QuestLog, slot).ModifyValue(&UF::QuestLog::EndTime), int64(timer)); }
     void SwapQuestSlot(uint16 slot1, uint16 slot2)
     {
-        for (int i = 0; i < MAX_QUEST_OFFSET; ++i)
-        {
-            uint32 temp1 = GetUInt32Value(PLAYER_QUEST_LOG_1_1 + MAX_QUEST_OFFSET * slot1 + i);
-            uint32 temp2 = GetUInt32Value(PLAYER_QUEST_LOG_1_1 + MAX_QUEST_OFFSET * slot2 + i);
+        auto q1 = m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::QuestLog, slot1);
+        auto q2 = m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::QuestLog, slot2);
 
-            SetUInt32Value(PLAYER_QUEST_LOG_1_1 + MAX_QUEST_OFFSET * slot1 + i, temp2);
-            SetUInt32Value(PLAYER_QUEST_LOG_1_1 + MAX_QUEST_OFFSET * slot2 + i, temp1);
+        uint32 questId1 = m_playerData->QuestLog[slot1].QuestID;
+        uint32 stateFlags1 = m_playerData->QuestLog[slot1].StateFlags;
+        int64 endTime1 = m_playerData->QuestLog[slot1].EndTime;
+
+        SetUpdateFieldValue(q1.ModifyValue(&UF::QuestLog::QuestID), uint32(m_playerData->QuestLog[slot2].QuestID));
+        SetUpdateFieldValue(q1.ModifyValue(&UF::QuestLog::StateFlags), uint32(m_playerData->QuestLog[slot2].StateFlags));
+        SetUpdateFieldValue(q1.ModifyValue(&UF::QuestLog::EndTime), int64(m_playerData->QuestLog[slot2].EndTime));
+
+        SetUpdateFieldValue(q2.ModifyValue(&UF::QuestLog::QuestID), questId1);
+        SetUpdateFieldValue(q2.ModifyValue(&UF::QuestLog::StateFlags), stateFlags1);
+        SetUpdateFieldValue(q2.ModifyValue(&UF::QuestLog::EndTime), endTime1);
+
+        for (uint32 i = 0; i < QUEST_OBJECTIVES_COUNT; ++i)
+        {
+            uint16 progress1 = m_playerData->QuestLog[slot1].ObjectiveProgress[i];
+            SetUpdateFieldValue(q1.ModifyValue(&UF::QuestLog::ObjectiveProgress, i), uint16(m_playerData->QuestLog[slot2].ObjectiveProgress[i]));
+            SetUpdateFieldValue(q2.ModifyValue(&UF::QuestLog::ObjectiveProgress, i), progress1);
         }
     }
     uint16 GetReqKillOrCastCurrentCount(uint32 quest_id, int32 entry);
@@ -1624,7 +1664,7 @@ public:
     void setRegenTimerCount(uint32 time) {m_regenTimerCount = time;}
     void setWeaponChangeTimer(uint32 time) {m_weaponChangeTimer = time;}
 
-    [[nodiscard]] uint32 GetMoney() const { return GetUInt32Value(PLAYER_FIELD_COINAGE); }
+    [[nodiscard]] uint32 GetMoney() const { return uint32(*m_activePlayerData->Coinage); }
     bool ModifyMoney(int32 amount, bool sendError = true);
     [[nodiscard]] bool HasEnoughMoney(uint32 amount) const { return (GetMoney() >= amount); }
     [[nodiscard]] bool HasEnoughMoney(int32 amount) const
@@ -1636,7 +1676,7 @@ public:
 
     void SetMoney(uint32 value)
     {
-        SetUInt32Value(PLAYER_FIELD_COINAGE, value);
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Coinage), uint64(value));
         MoneyChanged(value);
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_GOLD_VALUE_OWNED);
     }
@@ -1730,7 +1770,7 @@ public:
     void SetReputation(uint32 factionentry, float value);
     [[nodiscard]] uint32 GetReputation(uint32 factionentry) const;
     std::string const& GetGuildName();
-    [[nodiscard]] uint32 GetFreeTalentPoints() const { return GetUInt32Value(PLAYER_CHARACTER_POINTS1); }
+    [[nodiscard]] uint32 GetFreeTalentPoints() const { return m_activePlayerData->CharacterPoints; }
     void SetFreeTalentPoints(uint32 points);
     bool resetTalents(bool noResetCost = false);
     [[nodiscard]] uint32 resetTalentsCost() const;
@@ -1773,20 +1813,22 @@ public:
     uint32 GetSpec(int8 spec = -1);
 
     void InitGlyphsForLevel();
-    void SetGlyphSlot(uint8 slot, uint32 slottype) { SetUInt32Value(PLAYER_FIELD_GLYPH_SLOTS_1 + slot, slottype); }
-    [[nodiscard]] uint32 GetGlyphSlot(uint8 slot) const { return GetUInt32Value(PLAYER_FIELD_GLYPH_SLOTS_1 + slot); }
+    void SetGlyphSlot(uint8 slot, uint32 slottype) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::GlyphSlots, slot), slottype); }
+    [[nodiscard]] uint32 GetGlyphSlot(uint8 slot) const { return m_activePlayerData->GlyphSlots[slot]; }
     void SetGlyph(uint8 slot, uint32 glyph, bool save)
     {
         m_Glyphs[m_activeSpec][slot] = glyph;
-        SetUInt32Value(PLAYER_FIELD_GLYPHS_1 + slot, glyph);
+        SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Glyphs, slot), glyph);
 
         if (save)
             SetNeedToSaveGlyphs(true);
     }
     [[nodiscard]] uint32 GetGlyph(uint8 slot) const { return m_Glyphs[m_activeSpec][slot]; }
 
-    [[nodiscard]] uint32 GetFreePrimaryProfessionPoints() const { return GetUInt32Value(PLAYER_CHARACTER_POINTS2); }
-    void SetFreePrimaryProfessions(uint16 profs) { SetUInt32Value(PLAYER_CHARACTER_POINTS2, profs); }
+    // [1c.4] TODO: 3.4.3 ActivePlayerData has no second CharacterPoints (PLAYER_CHARACTER_POINTS2) field for primary
+    // profession points; stub returns 0 / discards until the field mapping (or a member store) is decided.
+    [[nodiscard]] uint32 GetFreePrimaryProfessionPoints() const { return 0; }
+    void SetFreePrimaryProfessions(uint16 /*profs*/) { }
     void InitPrimaryProfessions();
 
     [[nodiscard]] PlayerSpellMap const& GetSpellMap() const { return m_spells; }
@@ -1912,14 +1954,16 @@ public:
 
     void SetInGuild(uint32 GuildId)
     {
-        SetUInt32Value(PLAYER_GUILDID, GuildId);
+        // [1c.4] TODO: AC uses 32-bit guild ids; legacy ObjectGuid has no HighGuid::Guild. The id is round-tripped
+        // through the GuildGUID counter (high bits 0). Wire serialization of GuildGUID may need a real guild guid later.
+        SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::GuildGUID), GuildId ? ObjectGuid(uint64(GuildId)) : ObjectGuid::Empty);
         // xinef: update global storage
         sCharacterCache->UpdateCharacterGuildId(GetGUID(), GetGuildId());
     }
-    void SetRank(uint8 rankId) { SetUInt32Value(PLAYER_GUILDRANK, rankId); }
-    [[nodiscard]] uint8 GetRank() const { return uint8(GetUInt32Value(PLAYER_GUILDRANK)); }
+    void SetRank(uint8 rankId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::GuildRankID), uint32(rankId)); }
+    [[nodiscard]] uint8 GetRank() const { return uint8(*m_playerData->GuildRankID); }
     void SetGuildIdInvited(uint32 GuildId) { m_GuildIdInvited = GuildId; }
-    [[nodiscard]] uint32 GetGuildId() const { return GetUInt32Value(PLAYER_GUILDID);  }
+    [[nodiscard]] uint32 GetGuildId() const { return m_unitData->GuildGUID->GetCounter(); }
     [[nodiscard]] Guild* GetGuild() const;
     uint32 GetGuildIdInvited() { return m_GuildIdInvited; }
     static void RemovePetitionsAndSigns(ObjectGuid guid, uint32 type);
@@ -2024,8 +2068,8 @@ public:
     [[nodiscard]] WorldSession* GetSession() const { return m_session; }
     void SetSession(WorldSession* sess) { m_session = sess; }
 
-    void BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) override;
-    void DestroyForPlayer(Player* target, bool onDeath = false) const override;
+    void BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) const override;
+    void DestroyForPlayer(Player* target) const override;
     void SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 BonusXP, bool recruitAFriend = false, float group_rate = 1.0f);
 
     // notifiers
@@ -2099,6 +2143,20 @@ public:
     void UpdateCombatSkills(Unit* victim, WeaponAttackType attType, bool defence, Item* item = nullptr);
 
     void SetSkill(uint16 id, uint16 step, uint16 currVal, uint16 maxVal);
+    // Structured ActivePlayerData::Skill accessors (replace the old flat PLAYER_SKILL_* fields), indexed by skill position.
+    void SetSkillLineId(uint32 pos, uint16 skillLineId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillLineID, pos), skillLineId); }
+    void SetSkillStep(uint32 pos, uint16 step) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillStep, pos), step); }
+    void SetSkillRank(uint32 pos, uint16 rank) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillRank, pos), rank); }
+    void SetSkillStartingRank(uint32 pos, uint16 starting) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillStartingRank, pos), starting); }
+    void SetSkillMaxRank(uint32 pos, uint16 max) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillMaxRank, pos), max); }
+    void SetSkillTempBonus(uint32 pos, uint16 bonus) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillTempBonus, pos), bonus); }
+    void SetSkillPermBonus(uint32 pos, uint16 bonus) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillPermBonus, pos), bonus); }
+    [[nodiscard]] uint16 GetSkillLineId(uint32 pos) const { return m_activePlayerData->Skill->SkillLineID[pos]; }
+    [[nodiscard]] uint16 GetSkillStepRaw(uint32 pos) const { return m_activePlayerData->Skill->SkillStep[pos]; }
+    [[nodiscard]] uint16 GetSkillRank(uint32 pos) const { return m_activePlayerData->Skill->SkillRank[pos]; }
+    [[nodiscard]] uint16 GetSkillMaxRank(uint32 pos) const { return m_activePlayerData->Skill->SkillMaxRank[pos]; }
+    [[nodiscard]] int16 GetSkillTempBonusRaw(uint32 pos) const { return m_activePlayerData->Skill->SkillTempBonus[pos]; }
+    [[nodiscard]] uint16 GetSkillPermBonusRaw(uint32 pos) const { return m_activePlayerData->Skill->SkillPermBonus[pos]; }
     [[nodiscard]] uint16 GetMaxSkillValue(uint32 skill) const;        // max + perm. bonus + temp bonus
     [[nodiscard]] uint16 GetPureMaxSkillValue(uint32 skill) const;    // max
     [[nodiscard]] uint16 GetSkillValue(uint32 skill) const;           // skill value + perm. bonus + temp bonus
@@ -2173,8 +2231,10 @@ public:
     /*********************************************************/
     void UpdateHonorFields();
     bool RewardHonor(Unit* victim, uint32 groupsize, int32 honor = -1, bool awardXP = true);
-    [[nodiscard]] uint32 GetHonorPoints() const { return GetUInt32Value(PLAYER_FIELD_HONOR_CURRENCY); }
-    [[nodiscard]] uint32 GetArenaPoints() const { return GetUInt32Value(PLAYER_FIELD_ARENA_CURRENCY); }
+    // [1c.4] TODO: 3.4.3 ActivePlayerData has no WotLK honor/arena point currency fields
+    // (PLAYER_FIELD_HONOR_CURRENCY / PLAYER_FIELD_ARENA_CURRENCY). Stub returns 0 until mapping is decided.
+    [[nodiscard]] uint32 GetHonorPoints() const { return 0; }
+    [[nodiscard]] uint32 GetArenaPoints() const { return 0; }
     void ModifyHonorPoints(int32 value, CharacterDatabaseTransaction trans = CharacterDatabaseTransaction(nullptr));      //! If trans is specified, honor save query will be added to trans
     void ModifyArenaPoints(int32 value, CharacterDatabaseTransaction trans = CharacterDatabaseTransaction(nullptr));      //! If trans is specified, arena point save query will be added to trans
     [[nodiscard]] uint32 GetMaxPersonalArenaRatingRequirement(uint32 minarenaslot) const;
@@ -2192,8 +2252,8 @@ public:
     [[nodiscard]] inline SpellCooldowns GetSpellCooldowns() const { return m_spellCooldowns; }
 
     void SetDrunkValue(uint8 newDrunkValue, uint32 itemId = 0);
-    [[nodiscard]] uint8 GetDrunkValue() const { return GetByteValue(PLAYER_BYTES_3, 1); }
-    [[nodiscard]] int32 GetFakeDrunkValue() const { return GetInt32Value(PLAYER_FAKE_INEBRIATION); }
+    [[nodiscard]] uint8 GetDrunkValue() const { return m_playerData->Inebriation; }
+    [[nodiscard]] int32 GetFakeDrunkValue() const { return m_playerData->FakeInebriation; }
     void UpdateInvisibilityDrunkDetect();
     static DrunkenState GetDrunkenstateByValue(uint8 value);
 
@@ -2583,7 +2643,7 @@ public:
     [[nodiscard]] bool HasTitle(uint32 bitIndex) const;
     bool HasTitle(CharTitlesEntry const* title) const { return HasTitle(title->MaskID); }
     void SetTitle(CharTitlesEntry const* title, bool lost = false);
-    void SetCurrentTitle(CharTitlesEntry const* title, bool clear = false) { SetUInt32Value(PLAYER_CHOSEN_TITLE, clear ? 0 : title->MaskID); };
+    void SetCurrentTitle(CharTitlesEntry const* title, bool clear = false) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerTitle), int32(clear ? 0 : title->MaskID)); };
 
     //bool isActiveObject() const { return true; }
     bool CanSeeSpellClickOn(Creature const* creature) const;
@@ -2696,6 +2756,16 @@ public:
     bool CanExecutePendingSpellCastRequest(SpellInfo const* spellInfo);
     void ExecuteOrCancelSpellCastRequest(PendingSpellCastRequest* castRequest, bool isCancel = false);
     bool CanRequestSpellCast(SpellInfo const* spellInfo);
+
+    UF::UpdateField<UF::PlayerData, 0, TYPEID_PLAYER> m_playerData;
+    UF::UpdateField<UF::ActivePlayerData, 0, TYPEID_ACTIVE_PLAYER> m_activePlayerData;
+
+protected:
+    UF::UpdateFieldFlag GetUpdateFieldFlagsFor(Player const* target) const override;
+    void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdateWithFlag(ByteBuffer* data, UF::UpdateFieldFlag flags, Player const* target) const override;
+    void ClearUpdateMask(bool remove) override;
 
 protected:
     // Gamemaster whisper whitelist

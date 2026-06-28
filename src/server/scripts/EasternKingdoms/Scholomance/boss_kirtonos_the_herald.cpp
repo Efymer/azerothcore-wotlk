@@ -157,7 +157,7 @@ public:
                     break;
                 case INTRO_5:
                     me->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
-                    me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_KIRTONOS_STAFF));
+                    me->SetVirtualItem(0, uint32(WEAPON_KIRTONOS_STAFF));
                     me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                     me->SetImmuneToAll(false);
                     me->SetReactState(REACT_AGGRESSIVE);
@@ -226,7 +226,7 @@ public:
                         // show shape-shift animation before aura removal
                         me->CastSpell(me, SPELL_TRANSFORM_VISUAL, true);
                         me->RemoveAura(SPELL_KIRTONOS_TRANSFORM);
-                        me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(0));
+                        me->SetVirtualItem(0, uint32(0));
                     }
                     else
                     {
@@ -235,7 +235,7 @@ public:
                         events.ScheduleEvent(EVENT_CURSE_OF_TONGUES, 6s);
                         events.ScheduleEvent(EVENT_WING_FLAP, 13s);
                         me->CastSpell(me, SPELL_KIRTONOS_TRANSFORM, true);
-                        me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_KIRTONOS_STAFF));
+                        me->SetVirtualItem(0, uint32(WEAPON_KIRTONOS_STAFF));
                         // Schedule Dominate Mind on every 2nd caster transform
                         if ((TransformsCount - 2) % 4 == 0)
                         {

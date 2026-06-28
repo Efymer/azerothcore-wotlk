@@ -65,7 +65,7 @@ void Totem::InitStats(uint32 duration)
             data.Totem = GetGUID();
             data.Slot = slot - SUMMON_SLOT_TOTEM_FIRE;
             data.Duration = duration;
-            data.SpellID = GetUInt32Value(UNIT_CREATED_BY_SPELL);
+            data.SpellID = m_unitData->CreatedBySpell;
             owner->ToPlayer()->SendDirectMessage(data.Write());
 
             // set display id depending on caster's race
@@ -91,7 +91,7 @@ void Totem::InitSummon()
 
     if (m_type == TOTEM_PASSIVE && GetSpell())
     {
-        if (TotemSpellIds(GetUInt32Value(UNIT_CREATED_BY_SPELL)) == TotemSpellIds::FireTotemSpell)
+        if (TotemSpellIds(*m_unitData->CreatedBySpell) == TotemSpellIds::FireTotemSpell)
         {
             m_Events.AddEventAtOffset([this]()
             {
@@ -161,7 +161,7 @@ void Totem::UnSummon(Milliseconds msTime)
         {
             player->SendAutoRepeatCancel(this);
 
-            if (SpellInfo const* spell = sSpellMgr->GetSpellInfo(GetUInt32Value(UNIT_CREATED_BY_SPELL)))
+            if (SpellInfo const* spell = sSpellMgr->GetSpellInfo(m_unitData->CreatedBySpell))
                 player->SendCooldownEvent(spell, 0, nullptr, false);
 
             if (Group* group = player->GetGroup())

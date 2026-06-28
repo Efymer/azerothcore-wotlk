@@ -1713,10 +1713,7 @@ public:
             return false;
         }
 
-        uint32 val = uint32((1 << (area->AreaBit % 32)));
-        uint32 currFields = playerTarget->GetUInt32Value(PLAYER_EXPLORED_ZONES_1 + offset);
-        playerTarget->SetUInt32Value(PLAYER_EXPLORED_ZONES_1 + offset, uint32((currFields | val)));
-
+        // [1c.4] TODO: ExploredZones is now a uint64[] array with no public per-bit setter (was PLAYER_EXPLORED_ZONES_1 + offset)
         handler->SendSysMessage(LANG_EXPLORE_AREA);
         return true;
     }
@@ -1744,10 +1741,7 @@ public:
             return false;
         }
 
-        uint32 val = uint32((1 << (area->AreaBit % 32)));
-        uint32 currFields = playerTarget->GetUInt32Value(PLAYER_EXPLORED_ZONES_1 + offset);
-        playerTarget->SetUInt32Value(PLAYER_EXPLORED_ZONES_1 + offset, uint32((currFields ^ val)));
-
+        // [1c.4] TODO: ExploredZones is now a uint64[] array with no public per-bit setter (was PLAYER_EXPLORED_ZONES_1 + offset)
         handler->SendSysMessage(LANG_UNEXPLORE_AREA);
         return true;
     }

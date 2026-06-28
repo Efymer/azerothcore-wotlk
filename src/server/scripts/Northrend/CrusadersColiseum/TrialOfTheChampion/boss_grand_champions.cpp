@@ -328,7 +328,7 @@ public:
 
         void JustDied(Unit* /*pKiller*/) override
         {
-            me->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, 0);
+            me->SetMountDisplayId(0);
             me->DespawnOrUnsummon(10s);
             if (pInstance)
                 pInstance->SetData(DATA_MOUNT_DIED, 0);
@@ -393,7 +393,7 @@ public:
                 DoAction(2);
                 me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 me->SetImmuneToAll(false);
-                me->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, 0);
+                me->SetMountDisplayId(0);
                 me->SetReactState(REACT_AGGRESSIVE);
             }
         }
@@ -538,7 +538,7 @@ public:
         {
             if (MountPhase)
             {
-                if (me->GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID) == 0 )
+                if (me->GetMountDisplayId() == 0 )
                     damage = 0;
                 else if (damage >= me->GetHealth())
                 {
@@ -551,7 +551,7 @@ public:
                     me->CombatStop(true);
                     me->GetMotionMaster()->Clear();
                     me->StopMoving();
-                    me->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, 0);
+                    me->SetMountDisplayId(0);
                     me->SetRegeneratingHealth(false);
                     me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                     me->SetImmuneToAll(true);
@@ -617,7 +617,7 @@ public:
                         if (Creature* mount = ObjectAccessor::GetCreature(*me, NewMountGUID))
                         {
                             mount->DespawnOrUnsummon();
-                            me->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, mount->GetDisplayId());
+                            me->SetMountDisplayId(mount->GetDisplayId());
                             me->RemoveUnitMovementFlag(MOVEMENTFLAG_WALKING);
                             me->SetHealth(50000);
                             me->CastSpell(me, SPELL_BOSS_DEFEND_PERIODIC, true);

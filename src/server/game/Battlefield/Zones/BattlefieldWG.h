@@ -1117,7 +1117,7 @@ struct BfWGGameObjectBuilding
         {
             // Rebuild gameobject
             go->SetDestructibleState(GO_DESTRUCTIBLE_REBUILDING, nullptr, true);
-            go->SetUInt32Value(GAMEOBJECT_FACTION, WintergraspFaction[m_Team]);
+            go->SetFaction(WintergraspFaction[m_Team]);
         }
 
         // Update worldstate

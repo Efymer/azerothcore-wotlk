@@ -122,14 +122,11 @@ public:
     explicit GameObject();
     ~GameObject() override;
 
-    void BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* target) override;
-
     void AddToWorld() override;
     void RemoveFromWorld() override;
     void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
-    uint32 GetDynamicFlags() const override { return GetUInt32Value(GAMEOBJECT_DYNAMIC); }
-    void ReplaceAllDynamicFlags(uint32 flag) override { SetUInt32Value(GAMEOBJECT_DYNAMIC, flag); }
+    // GetDynamicFlags()/ReplaceAllDynamicFlags() are provided by Object (structured m_objectData->DynamicFlags).
 
     virtual bool Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* map, uint32 phaseMask, float x, float y, float z, float ang, G3D::Quat const& rotation, uint32 animprogress, GOState go_state, uint32 artKit = 0);
     void Update(uint32 p_time) override;
@@ -169,9 +166,9 @@ public:
             ABORT();
         }
         m_spawnedByDefault = false;                     // all object with owner is despawned after delay
-        SetGuidValue(OBJECT_FIELD_CREATED_BY, owner);
+        SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::CreatedBy), owner);
     }
-    [[nodiscard]] ObjectGuid GetOwnerGUID() const { return GetGuidValue(OBJECT_FIELD_CREATED_BY); }
+    [[nodiscard]] ObjectGuid GetOwnerGUID() const { return m_gameObjectData->CreatedBy; }
     [[nodiscard]] Unit* GetOwner() const;
 
     void SetSpellId(uint32 id)
@@ -200,24 +197,24 @@ public:
     void DespawnOrUnsummon(Milliseconds delay = 0ms, Seconds forcedRespawnTime = 0s);
     void Delete();
     void GetFishLoot(Loot* fishLoot, Player* lootOwner, bool junk = false);
-    [[nodiscard]] GameobjectTypes GetGoType() const { return GameobjectTypes(GetByteValue(GAMEOBJECT_BYTES_1, 1)); }
-    void SetGoType(GameobjectTypes type) { SetByteValue(GAMEOBJECT_BYTES_1, 1, type); }
-    [[nodiscard]] GOState GetGoState() const { return GOState(GetByteValue(GAMEOBJECT_BYTES_1, 0)); }
+    [[nodiscard]] GameobjectTypes GetGoType() const { return GameobjectTypes(*m_gameObjectData->TypeID); }
+    void SetGoType(GameobjectTypes type) { SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::TypeID), type); }
+    [[nodiscard]] GOState GetGoState() const { return GOState(*m_gameObjectData->State); }
     void SetGoState(GOState state);
-    [[nodiscard]] uint8 GetGoArtKit() const { return GetByteValue(GAMEOBJECT_BYTES_1, 2); }
+    [[nodiscard]] uint8 GetGoArtKit() const { return m_gameObjectData->ArtKit; }
     void SetGoArtKit(uint8 artkit);
-    [[nodiscard]] uint8 GetGoAnimProgress() const { return GetByteValue(GAMEOBJECT_BYTES_1, 3); }
-    void SetGoAnimProgress(uint8 animprogress) { SetByteValue(GAMEOBJECT_BYTES_1, 3, animprogress); }
+    [[nodiscard]] uint8 GetGoAnimProgress() const { return m_gameObjectData->PercentHealth; }
+    void SetGoAnimProgress(uint8 animprogress) { SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::PercentHealth), animprogress); }
     static void SetGoArtKit(uint8 artkit, GameObject* go, ObjectGuid::LowType lowguid = 0);
 
     void SetPhaseMask(uint32 newPhaseMask, bool update) override;
     void EnableCollision(bool enable);
 
-    GameObjectFlags GetGameObjectFlags() const { return GameObjectFlags(GetUInt32Value(GAMEOBJECT_FLAGS)); }
-    bool HasGameObjectFlag(GameObjectFlags flags) const { return HasFlag(GAMEOBJECT_FLAGS, flags) != 0; }
-    void SetGameObjectFlag(GameObjectFlags flags) { SetFlag(GAMEOBJECT_FLAGS, flags); }
-    void RemoveGameObjectFlag(GameObjectFlags flags) { RemoveFlag(GAMEOBJECT_FLAGS, flags); }
-    void ReplaceAllGameObjectFlags(GameObjectFlags flags) { SetUInt32Value(GAMEOBJECT_FLAGS, flags); }
+    GameObjectFlags GetGameObjectFlags() const { return GameObjectFlags(*m_gameObjectData->Flags); }
+    bool HasGameObjectFlag(GameObjectFlags flags) const { return (*m_gameObjectData->Flags & flags) != 0; }
+    void SetGameObjectFlag(GameObjectFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::Flags), flags); }
+    void RemoveGameObjectFlag(GameObjectFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::Flags), flags); }
+    void ReplaceAllGameObjectFlags(GameObjectFlags flags) { SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::Flags), flags); }
 
     void Use(Unit* user);
 
@@ -308,7 +305,14 @@ public:
 
     [[nodiscard]] std::string const& GetAIName() const;
     void SetDisplayId(uint32 displayid);
-    [[nodiscard]] uint32 GetDisplayId() const { return GetUInt32Value(GAMEOBJECT_DISPLAYID); }
+    [[nodiscard]] uint32 GetDisplayId() const { return m_gameObjectData->DisplayID; }
+
+    void SetFaction(uint32 faction) { SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::FactionTemplate), faction); }
+    [[nodiscard]] uint32 GetFaction() const { return m_gameObjectData->FactionTemplate; }
+    void SetLevel(uint32 level) { SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::Level), level); }
+    [[nodiscard]] uint32 GetLevel() const { return m_gameObjectData->Level; }
+    void SetParentRotation(QuaternionData const& rotation) { SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::ParentRotation), rotation); }
+    [[nodiscard]] QuaternionData const& GetParentRotation() const { return *m_gameObjectData->ParentRotation; }
 
     GameObjectModel* m_model;
     void GetRespawnPosition(float& x, float& y, float& z, float* ori = nullptr) const;
@@ -366,7 +370,14 @@ public:
     std::string GetDebugInfo() const override;
 
     bool IsUpdateNeeded() override;
+
+    UF::UpdateField<UF::GameObjectData, 0, TYPEID_GAMEOBJECT> m_gameObjectData;
+
 protected:
+    void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+    void ClearUpdateMask(bool remove) override;
+
     bool AIM_Initialize();
     GameObjectModel* CreateModel();
     void UpdateModel();                                 // updates model in case displayId were changed

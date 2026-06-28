@@ -89,7 +89,7 @@ struct boss_thekal : public BossAI
         me->SetStandState(UNIT_STAND_STATE_STAND);
         me->SetReactState(REACT_AGGRESSIVE);
         me->RemoveAurasDueToSpell(SPELL_FRENZY);
-        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+        me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         me->LoadEquipment(1, true);
 
         if (Creature* zealot = instance->GetCreature(DATA_LORKHAN))
@@ -175,7 +175,7 @@ struct boss_thekal : public BossAI
 
             if (!_wasDead)
             {
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->SetReactState(REACT_PASSIVE);
                 me->SetStandState(UNIT_STAND_STATE_DEAD);
                 me->AttackStop();
@@ -193,7 +193,7 @@ struct boss_thekal : public BossAI
     {
         if (action == ACTION_RESSURRECT)
         {
-            me->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
+            me->SetStandState(0);
             me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
             me->RestoreFaction();
             me->SetReactState(REACT_AGGRESSIVE);

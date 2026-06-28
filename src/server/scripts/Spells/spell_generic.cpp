@@ -170,12 +170,12 @@ public:
         _modelId = GetUnitOwner()->GetDisplayId();
         _hasFlag = GetUnitOwner()->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         for (uint8 i = 0; i < 3; ++i)
-            _itemId.at(i) = GetUnitOwner()->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + i);
+            _itemId.at(i) = GetUnitOwner()->GetVirtualItemId(i);
 
         GetUnitOwner()->SetDisplayId(11686);
         GetUnitOwner()->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         for (uint8 i = 0; i < 3; ++i)
-            GetUnitOwner()->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + i, 0);
+            GetUnitOwner()->SetVirtualItem(i, 0);
     }
 
     void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
@@ -184,7 +184,7 @@ public:
         if (!_hasFlag)
             GetUnitOwner()->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         for (uint8 i = 0; i < 3; ++i)
-            GetUnitOwner()->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + i, _itemId.at(i));
+            GetUnitOwner()->SetVirtualItem(i, _itemId.at(i));
     }
 
     void Register() override
@@ -895,12 +895,12 @@ class spell_gen_baby_murloc : public AuraScript
 
     void HandleEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
-        GetTarget()->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_DANCE);
+        GetTarget()->SetEmoteState(EMOTE_STATE_DANCE);
     }
 
     void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
-        GetTarget()->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+        GetTarget()->SetEmoteState(EMOTE_ONESHOT_NONE);
     }
 
     void Register() override
@@ -1012,7 +1012,7 @@ class spell_gen_mod_radius_by_caster_scale : public SpellScript
 
     bool Load() override
     {
-        GetSpell()->SetSpellValue(SPELLVALUE_RADIUS_MOD, 10000.0f * GetCaster()->GetFloatValue(OBJECT_FIELD_SCALE_X));
+        GetSpell()->SetSpellValue(SPELLVALUE_RADIUS_MOD, 10000.0f * GetCaster()->GetObjectScale());
         return true;
     }
 
@@ -2322,42 +2322,42 @@ class spell_gen_clone_weapon_aura : public AuraScript
             case SPELL_COPY_WEAPON_2_AURA:
             case SPELL_COPY_WEAPON_3_AURA:
                 {
-                    prevItem = target->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID);
+                    prevItem = target->GetVirtualItemId(0);
 
                     if (Player* player = caster->ToPlayer())
                     {
                         if (Item* mainItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
-                            target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, mainItem->GetEntry());
+                            target->SetVirtualItem(0, mainItem->GetEntry());
                     }
                     else
-                        target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, caster->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID));
+                        target->SetVirtualItem(0, caster->GetVirtualItemId(0));
                     break;
                 }
             case SPELL_COPY_OFFHAND_AURA:
             case SPELL_COPY_OFFHAND_2_AURA:
                 {
-                    prevItem = target->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1);
+                    prevItem = target->GetVirtualItemId(1);
 
                     if (Player* player = caster->ToPlayer())
                     {
                         if (Item* offItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
-                            target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, offItem->GetEntry());
+                            target->SetVirtualItem(1, offItem->GetEntry());
                     }
                     else
-                        target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, caster->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1));
+                        target->SetVirtualItem(1, caster->GetVirtualItemId(1));
                     break;
                 }
             case SPELL_COPY_RANGED_AURA:
                 {
-                    prevItem = target->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2);
+                    prevItem = target->GetVirtualItemId(2);
 
                     if (Player* player = caster->ToPlayer())
                     {
                         if (Item* rangedItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_RANGED))
-                            target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2, rangedItem->GetEntry());
+                            target->SetVirtualItem(2, rangedItem->GetEntry());
                     }
                     else
-                        target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2, caster->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2));
+                        target->SetVirtualItem(2, caster->GetVirtualItemId(2));
                     break;
                 }
             default:
@@ -2374,14 +2374,14 @@ class spell_gen_clone_weapon_aura : public AuraScript
             case SPELL_COPY_WEAPON_AURA:
             case SPELL_COPY_WEAPON_2_AURA:
             case SPELL_COPY_WEAPON_3_AURA:
-                target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, prevItem);
+                target->SetVirtualItem(0, prevItem);
                 break;
             case SPELL_COPY_OFFHAND_AURA:
             case SPELL_COPY_OFFHAND_2_AURA:
-                target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, prevItem);
+                target->SetVirtualItem(1, prevItem);
                 break;
             case SPELL_COPY_RANGED_AURA:
-                target->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2, prevItem);
+                target->SetVirtualItem(2, prevItem);
                 break;
             default:
                 break;
@@ -3874,13 +3874,13 @@ class spell_gen_prevent_emotes : public AuraScript
     void HandleEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         Unit* target = GetTarget();
-        target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PREVENT_EMOTES_FROM_CHAT_TEXT);
+        target->SetUnitFlag(UNIT_FLAG_PREVENT_EMOTES_FROM_CHAT_TEXT);
     }
 
     void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         Unit* target = GetTarget();
-        target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PREVENT_EMOTES_FROM_CHAT_TEXT);
+        target->RemoveUnitFlag(UNIT_FLAG_PREVENT_EMOTES_FROM_CHAT_TEXT);
     }
 
     void Register() override
@@ -5338,7 +5338,7 @@ class spell_gen_steal_weapon : public AuraScript
             {
                 if (Item* mainItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
                 {
-                    stealer->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, mainItem->GetEntry());
+                    stealer->SetVirtualItem(0, mainItem->GetEntry());
                     stealer->CastSpell(stealer, SPELL_STEAL_WEAPON, true);
 
                     if (stealer->GetEntry() == NPC_GLUMDOR)
@@ -5353,7 +5353,7 @@ class spell_gen_steal_weapon : public AuraScript
                 int8 mainhand = 1;
                 if (EquipmentInfo const* eInfo = sObjectMgr->GetEquipmentInfo(creature->GetEntry(), mainhand))
                 {
-                    stealer->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, eInfo->ItemEntry[0]);
+                    stealer->SetVirtualItem(0, eInfo->ItemEntry[0]);
                     stealer->CastSpell(stealer, SPELL_STEAL_WEAPON, true);
                 }
             }
@@ -5368,7 +5368,7 @@ class spell_gen_steal_weapon : public AuraScript
 
         if (Creature* stealer = caster->ToCreature())
         {
-            stealer->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, 0);
+            stealer->SetVirtualItem(0, 0);
         }
     }
 

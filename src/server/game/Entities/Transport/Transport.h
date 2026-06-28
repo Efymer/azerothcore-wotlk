@@ -78,8 +78,8 @@ public:
     void EnableMovement(bool enabled);
     TransportTemplate const* GetTransportTemplate() const { return _transportInfo; }
 
-    uint32 GetPeriod() const { return GetUInt32Value(GAMEOBJECT_LEVEL); }
-    void SetPeriod(uint32 period) { SetUInt32Value(GAMEOBJECT_LEVEL, period); }
+    uint32 GetPeriod() const { return m_gameObjectData->Level; }
+    void SetPeriod(uint32 period) { SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::Level), int32(period)); }
 
     std::string GetDebugInfo() const override;
 private:
@@ -131,8 +131,8 @@ public:
     void AddPassenger(WorldObject* passenger, bool withAll = false) override;
     void RemovePassenger(WorldObject* passenger, bool withAll = false) override;
 
-    uint32 GetPauseTime() const { return GetUInt32Value(GAMEOBJECT_LEVEL); }
-    void SetPauseTime(uint32 val) { SetUInt32Value(GAMEOBJECT_LEVEL, val); }
+    uint32 GetPauseTime() const { return m_gameObjectData->Level; }
+    void SetPauseTime(uint32 val) { SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::Level), int32(val)); }
     uint32 GetPeriod() const { return m_goValue.Transport.AnimationInfo ? m_goValue.Transport.AnimationInfo->TotalTime : GetPauseTime() + 2; }
 private:
     bool _needDoInitialRelocation;

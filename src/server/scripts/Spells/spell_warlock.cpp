@@ -201,9 +201,9 @@ class spell_warl_improved_demonic_tactics : public AuraScript
     void CalculateAmount(AuraEffect const* aurEff, int32& amount, bool&  /*canBeRecalculated*/)
     {
         if (aurEff->GetEffIndex() == EFFECT_0)
-            amount = CalculatePct<int32, float>(GetUnitOwner()->ToPlayer()->GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + static_cast<uint8>(SPELL_SCHOOL_FROST)), GetSpellInfo()->Effects[EFFECT_0].CalcValue());
+            amount = CalculatePct<int32, float>(0.0f, GetSpellInfo()->Effects[EFFECT_0].CalcValue()); // [1c.4] TODO: Player spell crit% getter missing (was PLAYER_SPELL_CRIT_PERCENTAGE1)
         else
-            amount = CalculatePct<int32, float>(GetUnitOwner()->ToPlayer()->GetFloatValue(PLAYER_CRIT_PERCENTAGE), GetSpellInfo()->Effects[EFFECT_0].CalcValue());
+            amount = CalculatePct<int32, float>(0.0f, GetSpellInfo()->Effects[EFFECT_0].CalcValue()); // [1c.4] TODO: Player melee crit% getter missing (was PLAYER_CRIT_PERCENTAGE)
     }
 
     void HandleEffectCalcSpellMod(AuraEffect const* aurEff, SpellModifier*& spellMod)
@@ -370,7 +370,7 @@ class spell_warl_generic_scaling : public AuraScript
 
             // Update appropriate player field
             if (owner->IsPlayer())
-                owner->SetUInt32Value(PLAYER_PET_SPELL_POWER, (uint32)amount);
+                { } // [1c.4] TODO: Player::SetPetSpellPower() wrapper missing (was PLAYER_PET_SPELL_POWER UF)
         }
     }
 
@@ -481,7 +481,7 @@ class spell_warl_infernal_scaling : public AuraScript
 
             // xinef: Update appropriate player field
             if (owner->IsPlayer())
-                owner->SetUInt32Value(PLAYER_PET_SPELL_POWER, (uint32)amount);
+                { } // [1c.4] TODO: Player::SetPetSpellPower() wrapper missing (was PLAYER_PET_SPELL_POWER UF)
         }
     }
 

@@ -325,7 +325,7 @@ public:
         {
             Start(false, ObjectGuid::Empty, nullptr);
             SetDespawnAtEnd(true);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
             me->SetImmuneToAll(true);
         }
 
@@ -335,7 +335,7 @@ public:
             {
                 me->SetControlled(false, UNIT_STATE_ROOT);
                 me->DisableRotate(false);
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+                me->SetEmoteState(EMOTE_STATE_NONE);
                 SetEscortPaused(false);
             }
         }
@@ -350,7 +350,7 @@ public:
                 me->SetControlled(true, UNIT_STATE_ROOT);
                 me->DisableRotate(true);
                 me->SetFacingTo(3.62f);
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_MOUNT_SPECIAL);
+                me->SetEmoteState(EMOTE_ONESHOT_MOUNT_SPECIAL);
                 if (InstanceScript* pInstance = me->GetInstanceScript())
                     pInstance->SetData(DATA_SKELETAL_GRYPHON_LANDED, 0);
             }

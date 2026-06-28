@@ -98,8 +98,8 @@ public:
             _Reset();
             _summonCountA = 0;
             _summonCountB = 0;
-            me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_DAGGER));
-            me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, uint32(WEAPON_DAGGER));
+            me->SetVirtualItem(0, uint32(WEAPON_DAGGER));
+            me->SetVirtualItem(1, uint32(WEAPON_DAGGER));
             me->SetWalk(false);
             me->SetHomePosition(PosMoveOnSpawn[0]);
             me->GetMotionMaster()->MoveTargetedHome();
@@ -225,8 +225,8 @@ public:
                     case EVENT_TRANSFORM:
                         {
                             DoCastSelf(SPELL_PANTHER_TRANSFORM); // SPELL_AURA_TRANSFORM
-                            me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(EQUIP_UNEQUIP));
-                            me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, uint32(EQUIP_UNEQUIP));
+                            me->SetVirtualItem(0, uint32(EQUIP_UNEQUIP));
+                            me->SetVirtualItem(1, uint32(EQUIP_UNEQUIP));
                             me->AttackStop();
                             DoResetThreatList();
                             me->SetReactState(REACT_PASSIVE);
@@ -267,8 +267,8 @@ public:
                         {
                             me->RemoveAura(SPELL_PANTHER_TRANSFORM); // SPELL_AURA_TRANSFORM
                             DoCast(me, SPELL_VANISH_VISUAL);
-                            me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_DAGGER));
-                            me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, uint32(WEAPON_DAGGER));
+                            me->SetVirtualItem(0, uint32(WEAPON_DAGGER));
+                            me->SetVirtualItem(1, uint32(WEAPON_DAGGER));
                             me->ApplyStatPctModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, DamageDecrease); // hack
                             events.ScheduleEvent(EVENT_SHADOW_WORD_PAIN, 4s, 7s, 0, PHASE_ONE);
                             events.ScheduleEvent(EVENT_GOUGE, 12s, 15s, 0, PHASE_ONE);

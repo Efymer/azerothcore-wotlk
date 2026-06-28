@@ -242,16 +242,16 @@ struct npc_madrigosa : public NullCreatureAI
         case EVENT_MAD_5:
             if (Creature* brutallus = instance->GetCreature(DATA_BRUTALLUS))
             {
-                brutallus->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_ATTACK1H);
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_ATTACK1H);
+                brutallus->SetEmoteState(EMOTE_ONESHOT_ATTACK1H);
+                me->SetEmoteState(EMOTE_ONESHOT_ATTACK1H);
             }
             events.ScheduleEvent(EVENT_MAD_6, 10s);
             break;
         case EVENT_MAD_6:
             if (Creature* brutallus = instance->GetCreature(DATA_BRUTALLUS))
             {
-                brutallus->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                brutallus->SetEmoteState(EMOTE_ONESHOT_NONE);
+                me->SetEmoteState(EMOTE_ONESHOT_NONE);
             }
             me->HandleEmoteCommand(EMOTE_ONESHOT_LIFTOFF);
             me->SetDisableGravity(true);
@@ -378,7 +378,7 @@ class spell_madrigosa_activate_barrier : public SpellScript
             go->SetGoState(GO_STATE_READY);
             if (Map* map = go->GetMap())
                 map->DoForAllPlayers([&](Player* player) {
-                    UpdateData data;
+                    UpdateData data(player->GetMapId());
                     WorldPacket pkt;
                     go->BuildValuesUpdateBlockForPlayer(&data, player);
                     data.BuildPacket(pkt);
@@ -405,7 +405,7 @@ class spell_madrigosa_deactivate_barrier : public SpellScript
             go->SetGoState(GO_STATE_ACTIVE);
             if (Map* map = go->GetMap())
                 map->DoForAllPlayers([&](Player* player) {
-                    UpdateData data;
+                    UpdateData data(player->GetMapId());
                     WorldPacket pkt;
                     go->BuildValuesUpdateBlockForPlayer(&data, player);
                     data.BuildPacket(pkt);

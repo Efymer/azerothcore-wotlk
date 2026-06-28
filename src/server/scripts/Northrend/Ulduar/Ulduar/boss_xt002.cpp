@@ -145,7 +145,7 @@ struct boss_xt002 : public BossAI
         _nerfAchievement = true;
         _gravityAchievement = true;
 
-        me->SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_STAND_STATE, UNIT_STAND_STATE_STAND); // emerge
+        me->SetStandState(UNIT_STAND_STATE_STAND); // emerge
         me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
         me->SetControlled(false, UNIT_STATE_STUNNED);
 
@@ -177,7 +177,7 @@ struct boss_xt002 : public BossAI
 
     void JustEngagedWith(Unit*) override
     {
-        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+        me->SetEmoteState(EMOTE_ONESHOT_NONE);
         events.ScheduleEvent(EVENT_ENRAGE, 10min, 0, 0);
         events.ScheduleEvent(EVENT_CHECK_ROOM, 5s, 0, 0);
         RescheduleEvents(); // Other events are scheduled here
@@ -241,7 +241,7 @@ struct boss_xt002 : public BossAI
             me->SetLootMode(3); // hard mode + normal loot
             me->SetMaxHealth(me->GetMaxHealth());
             me->SetHealth(me->GetMaxHealth());
-            me->SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_STAND_STATE, UNIT_STAND_STATE_STAND); // emerge
+            me->SetStandState(UNIT_STAND_STATE_STAND); // emerge
 
             me->CastSpell(me, SPELL_HEARTBREAK, true);
 
@@ -293,7 +293,7 @@ struct boss_xt002 : public BossAI
                 {
                     _healthCheck -= 25;
                     me->SetControlled(true, UNIT_STATE_STUNNED);
-                    me->SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_STAND_STATE, UNIT_STAND_STATE_SUBMERGED); // submerge with animation
+                    me->SetStandState(UNIT_STAND_STATE_SUBMERGED); // submerge with animation
 
                     Talk(SAY_HEART_OPENED);
 
@@ -348,7 +348,7 @@ struct boss_xt002 : public BossAI
 
                 Talk(SAY_HEART_CLOSED);
 
-                me->SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_STAND_STATE, UNIT_STAND_STATE_STAND); // emerge
+                me->SetStandState(UNIT_STAND_STATE_STAND); // emerge
                 // Hide heart
                 if (Unit* heart = me->GetVehicleKit() ? me->GetVehicleKit()->GetPassenger(HEART_VEHICLE_SEAT) : nullptr)
                     heart->GetAI()->DoAction(ACTION_HIDE_HEART);

@@ -264,8 +264,8 @@ public:
                 {
                     activePet->SetName(newName);
                     // Bump the name timestamp so nearby clients re-query and drop their cached pet name.
-                    activePet->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, uint32(GameTime::GetGameTime().count()));
-                    activePet->RemoveByteFlag(UNIT_FIELD_BYTES_2, 2, UNIT_CAN_BE_RENAMED);
+                    activePet->SetPetNameTimestamp(uint32(GameTime::GetGameTime().count()));
+                    activePet->RemovePetFlag(UNIT_CAN_BE_RENAMED);
                     if (online->GetGroup())
                         online->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_PET_NAME);
                 }

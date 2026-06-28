@@ -1994,7 +1994,7 @@ class spell_item_gnomish_death_ray : public SpellScript
     {
         if (Unit* caster = GetCaster())
         {
-            if (Unit* target = ObjectAccessor::GetUnit(*caster, caster->GetGuidValue(UNIT_FIELD_CHANNEL_OBJECT)))
+            if (Unit* target = ObjectAccessor::GetUnit(*caster, ObjectGuid::Empty)) // [1c.4] TODO: Unit channel-object getter missing (was UNIT_FIELD_CHANNEL_OBJECT)
             {
                 caster->CastSpell(target, SPELL_GNOMISH_DEATH_RAY_TARGET, true);
             }
@@ -4441,14 +4441,18 @@ class spell_item_multiphase_goggles : public AuraScript
 
     void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
-        if (Player* player = GetTarget()->ToPlayer())
-            player->SetFlag(PLAYER_TRACK_CREATURES, uint32(1) << (CREATURE_TYPE_GAS_CLOUD - 1));
+        if (GetTarget()->ToPlayer())
+        {
+            // [1c.4] TODO: no public read-modify-write for TrackCreatureMask (only SetTrackCreatureMask, no getter); was PLAYER_TRACK_CREATURES bit-set
+        }
     }
 
     void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
-        if (Player* player = GetTarget()->ToPlayer())
-            player->RemoveFlag(PLAYER_TRACK_CREATURES, uint32(1) << (CREATURE_TYPE_GAS_CLOUD - 1));
+        if (GetTarget()->ToPlayer())
+        {
+            // [1c.4] TODO: no public read-modify-write for TrackCreatureMask (only SetTrackCreatureMask, no getter); was PLAYER_TRACK_CREATURES bit-clear
+        }
     }
 
     void Register() override

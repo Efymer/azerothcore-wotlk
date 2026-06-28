@@ -1480,7 +1480,7 @@ public:
                 }
 
                 std::string knownStr = target && target->HasTitle(titleInfo) ? handler->GetAcoreString(LANG_KNOWN) : "";
-                std::string activeStr = target && target->GetUInt32Value(PLAYER_CHOSEN_TITLE) == titleInfo->MaskID ? handler->GetAcoreString(LANG_ACTIVE) : "";
+                std::string activeStr = target && target->GetChosenTitle() == titleInfo->MaskID ? handler->GetAcoreString(LANG_ACTIVE) : "";
 
                 std::string titleNameStr = Acore::StringFormat(name, targetName);
 

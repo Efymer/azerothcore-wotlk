@@ -35,7 +35,6 @@
 #include "SkillDiscovery.h"
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
-#include "UpdateFieldFlags.h"
 #include "Vehicle.h"
 #include "Weather.h"
 #include "WeatherMgr.h"
@@ -249,7 +248,7 @@ void Player::Update(uint32 p_time)
 
                 float bubble = 0.125f * sWorld->getRate(RATE_REST_INGAME);
                 float extraPerSec =
-                    ((float) GetUInt32Value(PLAYER_NEXT_LEVEL_XP) / 72000.0f) *
+                    ((float) GetXPForNextLevel() / 72000.0f) *
                     bubble;
 
                 // speed collect rest bonus (section/in hour)
@@ -620,7 +619,7 @@ void Player::UpdateRating(CombatRating cr)
                                          (*i)->GetAmount()));
     if (amount < 0)
         amount = 0;
-    SetUInt32Value(static_cast<uint16>(PLAYER_FIELD_COMBAT_RATING_1) + static_cast<uint16>(cr), uint32(amount));
+    SetCombatRating(cr, uint32(amount));
 
     bool affectStats = CanModifyStats();
 
@@ -714,10 +713,9 @@ bool Player::UpdateSkill(uint32 skill_id, uint32 step)
     if (itr == mSkillStatus.end() || itr->second.uState == SKILL_DELETED)
         return false;
 
-    uint32 valueIndex = PLAYER_SKILL_VALUE_INDEX(itr->second.pos);
-    uint32 data       = GetUInt32Value(valueIndex);
-    uint32 value      = SKILL_VALUE(data);
-    uint32 max        = SKILL_MAX(data);
+    uint32 pos        = itr->second.pos;
+    uint32 value      = GetSkillRank(pos);
+    uint32 max        = GetSkillMaxRank(pos);
 
     sScriptMgr->OnPlayerBeforeUpdateSkill(this, skill_id, value, max, step);
 
@@ -730,7 +728,7 @@ bool Player::UpdateSkill(uint32 skill_id, uint32 step)
         if (new_value > max)
             new_value = max;
 
-        SetUInt32Value(valueIndex, MAKE_SKILL_VALUE(new_value, max));
+        SetSkillRank(pos, new_value);
         if (itr->second.uState != SKILL_NEW)
             itr->second.uState = SKILL_CHANGED;
 
@@ -929,11 +927,9 @@ bool Player::UpdateSkillPro(uint16 SkillId, int32 Chance, uint32 step)
     if (itr == mSkillStatus.end() || itr->second.uState == SKILL_DELETED)
         return false;
 
-    uint32 valueIndex = PLAYER_SKILL_VALUE_INDEX(itr->second.pos);
-
-    uint32 data       = GetUInt32Value(valueIndex);
-    uint32 SkillValue = SKILL_VALUE(data);
-    uint32 MaxValue   = SKILL_MAX(data);
+    uint32 pos        = itr->second.pos;
+    uint32 SkillValue = GetSkillRank(pos);
+    uint32 MaxValue   = GetSkillMaxRank(pos);
 
     sScriptMgr->OnPlayerBeforeUpdateSkill(this, SkillId, SkillValue, MaxValue, step);
 
@@ -953,7 +949,7 @@ bool Player::UpdateSkillPro(uint16 SkillId, int32 Chance, uint32 step)
         if (new_value > MaxValue)
             new_value = MaxValue;
 
-        SetUInt32Value(valueIndex, MAKE_SKILL_VALUE(new_value, MaxValue));
+        SetSkillRank(pos, new_value);
         if (itr->second.uState != SKILL_NEW)
             itr->second.uState = SKILL_CHANGED;
 
@@ -1103,10 +1099,8 @@ void Player::UpdateSkillsForLevel()
         if (GetSkillRangeType(rcEntry) != SKILL_RANGE_LEVEL)
             continue;
 
-        uint32 valueIndex = PLAYER_SKILL_VALUE_INDEX(itr->second.pos);
-        uint32 data       = GetUInt32Value(valueIndex);
-        uint32 max        = SKILL_MAX(data);
-        uint32 val        = SKILL_VALUE(data);
+        uint32 pos        = itr->second.pos;
+        uint32 max        = GetSkillMaxRank(pos);
 
         /// update only level dependent max skill values
         if (max != 1)
@@ -1115,15 +1109,15 @@ void Player::UpdateSkillsForLevel()
             if (alwaysMaxSkill ||
                 (rcEntry->Flags & SKILL_FLAG_ALWAYS_MAX_VALUE))
             {
-                SetUInt32Value(valueIndex,
-                               MAKE_SKILL_VALUE(maxSkill, maxSkill));
+                SetSkillRank(pos, maxSkill);
+                SetSkillMaxRank(pos, maxSkill);
                 if (itr->second.uState != SKILL_NEW)
                     itr->second.uState = SKILL_CHANGED;
             }
             else if (max != maxconfskill) /// update max skill value if current
                                           /// max skill not maximized
             {
-                SetUInt32Value(valueIndex, MAKE_SKILL_VALUE(val, maxSkill));
+                SetSkillMaxRank(pos, maxSkill);
                 if (itr->second.uState != SKILL_NEW)
                     itr->second.uState = SKILL_CHANGED;
             }
@@ -1142,13 +1136,12 @@ void Player::UpdateSkillsToMaxSkillsForLevel()
         uint32 pskill = itr->first;
         if (IsProfessionOrRidingSkill(pskill))
             continue;
-        uint32 valueIndex = PLAYER_SKILL_VALUE_INDEX(itr->second.pos);
-        uint32 data       = GetUInt32Value(valueIndex);
-        uint32 max        = SKILL_MAX(data);
+        uint32 pos        = itr->second.pos;
+        uint32 max        = GetSkillMaxRank(pos);
 
         if (max > 1)
         {
-            SetUInt32Value(valueIndex, MAKE_SKILL_VALUE(max, max));
+            SetSkillRank(pos, max);
             if (itr->second.uState != SKILL_NEW)
                 itr->second.uState = SKILL_CHANGED;
         }
@@ -1190,23 +1183,27 @@ void Player::UpdateHonorFields()
     {
         time_t yesterday = today - DAY;
 
-        uint16 kills_today = PAIR32_LOPART(GetUInt32Value(PLAYER_FIELD_KILLS));
+        // PLAYER_FIELD_KILLS packed today(low16)/yesterday(high16) -> separate Today/YesterdayHonorableKills fields.
+        uint16 kills_today = m_activePlayerData->TodayHonorableKills;
+        auto activePlayerData = m_values.ModifyValue(&Player::m_activePlayerData);
 
         // update yesterday's contribution
         if (m_lastHonorUpdateTime >= yesterday)
         {
-            SetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION,
-                           GetUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION));
+            // [1c.4] TODO: PLAYER_FIELD_TODAY/YESTERDAY_CONTRIBUTION (old honor points) is KNOWN-absent in 3.4.3
+            // ActivePlayerData (replaced by the HonorLevel/Honor system); contribution carry-over stubbed.
+            SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::YesterdayContribution), 0u);
 
-            // this is the first update today, reset today's contribution
-            SetUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION, 0);
-            SetUInt32Value(PLAYER_FIELD_KILLS, MAKE_PAIR32(0, kills_today));
+            // this is the first update today, move today's kills to yesterday and reset today
+            SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::YesterdayHonorableKills), kills_today);
+            SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::TodayHonorableKills), uint16(0));
         }
         else
         {
             // no honor/kills yesterday or today, reset
-            SetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION, 0);
-            SetUInt32Value(PLAYER_FIELD_KILLS, 0);
+            SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::YesterdayContribution), 0u);
+            SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::TodayHonorableKills), uint16(0));
+            SetUpdateFieldValue(activePlayerData.ModifyValue(&UF::ActivePlayerData::YesterdayHonorableKills), uint16(0));
         }
     }
 
@@ -1234,13 +1231,13 @@ void Player::UpdateArea(uint32 newArea)
     pvpInfo.IsInNoPvPArea = false;
     if (area && area->IsSanctuary())
     {
-        SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_SANCTUARY);
+        ReplaceAllPvpFlags(GetPvpFlags() | UNIT_BYTE2_FLAG_SANCTUARY);
         pvpInfo.IsInNoPvPArea = true;
         if (!duel && GetCombatManager().HasPvPCombat())
             CombatStopWithPets();
     }
     else
-        RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_SANCTUARY);
+        ReplaceAllPvpFlags(GetPvpFlags() & ~UNIT_BYTE2_FLAG_SANCTUARY);
 
     uint32 const areaRestFlag = (GetTeamId(true) == TEAM_ALLIANCE)
                                     ? AREA_FLAG_REST_ZONE_ALLIANCE
@@ -1466,11 +1463,10 @@ void Player::UpdateFFAPvPState(bool reset /*= true*/)
         if (!IsFFAPvP())
         {
             sScriptMgr->OnPlayerFfaPvpStateUpdate(this, true);
-            SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
+            ReplaceAllPvpFlags(GetPvpFlags() | UNIT_BYTE2_FLAG_FFA_PVP);
             for (ControlSet::iterator itr = m_Controlled.begin();
                  itr != m_Controlled.end(); ++itr)
-                (*itr)->SetByteValue(UNIT_FIELD_BYTES_2, 1,
-                                     UNIT_BYTE2_FLAG_FFA_PVP);
+                (*itr)->ReplaceAllPvpFlags((*itr)->GetPvpFlags() | UNIT_BYTE2_FLAG_FFA_PVP);
         }
 
         if (pvpInfo.IsInFFAPvPArea)
@@ -1484,15 +1480,14 @@ void Player::UpdateFFAPvPState(bool reset /*= true*/)
             !pvpInfo.EndTimer)
         {
             pvpInfo.FFAPvPEndTimer = time_t(0);
-            if (HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP))
+            if (HasPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP))
             {
-                RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
+                ReplaceAllPvpFlags(GetPvpFlags() & ~UNIT_BYTE2_FLAG_FFA_PVP);
                 sScriptMgr->OnPlayerFfaPvpStateUpdate(this, false);
             }
             for (ControlSet::iterator itr = m_Controlled.begin();
                  itr != m_Controlled.end(); ++itr)
-                (*itr)->RemoveByteFlag(UNIT_FIELD_BYTES_2, 1,
-                                       UNIT_BYTE2_FLAG_FFA_PVP);
+                (*itr)->ReplaceAllPvpFlags((*itr)->GetPvpFlags() & ~UNIT_BYTE2_FLAG_FFA_PVP);
 
             // xinef: iterate attackers
             AttackerSet        toRemove;
@@ -1752,7 +1747,7 @@ void Player::UpdateTriggerVisibility()
     if (GetObjectVisibilityContainer().GetVisibleWorldObjectsMap()->empty())
         return;
 
-    UpdateData udata;
+    UpdateData udata(GetMapId());
     DoForAllVisibleWorldObjects([this, &udata](WorldObject* worldObject)
     {
         if (worldObject->IsCreature())
@@ -1765,9 +1760,7 @@ void Player::UpdateTriggerVisibility()
                 !creature->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE)))
                 return;
 
-            creature->SetFieldNotifyFlag(UF_FLAG_PUBLIC);
             creature->BuildValuesUpdateBlockForPlayer(&udata, this);
-            creature->RemoveFieldNotifyFlag(UF_FLAG_PUBLIC);
         }
         else if (worldObject->IsGameObject())
         {
@@ -1775,9 +1768,7 @@ void Player::UpdateTriggerVisibility()
             if (!go)
                 return;
 
-            go->SetFieldNotifyFlag(UF_FLAG_PUBLIC);
             go->BuildValuesUpdateBlockForPlayer(&udata, this);
-            go->RemoveFieldNotifyFlag(UF_FLAG_PUBLIC);
         }
     });
 
@@ -1785,7 +1776,7 @@ void Player::UpdateTriggerVisibility()
         return;
 
     WorldPacket packet;
-    udata.BuildPacket(packet);
+    udata.BuildPacket(&packet);
     SendDirectMessage(&packet);
 }
 
@@ -1794,7 +1785,7 @@ void Player::UpdateForQuestWorldObjects()
     if (GetObjectVisibilityContainer().GetVisibleWorldObjectsMap()->empty())
         return;
 
-    UpdateData udata;
+    UpdateData udata(GetMapId());
     DoForAllVisibleWorldObjects([this, &udata](WorldObject* worldObject)
     {
         if (worldObject->IsGameObject())
@@ -1838,7 +1829,7 @@ void Player::UpdateForQuestWorldObjects()
         return;
 
     WorldPacket packet;
-    udata.BuildPacket(packet);
+    udata.BuildPacket(&packet);
     SendDirectMessage(&packet);
 }
 

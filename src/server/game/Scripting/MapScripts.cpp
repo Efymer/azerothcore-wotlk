@@ -415,7 +415,7 @@ void Map::ScriptsProcess()
                 if (Creature* cSource = _GetScriptCreatureSourceOrTarget(source, target, step.script))
                 {
                     if (step.script->Emote.Flags & SF_EMOTE_USE_STATE)
-                        cSource->SetUInt32Value(UNIT_NPC_EMOTESTATE, step.script->Emote.EmoteID);
+                        cSource->SetEmoteState(Emote(step.script->Emote.EmoteID));
                     else
                         cSource->HandleEmoteCommand(step.script->Emote.EmoteID);
                 }
@@ -425,12 +425,11 @@ void Map::ScriptsProcess()
                 // Source or target must be Creature.
                 if (Creature* cSource = _GetScriptCreatureSourceOrTarget(source, target, step.script))
                 {
-                    // Validate field number.
-                    if (step.script->FieldSet.FieldID <= OBJECT_FIELD_ENTRY || step.script->FieldSet.FieldID >= cSource->GetValuesCount())
-                        LOG_ERROR("maps.script", "{} wrong field {} (max count: {}) in object ({}) specified, skipping.",
-                                       step.script->GetDebugInfo(), step.script->FieldSet.FieldID, cSource->GetValuesCount(), cSource->GetGUID().ToString());
-                    else
-                        cSource->SetUInt32Value(step.script->FieldSet.FieldID, step.script->FieldSet.FieldValue);
+                    // [1c.4] TODO: SCRIPT_COMMAND_FIELD_SET set an update field by raw numeric index, which the
+                    // structured 3.4.3 UpdateField model no longer supports. Log and skip until/if this command is
+                    // remodeled onto named fields.
+                    LOG_ERROR("maps.script", "{} SCRIPT_COMMAND_FIELD_SET (field {}) is unsupported with structured UpdateFields, skipping. ({})",
+                                   step.script->GetDebugInfo(), step.script->FieldSet.FieldID, cSource->GetGUID().ToString());
                 }
                 break;
 
@@ -453,12 +452,10 @@ void Map::ScriptsProcess()
                 // Source or target must be Creature.
                 if (Creature* cSource = _GetScriptCreatureSourceOrTarget(source, target, step.script))
                 {
-                    // Validate field number.
-                    if (step.script->FlagToggle.FieldID <= OBJECT_FIELD_ENTRY || step.script->FlagToggle.FieldID >= cSource->GetValuesCount())
-                        LOG_ERROR("maps.script", "{} wrong field {} (max count: {}) in object ({}) specified, skipping.",
-                                       step.script->GetDebugInfo(), step.script->FlagToggle.FieldID, cSource->GetValuesCount(), cSource->GetGUID().ToString());
-                    else
-                        cSource->SetFlag(step.script->FlagToggle.FieldID, step.script->FlagToggle.FieldValue);
+                    // [1c.4] TODO: SCRIPT_COMMAND_FLAG_SET set a flag on an update field by raw numeric index,
+                    // which the structured 3.4.3 UpdateField model no longer supports. Log and skip.
+                    LOG_ERROR("maps.script", "{} SCRIPT_COMMAND_FLAG_SET (field {}) is unsupported with structured UpdateFields, skipping. ({})",
+                                   step.script->GetDebugInfo(), step.script->FlagToggle.FieldID, cSource->GetGUID().ToString());
                 }
                 break;
 
@@ -466,12 +463,10 @@ void Map::ScriptsProcess()
                 // Source or target must be Creature.
                 if (Creature* cSource = _GetScriptCreatureSourceOrTarget(source, target, step.script))
                 {
-                    // Validate field number.
-                    if (step.script->FlagToggle.FieldID <= OBJECT_FIELD_ENTRY || step.script->FlagToggle.FieldID >= cSource->GetValuesCount())
-                        LOG_ERROR("maps.script", "{} wrong field {} (max count: {}) in object ({}) specified, skipping.",
-                                       step.script->GetDebugInfo(), step.script->FlagToggle.FieldID, cSource->GetValuesCount(),  cSource->GetGUID().ToString());
-                    else
-                        cSource->RemoveFlag(step.script->FlagToggle.FieldID, step.script->FlagToggle.FieldValue);
+                    // [1c.4] TODO: SCRIPT_COMMAND_FLAG_REMOVE cleared a flag on an update field by raw numeric index,
+                    // which the structured 3.4.3 UpdateField model no longer supports. Log and skip.
+                    LOG_ERROR("maps.script", "{} SCRIPT_COMMAND_FLAG_REMOVE (field {}) is unsupported with structured UpdateFields, skipping. ({})",
+                                   step.script->GetDebugInfo(), step.script->FlagToggle.FieldID, cSource->GetGUID().ToString());
                 }
                 break;
 

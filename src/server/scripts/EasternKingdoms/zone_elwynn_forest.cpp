@@ -383,7 +383,7 @@ struct npc_eastvale_peasent : public ScriptedAI
     {
         if (data == 1)
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+            me->SetEmoteState(EMOTE_ONESHOT_NONE);
             me->CastSpell(me, SPELL_TRANSFORM_PEASENT_WITH_WOOD);
             me->SetSpeed(MOVE_WALK, 1.0f);
             me->GetMotionMaster()->MoveWaypoint(_path, false);
@@ -405,7 +405,7 @@ struct npc_eastvale_peasent : public ScriptedAI
         }
         else if (pathId == _path + 2)
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_WORK_CHOPWOOD);
+            me->SetEmoteState(EMOTE_STATE_WORK_CHOPWOOD);
         }
     }
 

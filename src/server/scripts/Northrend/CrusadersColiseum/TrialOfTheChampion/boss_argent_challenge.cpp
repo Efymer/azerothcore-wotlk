@@ -384,7 +384,7 @@ public:
             events.Reset();
             me->SetReactState(REACT_PASSIVE);
             me->SetObjectScale(0.01f);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
             me->SetImmuneToAll(true);
             events.ScheduleEvent(EVENT_MEMORY_SCALE, 500ms);
         }

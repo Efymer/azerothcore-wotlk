@@ -54,8 +54,6 @@ public:
     void AddToWorld() override;
     void RemoveFromWorld() override;
 
-    void BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* target) override;
-
     bool Create(ObjectGuid::LowType guidlow);
     bool Create(ObjectGuid::LowType guidlow, Player* owner);
 
@@ -65,7 +63,21 @@ public:
     void DeleteFromDB(CharacterDatabaseTransaction trans);
     static void DeleteFromDB(ObjectGuid const& ownerGuid, CharacterDatabaseTransaction trans);
 
-    [[nodiscard]] ObjectGuid GetOwnerGUID() const { return GetGuidValue(CORPSE_FIELD_OWNER); }
+    [[nodiscard]] ObjectGuid GetOwnerGUID() const { return m_corpseData->Owner; }
+    void SetOwnerGUID(ObjectGuid owner) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Owner), owner); }
+
+    void SetRace(uint8 race) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::RaceID), race); }
+    void SetSex(uint8 sex) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Sex), sex); }
+    void SetClass(uint8 unitClass) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Class), unitClass); }
+    void SetDisplayId(uint32 displayId) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::DisplayID), displayId); }
+    void SetFactionTemplate(int32 factionTemplate) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::FactionTemplate), factionTemplate); }
+    void ReplaceAllFlags(uint32 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Flags), flags); }
+    void SetItem(uint32 slot, uint32 item) { SetUpdateFieldValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::Items, slot), item); }
+
+    [[nodiscard]] uint32 GetCorpseDynamicFlags() const { return m_corpseData->DynamicFlags; }
+    [[nodiscard]] bool HasCorpseDynamicFlag(uint32 flag) const { return (*m_corpseData->DynamicFlags & flag) != 0; }
+    void SetCorpseDynamicFlag(uint32 flag) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::DynamicFlags), flag); }
+    void RemoveCorpseDynamicFlag(uint32 flag) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::DynamicFlags), flag); }
 
     [[nodiscard]] time_t const& GetGhostTime() const { return m_time; }
     void ResetGhostTime();
@@ -78,6 +90,13 @@ public:
     Player* lootRecipient;
 
     [[nodiscard]] bool IsExpired(time_t t) const;
+
+    UF::UpdateField<UF::CorpseData, 0, TYPEID_CORPSE> m_corpseData;
+
+protected:
+    void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+    void ClearUpdateMask(bool remove) override;
 
 private:
     CorpseType m_type;

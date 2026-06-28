@@ -201,7 +201,7 @@ bool ArenaSpectator::HandleSpectatorWatchCommand(ChatHandler* handler, std::stri
                 return true;
         }
 
-    if (player->GetUInt64Value(PLAYER_FARSIGHT) || player->m_seer != player) // pussywizard: below this point we must not have a viewpoint!
+    if (!player->m_activePlayerData->FarsightObject->IsEmpty() || player->m_seer != player) // pussywizard: below this point we must not have a viewpoint!
         return true;
 
     if (player->HaveAtClient(spectate))

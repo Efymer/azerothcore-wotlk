@@ -321,7 +321,7 @@ struct boss_illidan_stormrage : public BossAI
                     Talk(SAY_ILLIDAN_CONFRONT_MAIEV);
                 }, 19490ms); // 8550ms
                 me->m_Events.AddEventAtOffset([&] {
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+                    me->SetEmoteState(EMOTE_STATE_READY1H);
                 }, 23080ms); // 3590ms
                 me->m_Events.AddEventAtOffset([&] {
                     me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
@@ -884,7 +884,7 @@ struct npc_akama_illidan : public ScriptedAI
                     }, 35210ms); // 1370ms
                     me->m_Events.AddEventAtOffset([&] {
                         me->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
-                        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+                        me->SetEmoteState(EMOTE_STATE_READY1H);
                     }, 37640ms); // 2430ms
                 }
                 break;
@@ -1005,7 +1005,7 @@ struct npc_akama_illidan : public ScriptedAI
         {
             me->SetReactState(REACT_PASSIVE);
             me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+            me->SetEmoteState(EMOTE_STATE_READY1H);
 
             me->m_Events.AddEventAtOffset([&] {
                 Talk(SAY_AKAMA_MINIONS);

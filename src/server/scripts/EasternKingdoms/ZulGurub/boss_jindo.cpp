@@ -70,7 +70,7 @@ struct boss_jindo : public BossAI
 
         Talk(SAY_AGGRO);
 
-        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+        me->SetEmoteState(EMOTE_STATE_NONE);
         _scheduler.CancelAll();
     }
 
@@ -97,11 +97,11 @@ struct boss_jindo : public BossAI
         if (CreatureAI::_EnterEvadeMode(evadeReason))
         {
             Reset();
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_DANCE);
+            me->SetEmoteState(EMOTE_STATE_DANCE);
 
             _scheduler.Schedule(4s, [this](TaskContext /*context*/)
             {
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+                me->SetEmoteState(EMOTE_STATE_NONE);
                 me->AddUnitState(UNIT_STATE_EVADE);
                 me->GetMotionMaster()->MoveTargetedHome();
             });

@@ -309,7 +309,7 @@ public:
             {
                 GameObject* obj = creature->SummonGameObject(ChestEntry[i], x - 2, y, z, 0, 0, 0, 0, 0, 0);
                 if (obj)
-                    obj->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_LOCKED);
+                    obj->RemoveGameObjectFlag(GO_FLAG_LOCKED);
                 break;
             }
         }
@@ -442,7 +442,7 @@ struct npc_harrison_jones : public ScriptedAI
             me->GetMap()->ToInstanceMap()->PermBindAllPlayers();
             _phase = PHASE_GATE_CLOSED;
             me->RemoveAura(SPELL_BANGING_THE_GONG);
-            me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(0));
+            me->SetVirtualItem(0, uint32(0));
             if (GameObject* gong = _instance->GetGameObject(DATA_STRANGE_GONG))
                 gong->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
             // Players are Now Saved to instance at SPECIAL (Player should be notified?)
@@ -473,7 +473,7 @@ struct npc_harrison_jones : public ScriptedAI
 
                     if (creature->GetPositionX() > 120)
                     {
-                        creature->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_SPEAR));
+                        creature->SetVirtualItem(0, uint32(WEAPON_SPEAR));
                         creature->AI()->SetData(0, 1);
                     }
                     else
@@ -496,7 +496,7 @@ struct npc_harrison_jones : public ScriptedAI
             }).Schedule(7s, [this](TaskContext /*task*/)
             {
                 DoCastSelf(SPELL_BANGING_THE_GONG);
-                me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(WEAPON_MACE));
+                me->SetVirtualItem(0, uint32(WEAPON_MACE));
                 me->SetFacingTo(5.9696f);
                 if (GameObject* gong = _instance->GetGameObject(DATA_STRANGE_GONG))
                     gong->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
@@ -511,7 +511,7 @@ struct npc_harrison_jones : public ScriptedAI
         // at massive gate
         else if (type == WAYPOINT_MOTION_TYPE && id == 3 && _phase == PHASE_GATE_CLOSED)
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_USE_STANDING);
+            me->SetEmoteState(EMOTE_STATE_USE_STANDING);
             Talk(SAY_HARRISON_3);
             scheduler.Schedule(8s, [this](TaskContext /*task*/)
             {
@@ -520,7 +520,7 @@ struct npc_harrison_jones : public ScriptedAI
             }).Schedule(10s, [this](TaskContext /*task*/)
             {
                 DoCastSelf(SPELL_STEALTH);
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                me->SetEmoteState(EMOTE_ONESHOT_NONE);
                 me->GetMotionMaster()->MoveWaypoint(HARRISON_MOVE_3, false);
             });
         }

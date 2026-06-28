@@ -1338,9 +1338,9 @@ bool SmartAI::IsMainSpellPrevented(SpellInfo const* spellInfo) const
     if (me->HasSpellCooldown(spellInfo->Id))
         return true;
 
-    if (spellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE && me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SILENCED))
+    if (spellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE && me->HasUnitFlag(UNIT_FLAG_SILENCED))
         return true;
-    if (spellInfo->PreventionType == SPELL_PREVENTION_TYPE_PACIFY && me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED))
+    if (spellInfo->PreventionType == SPELL_PREVENTION_TYPE_PACIFY && me->HasUnitFlag(UNIT_FLAG_PACIFIED))
         return true;
 
     return false;

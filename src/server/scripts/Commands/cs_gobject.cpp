@@ -669,7 +669,23 @@ public:
             return false;
 
         if (objectType < 4)
-            object->SetByteValue(GAMEOBJECT_BYTES_1, objectType, *objectState);
+        {
+            switch (objectType)
+            {
+                case 0:
+                    object->SetGoState(GOState(*objectState));
+                    break;
+                case 1:
+                    object->SetGoType(GameobjectTypes(*objectState));
+                    break;
+                case 2:
+                    object->SetGoArtKit(uint8(*objectState));
+                    break;
+                case 3:
+                    object->SetGoAnimProgress(uint8(*objectState));
+                    break;
+            }
+        }
         else if (objectType == 4)
         {
             object->SendCustomAnim(*objectState);

@@ -128,8 +128,8 @@ public:
     void InitTalentForLevel();
 
     uint8 GetMaxTalentPointsForLevel(uint8 level);
-    uint8 GetFreeTalentPoints() { return GetByteValue(UNIT_FIELD_BYTES_1, 1); }
-    void SetFreeTalentPoints(uint8 points) { SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_PET_TALENTS, points); }
+    uint8 GetFreeTalentPoints() { return m_unitData->PetTalentPoints; }
+    void SetFreeTalentPoints(uint8 points) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PetTalentPoints), points); }
 
     uint32  m_usedTalentCount;
 

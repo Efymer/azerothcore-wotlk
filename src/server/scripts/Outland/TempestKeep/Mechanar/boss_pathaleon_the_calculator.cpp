@@ -152,7 +152,7 @@ struct boss_pathaleon_the_calculator : public BossAI
 
                 scheduler.Schedule(2s, [this](TaskContext)
                 {
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+                    me->SetEmoteState(EMOTE_STATE_READY1H);
                 }).Schedule(25s, [this](TaskContext)
                 {
                     DoZoneInCombat();

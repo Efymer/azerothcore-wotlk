@@ -137,7 +137,7 @@ public:
                         DoCast(me, SPELL_EXPLODE_CART, true);
                         DoCast(me, SPELL_SUMMON_CART, true);
                         if (GameObject* cart = me->FindNearestGameObject(GO_EXPLOSIVES_CART, 3.0f))
-                            cart->SetUInt32Value(GAMEOBJECT_FACTION, 14);
+                            cart->SetFaction(14);
                         phaseTimer = 3000;
                         phase = 2;
                         break;
@@ -1022,7 +1022,7 @@ public:
         npc_hidden_cultistAI(Creature* creature) : ScriptedAI(creature)
         {
             Initialize();
-            _emoteState = creature->GetUInt32Value(UNIT_NPC_EMOTESTATE);
+            _emoteState = EMOTE_ONESHOT_NONE; // [1c.4] TODO: GetEmoteState() wrapper missing on Unit (was UNIT_NPC_EMOTESTATE)
             _npcFlags   = creature->GetNpcFlags();
         }
 
@@ -1035,7 +1035,7 @@ public:
         {
             if (_emoteState)
             {
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, _emoteState);
+                me->SetEmoteState(Emote(_emoteState));
             }
 
             if (_npcFlags)
@@ -1052,7 +1052,7 @@ public:
         {
             me->StopMoving();
             me->ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+            me->SetEmoteState(EMOTE_ONESHOT_NONE);
             if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
             {
                 me->SetFacingToObject(player);

@@ -228,12 +228,42 @@ public:
 
     [[nodiscard]] ItemTemplate const* GetTemplate() const;
 
-    [[nodiscard]] ObjectGuid GetOwnerGUID() const { return GetGuidValue(ITEM_FIELD_OWNER); }
-    void SetOwnerGUID(ObjectGuid guid) { SetGuidValue(ITEM_FIELD_OWNER, guid); }
+    [[nodiscard]] ObjectGuid GetOwnerGUID() const { return m_itemData->Owner; }
+    void SetOwnerGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::Owner), guid); }
     [[nodiscard]] Player* GetOwner() const;
 
-    void SetBinding(bool val) { ApplyModFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_SOULBOUND, val); }
-    [[nodiscard]] bool IsSoulBound() const { return HasFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_SOULBOUND); }
+    [[nodiscard]] ObjectGuid GetContainedIn() const { return m_itemData->ContainedIn; }
+    void SetContainedIn(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::ContainedIn), guid); }
+    [[nodiscard]] ObjectGuid GetCreator() const { return m_itemData->Creator; }
+    void SetCreator(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::Creator), guid); }
+    [[nodiscard]] ObjectGuid GetGiftCreator() const { return m_itemData->GiftCreator; }
+    void SetGiftCreator(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::GiftCreator), guid); }
+
+    [[nodiscard]] uint32 GetExpiration() const { return m_itemData->Expiration; }
+    void SetExpiration(uint32 expiration) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::Expiration), expiration); }
+
+    [[nodiscard]] uint32 GetItemFlags() const { return m_itemData->DynamicFlags; }
+    [[nodiscard]] bool HasItemFlag(ItemFieldFlags flag) const { return (*m_itemData->DynamicFlags & flag) != 0; }
+    void SetItemFlag(ItemFieldFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags), uint32(flags)); }
+    void RemoveItemFlag(ItemFieldFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags), uint32(flags)); }
+    void ReplaceAllItemFlags(uint32 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags), flags); }
+
+    [[nodiscard]] uint32 GetDurability() const { return m_itemData->Durability; }
+    void SetDurability(uint32 durability) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::Durability), durability); }
+    [[nodiscard]] uint32 GetMaxDurability() const { return m_itemData->MaxDurability; }
+    void SetMaxDurability(uint32 maxDurability) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::MaxDurability), maxDurability); }
+
+    [[nodiscard]] uint32 GetCreatePlayedTime() const { return m_itemData->CreatePlayedTime; }
+    void SetCreatePlayedTime(uint32 createPlayedTime) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::CreatePlayedTime), createPlayedTime); }
+
+    void SetBinding(bool val)
+    {
+        if (val)
+            SetItemFlag(ITEM_FIELD_FLAG_SOULBOUND);
+        else
+            RemoveItemFlag(ITEM_FIELD_FLAG_SOULBOUND);
+    }
+    [[nodiscard]] bool IsSoulBound() const { return (*m_itemData->DynamicFlags & ITEM_FIELD_FLAG_SOULBOUND) != 0; }
     [[nodiscard]] bool IsBoundAccountWide() const { return GetTemplate()->HasFlag(ITEM_FLAG_IS_BOUND_TO_ACCOUNT) != 0; }
     bool IsBindedNotWith(Player const* player) const;
     [[nodiscard]] bool IsBoundByEnchant() const;
@@ -250,17 +280,17 @@ public:
     Bag* ToBag() { if (IsBag()) return reinterpret_cast<Bag*>(this); else return nullptr; }
     [[nodiscard]] const Bag* ToBag() const { if (IsBag()) return reinterpret_cast<const Bag*>(this); else return nullptr; }
 
-    [[nodiscard]] bool IsLocked() const { return !HasFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_UNLOCKED); }
+    [[nodiscard]] bool IsLocked() const { return (*m_itemData->DynamicFlags & ITEM_FIELD_FLAG_UNLOCKED) == 0; }
     [[nodiscard]] bool IsBag() const { return GetTemplate()->InventoryType == INVTYPE_BAG; }
     [[nodiscard]] bool IsCurrencyToken() const { return GetTemplate()->IsCurrencyToken(); }
     [[nodiscard]] bool IsNotEmptyBag() const;
-    [[nodiscard]] bool IsBroken() const { return GetUInt32Value(ITEM_FIELD_MAXDURABILITY) > 0 && GetUInt32Value(ITEM_FIELD_DURABILITY) == 0; }
+    [[nodiscard]] bool IsBroken() const { return *m_itemData->MaxDurability > 0 && *m_itemData->Durability == 0; }
     [[nodiscard]] bool CanBeTraded(bool mail = false, bool trade = false) const;
     void SetInTrade(bool b = true) { mb_in_trade = b; }
     [[nodiscard]] bool IsInTrade() const { return mb_in_trade; }
-    [[nodiscard]] bool IsRefundable() const { return HasFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_REFUNDABLE); }
-    [[nodiscard]] bool IsBOPTradable() const { return HasFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_BOP_TRADEABLE); }
-    [[nodiscard]] bool IsWrapped() const { return HasFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_WRAPPED); }
+    [[nodiscard]] bool IsRefundable() const { return (*m_itemData->DynamicFlags & ITEM_FIELD_FLAG_REFUNDABLE) != 0; }
+    [[nodiscard]] bool IsBOPTradable() const { return (*m_itemData->DynamicFlags & ITEM_FIELD_FLAG_BOP_TRADEABLE) != 0; }
+    [[nodiscard]] bool IsWrapped() const { return (*m_itemData->DynamicFlags & ITEM_FIELD_FLAG_WRAPPED) != 0; }
 
     bool HasEnchantRequiredSkill(Player const* player) const;
     [[nodiscard]] uint32 GetEnchantRequiredLevel() const;
@@ -269,8 +299,8 @@ public:
     [[nodiscard]] bool IsLimitedToAnotherMapOrZone(uint32 cur_mapId, uint32 cur_zoneId) const;
     [[nodiscard]] bool GemsFitSockets() const;
 
-    [[nodiscard]] uint32 GetCount() const { return GetUInt32Value(ITEM_FIELD_STACK_COUNT); }
-    void SetCount(uint32 value) { SetUInt32Value(ITEM_FIELD_STACK_COUNT, value); }
+    [[nodiscard]] uint32 GetCount() const { return m_itemData->StackCount; }
+    void SetCount(uint32 value) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::StackCount), value); }
     [[nodiscard]] uint32 GetMaxStackCount() const { return GetTemplate()->GetMaxStackSize(); }
     // Checks if this item has sockets, whether built-in or added by an upgrade.
     [[nodiscard]] bool HasSocket() const;
@@ -292,8 +322,10 @@ public:
     uint32 GetSpell();
 
     // RandomPropertyId (signed but stored as unsigned)
-    [[nodiscard]] int32 GetItemRandomPropertyId() const { return GetInt32Value(ITEM_FIELD_RANDOM_PROPERTIES_ID); }
-    [[nodiscard]] uint32 GetItemSuffixFactor() const { return GetUInt32Value(ITEM_FIELD_PROPERTY_SEED); }
+    [[nodiscard]] int32 GetItemRandomPropertyId() const { return m_itemData->RandomPropertiesID; }
+    void SetItemRandomPropertiesID(int32 id) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::RandomPropertiesID), id); }
+    [[nodiscard]] uint32 GetItemSuffixFactor() const { return m_itemData->PropertySeed; }
+    void SetItemSuffixFactor(uint32 seed) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::PropertySeed), int32(seed)); }
     void SetItemRandomProperties(int32 randomPropId);
     void UpdateItemSuffixFactor();
     static int32 GenerateItemRandomPropertyId(uint32 item_id);
@@ -301,9 +333,9 @@ public:
     void SetEnchantmentDuration(EnchantmentSlot slot, uint32 duration, Player* owner);
     void SetEnchantmentCharges(EnchantmentSlot slot, uint32 charges);
     void ClearEnchantment(EnchantmentSlot slot);
-    [[nodiscard]] uint32 GetEnchantmentId(EnchantmentSlot slot)       const { return GetUInt32Value(ITEM_FIELD_ENCHANTMENT_1_1 + slot * MAX_ENCHANTMENT_OFFSET + ENCHANTMENT_ID_OFFSET);}
-    [[nodiscard]] uint32 GetEnchantmentDuration(EnchantmentSlot slot) const { return GetUInt32Value(ITEM_FIELD_ENCHANTMENT_1_1 + slot * MAX_ENCHANTMENT_OFFSET + ENCHANTMENT_DURATION_OFFSET);}
-    [[nodiscard]] uint32 GetEnchantmentCharges(EnchantmentSlot slot)  const { return GetUInt32Value(ITEM_FIELD_ENCHANTMENT_1_1 + slot * MAX_ENCHANTMENT_OFFSET + ENCHANTMENT_CHARGES_OFFSET);}
+    [[nodiscard]] uint32 GetEnchantmentId(EnchantmentSlot slot)       const { return m_itemData->Enchantment[slot].ID; }
+    [[nodiscard]] uint32 GetEnchantmentDuration(EnchantmentSlot slot) const { return m_itemData->Enchantment[slot].Duration; }
+    [[nodiscard]] uint32 GetEnchantmentCharges(EnchantmentSlot slot)  const { return m_itemData->Enchantment[slot].Charges; }
 
     [[nodiscard]] std::string const& GetText() const { return m_text; }
     void SetText(std::string const& text) { m_text = text; }
@@ -314,8 +346,8 @@ public:
     void UpdateDuration(Player* owner, uint32 diff);
 
     // spell charges (signed but stored as unsigned)
-    [[nodiscard]] int32 GetSpellCharges(uint8 index/*0..5*/ = 0) const { return GetInt32Value(ITEM_FIELD_SPELL_CHARGES + index); }
-    void  SetSpellCharges(uint8 index/*0..5*/, int32 value) { SetInt32Value(ITEM_FIELD_SPELL_CHARGES + index, value); }
+    [[nodiscard]] int32 GetSpellCharges(uint8 index/*0..5*/ = 0) const { return m_itemData->SpellCharges[index]; }
+    void  SetSpellCharges(uint8 index/*0..5*/, int32 value) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::SpellCharges, index), value); }
 
     Loot loot;
     bool m_lootGenerated;
@@ -358,12 +390,22 @@ public:
     bool CheckSoulboundTradeExpire();
 
     void BuildUpdate(UpdateDataMapType& data_map) override;
-    void AddToObjectUpdate() override;
+    bool AddToObjectUpdate() override;
     void RemoveFromObjectUpdate() override;
 
     [[nodiscard]] uint32 GetScriptId() const { return GetTemplate()->ScriptId; }
 
     std::string GetDebugInfo() const override;
+
+    UF::UpdateField<UF::ItemData, 0, TYPEID_ITEM> m_itemData;
+
+protected:
+    UF::UpdateFieldFlag GetUpdateFieldFlagsFor(Player const* target) const override;
+    void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+    void BuildValuesUpdateWithFlag(ByteBuffer* data, UF::UpdateFieldFlag flags, Player const* target) const override;
+    void ClearUpdateMask(bool remove) override;
+
 private:
     std::string m_text;
     uint8 m_slot;

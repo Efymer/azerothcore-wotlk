@@ -786,7 +786,7 @@ struct boss_stormcaller_brundir : public ScriptedAI
                     me->CombatStop();
                     me->StopMoving();
                     me->SetReactState(REACT_PASSIVE);
-                    me->SetGuidValue(UNIT_FIELD_TARGET, ObjectGuid::Empty);
+                    me->SetTarget(ObjectGuid::Empty);
                     me->SetUnitFlag(UNIT_FLAG_STUNNED);
 
                     me->CastSpell(me, SPELL_LIGHTNING_TENDRILS, true);

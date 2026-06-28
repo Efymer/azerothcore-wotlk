@@ -1332,14 +1332,14 @@ public:
                         temp->SetReactState(REACT_PASSIVE);
                         temp->SetImmuneToAll(true);
                         temp->CastSpell(temp, SPELL_THRALL_BUFF);
-                        temp->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                        temp->SetEmoteState(EMOTE_STATE_READY2H);
                     }
                     if (Creature* temp = me->SummonCreature(NPC_SYLVANAS, AllianceSpawn[18].x, AllianceSpawn[18].y, AllianceSpawn[18].z, TEMPSUMMON_MANUAL_DESPAWN))
                     {
                         sylvanasGUID = temp->GetGUID();
                         temp->SetReactState(REACT_PASSIVE);
                         temp->SetImmuneToAll(true);
-                        temp->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                        temp->SetEmoteState(EMOTE_STATE_READY2H);
                     }
                     for (uint8 i = 0; i < HORDE_FORCE_MAXCOUNT; ++i)
                     {
@@ -1348,7 +1348,7 @@ public:
                             hordeForcesGUID[i] = temp->GetGUID();
                             temp->SetReactState(REACT_PASSIVE);
                             temp->SetImmuneToAll(true);
-                            temp->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                            temp->SetEmoteState(EMOTE_STATE_READY2H);
                         }
                     }
                     break;
@@ -1359,7 +1359,7 @@ public:
                         {
                             allianceForcesGUID[i] = temp->GetGUID();
                             temp->SetImmuneToAll(true);
-                            temp->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                            temp->SetEmoteState(EMOTE_STATE_READY2H);
                         }
                     }
                     break;
@@ -2337,7 +2337,7 @@ public:
                     break;
                 case NPC_WARSONG_BATTLEGUARD:
                     summoned->ApplySpellImmune(0, IMMUNITY_ID, SPELL_SYLVANAS_BUFF, true);
-                    summoned->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                    summoned->SetEmoteState(EMOTE_STATE_READY2H);
                     break;
                 case NPC_VARIMATHRAS_PORTAL:
                     summoned->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
@@ -3647,14 +3647,14 @@ public:
                                     temp->SetImmuneToAll(true);
                                     temp->ApplySpellImmune(0, IMMUNITY_ID, SPELL_SYLVANAS_BUFF, true);
                                     temp->SetReactState(REACT_PASSIVE);
-                                    temp->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                                    temp->SetEmoteState(EMOTE_STATE_READY2H);
                                 }
                             }
                             if (Creature* wrynn = me->SummonCreature(NPC_WRYNN, 1308.862f, 381.809f, -66.044243f, TEMPSUMMON_MANUAL_DESPAWN))
                             {
                                 WrynnGUID = wrynn->GetGUID();
                                 wrynn->SetImmuneToAll(true);
-                                wrynn->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                                wrynn->SetEmoteState(EMOTE_STATE_READY2H);
                                 wrynn->SetReactState(REACT_PASSIVE);
                                 wrynn->GetMotionMaster()->MovePoint(0, 1302.543f, 359.472f, -67.295f);
                             }

@@ -222,7 +222,7 @@ struct boss_malygos : public BossAI
             _surgeTargetGUID[i].Clear();
 
         SetInvincibility(true);
-        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+        me->SetEmoteState(EMOTE_ONESHOT_NONE);
         me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PACIFIED);
         me->RemoveUnitFlag(UNIT_FLAG_DISABLE_MOVE);
         me->SetDisableGravity(true);
@@ -326,7 +326,7 @@ struct boss_malygos : public BossAI
 
         if (me->GetVictim() && me->GetVictim()->GetGUID() == victim->GetGUID() && !me->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PACIFIED))
         {
-            if (!me->GetGuidValue(UNIT_FIELD_TARGET))
+            if (!me->GetTarget())
                 me->SetTarget(victim->GetGUID());
         }
         else if (me->Attack(victim, true))
@@ -465,7 +465,7 @@ struct boss_malygos : public BossAI
         case EVENT_START_VORTEX_REAL:
         {
             me->SendMeleeAttackStop(me->GetVictim());
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_CUSTOM_SPELL_01);
+            me->SetEmoteState(EMOTE_STATE_CUSTOM_SPELL_01);
             me->HandleEmoteCommand(EMOTE_STATE_CUSTOM_SPELL_01);
 
             me->CastSpell(me, SPELL_VORTEX_1, true);

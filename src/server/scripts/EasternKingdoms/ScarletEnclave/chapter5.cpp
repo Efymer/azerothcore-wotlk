@@ -462,7 +462,7 @@ public:
             {
                 cr->SetReactState(REACT_PASSIVE);
                 cr->SetImmuneToAll(true);
-                cr->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY1H);
+                cr->SetEmoteState(EMOTE_STATE_READY1H);
                 cr->HandleEmoteCommand(EMOTE_STATE_READY1H);
             }
         }
@@ -999,7 +999,7 @@ public:
                     events.ScheduleEvent(EVENT_OUTRO_SCENE_53, 84s);
                     break;
                 case EVENT_OUTRO_SCENE_37:
-                    me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(EQUIP_UNEQUIP));
+                    me->SetVirtualItem(0, uint32(EQUIP_UNEQUIP));
                     me->CastSpell(me, SPELL_THROW_ASHBRINGER, true);
                     break;
                 case EVENT_OUTRO_SCENE_38:
@@ -1035,7 +1035,7 @@ public:
                     if (Creature* tirion = GetEntryFromSummons(NPC_HIGHLORD_TIRION_FORDRING))
                     {
                         tirion->CastSpell(tirion, SPELL_TIRION_CHARGE, true);
-                        tirion->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                        tirion->SetEmoteState(EMOTE_STATE_READY2H);
                         tirion->SetImmuneToAll(true);
                     }
                     break;
@@ -1062,7 +1062,7 @@ public:
                     {
                         float o = me->GetAngle(tirion);
                         tirion->GetMotionMaster()->MovePoint(4, me->GetPositionX() + 2.0f * cos(o), me->GetPositionY() + 2.0f * std::sin(o), me->GetPositionZ(), FORCED_MOVEMENT_NONE, 0.f, 0.f, false);
-                        tirion->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                        tirion->SetEmoteState(EMOTE_ONESHOT_NONE);
                         tirion->SetFaction(FACTION_FRIENDLY);
                     }
                     break;

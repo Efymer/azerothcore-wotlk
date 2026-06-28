@@ -138,7 +138,7 @@ class spell_pri_shadowfiend_scaling : public AuraScript
 
             // xinef: Update appropriate player field
             if (owner->IsPlayer())
-                owner->SetUInt32Value(PLAYER_PET_SPELL_POWER, (uint32)amount);
+                { } // [1c.4] TODO: Player::SetPetSpellPower() wrapper missing (was PLAYER_PET_SPELL_POWER UF)
         }
     }
 
@@ -443,7 +443,7 @@ class spell_pri_lightwell_renew : public AuraScript
         {
             if (Player* player = GetTarget()->ToPlayer())
             {
-                UpdateData data;
+                UpdateData data(player->GetMapId());
                 WorldPacket packet;
                 caster->BuildValuesUpdateBlockForPlayer(&data, player);
                 data.BuildPacket(packet);
@@ -527,7 +527,7 @@ class spell_pri_mind_sear : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& unitList)
     {
-        unitList.remove_if(Acore::ObjectGUIDCheck(GetCaster()->GetGuidValue(UNIT_FIELD_CHANNEL_OBJECT), true));
+        unitList.remove_if(Acore::ObjectGUIDCheck(ObjectGuid::Empty, true)); // [1c.4] TODO: Unit channel-object getter missing (was UNIT_FIELD_CHANNEL_OBJECT)
     }
 
     void Register() override

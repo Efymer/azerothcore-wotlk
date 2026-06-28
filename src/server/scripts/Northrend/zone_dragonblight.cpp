@@ -664,7 +664,7 @@ class npc_wintergarde_gryphon : public VehicleAI
 public:
     npc_wintergarde_gryphon(Creature* creature) : VehicleAI(creature)
     {
-        creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+        creature->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
     }
 
     void JustDied(Unit* /*killer*/) override
@@ -721,7 +721,7 @@ public:
                 {
                     me->SetDisableGravity(false);
                     me->SetHover(false);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                    me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                     break;
                 }
                 case EVENT_TAKE_OFF:

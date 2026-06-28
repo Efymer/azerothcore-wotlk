@@ -654,7 +654,7 @@ bool WorldSession::ProcessMovementInfo(MovementInfo& movementInfo, Unit* mover, 
     {
         if (mover->IsStandState())
             mover->SetStandState(UNIT_STAND_STATE_STAND);
-        mover->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+        mover->ClearEmoteState();
     }
 
     HandleMoverRelocation(movementInfo, mover);

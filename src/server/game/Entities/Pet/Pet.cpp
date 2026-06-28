@@ -112,7 +112,7 @@ void Pet::AddToWorld()
         {
             if (getPetType() == SUMMON_PET && owner->IsClass(CLASS_WARLOCK, CLASS_CONTEXT_PET))
             {
-                owner->SetLastPetSpell(GetUInt32Value(UNIT_CREATED_BY_SPELL));
+                owner->SetLastPetSpell(GetCreatedBySpell());
             }
         }
 
@@ -272,7 +272,7 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
 
     setPetType(petInfo->Type);
     SetFaction(owner->GetFaction());
-    SetUInt32Value(UNIT_CREATED_BY_SPELL, petInfo->CreatedBySpellId);
+    SetCreatedBySpell(petInfo->CreatedBySpellId);
 
     if (IsCritter())
     {
@@ -311,9 +311,9 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
             ReplaceAllUnitFlags(UNIT_FLAG_PLAYER_CONTROLLED); // this enables popup window (pet dismiss, cancel)
             break;
         case HUNTER_PET:
-            SetUInt32Value(UNIT_FIELD_BYTES_0, 0x02020100); // class = warrior, gender = none, power = focus
+            SetClass(CLASS_WARRIOR); // class = warrior (gender/power set via setPowerType below)
             SetSheath(SHEATH_STATE_MELEE);
-            SetByteFlag(UNIT_FIELD_BYTES_2, 2, petInfo->WasRenamed ? UNIT_CAN_BE_ABANDONED : UNIT_CAN_BE_RENAMED | UNIT_CAN_BE_ABANDONED);
+            ReplaceAllPetFlags(petInfo->WasRenamed ? UNIT_CAN_BE_ABANDONED : (UNIT_CAN_BE_RENAMED | UNIT_CAN_BE_ABANDONED));
 
             ReplaceAllUnitFlags(UNIT_FLAG_PLAYER_CONTROLLED);
                                                             // this enables popup window (pet abandon, cancel)
@@ -327,11 +327,11 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
             break;
     }
 
-    SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, uint32(GameTime::GetGameTime().count())); // cast can't be helped here
+    SetPetNameTimestamp(uint32(GameTime::GetGameTime().count())); // cast can't be helped here
     SetCreatorGUID(owner->GetGUID());
 
     InitStatsForLevel(petlevel);
-    SetUInt32Value(UNIT_FIELD_PETEXPERIENCE, petInfo->Experience);
+    SetPetExperience(petInfo->Experience);
 
     SynchronizeLevelWithOwner();
 
@@ -572,13 +572,13 @@ void Pet::SavePetToDB(PetSaveMode mode)
         stmt->SetData(1, GetEntry());
         stmt->SetData(2, ownerLowGUID);
         stmt->SetData(3, GetNativeDisplayId());
-        stmt->SetData(4, GetUInt32Value(UNIT_CREATED_BY_SPELL));
+        stmt->SetData(4, GetCreatedBySpell());
         stmt->SetData(5, uint8(getPetType()));
         stmt->SetData(6, GetLevel());
-        stmt->SetData(7, GetUInt32Value(UNIT_FIELD_PETEXPERIENCE));
+        stmt->SetData(7, GetPetExperience());
         stmt->SetData(8, uint8(GetReactState()));
         stmt->SetData(9, GetName());
-        stmt->SetData(10, uint8(HasByteFlag(UNIT_FIELD_BYTES_2, 2, UNIT_CAN_BE_RENAMED) ? 0 : 1));
+        stmt->SetData(10, uint8(HasPetFlag(UNIT_CAN_BE_RENAMED) ? 0 : 1));
         stmt->SetData(11, uint8(mode));
         stmt->SetData(12, curhealth);
         stmt->SetData(13, curmana);
@@ -904,8 +904,8 @@ void Pet::GivePetXP(uint32 xp)
     if (petlevel >= maxlevel)
         return;
 
-    uint32 nextLvlXP = GetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP);
-    uint32 curXP = GetUInt32Value(UNIT_FIELD_PETEXPERIENCE);
+    uint32 nextLvlXP = m_unitData->PetNextLevelExperience;
+    uint32 curXP = GetPetExperience();
     uint32 newXP = curXP + xp;
 
     // Check how much XP the pet should receive, and hand off have any left from previous levelups
@@ -917,10 +917,10 @@ void Pet::GivePetXP(uint32 xp)
 
         GivePetLevel(petlevel);
 
-        nextLvlXP = GetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP);
+        nextLvlXP = m_unitData->PetNextLevelExperience;
     }
     // Not affected by special conditions - give it new XP
-    SetUInt32Value(UNIT_FIELD_PETEXPERIENCE, petlevel < maxlevel ? newXP : 0);
+    SetPetExperience(petlevel < maxlevel ? newXP : 0);
 }
 
 void Pet::GivePetLevel(uint8 level)
@@ -930,8 +930,8 @@ void Pet::GivePetLevel(uint8 level)
 
     if (getPetType() == HUNTER_PET)
     {
-        SetUInt32Value(UNIT_FIELD_PETEXPERIENCE, 0);
-        SetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP, uint32(sObjectMgr->GetXPForLevel(level)*sWorld->getRate(RATE_XP_PET_NEXT_LEVEL)));
+        SetPetExperience(0);
+        SetPetNextLevelExperience(uint32(sObjectMgr->GetXPForLevel(level)*sWorld->getRate(RATE_XP_PET_NEXT_LEVEL)));
     }
 
     InitStatsForLevel(level);
@@ -1000,16 +1000,16 @@ bool Pet::CreateBaseAtTamed(CreatureTemplate const* cinfo, Map* map, uint32 phas
     SetMaxPower(POWER_HAPPINESS, GetCreatePowers(POWER_HAPPINESS));
     SetPower(POWER_HAPPINESS, 166500);
     setPowerType(POWER_FOCUS);
-    SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, 0);
-    SetUInt32Value(UNIT_FIELD_PETEXPERIENCE, 0);
-    SetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP, uint32(sObjectMgr->GetXPForLevel(GetLevel() + 1)* sWorld->getRate(RATE_XP_PET_NEXT_LEVEL)));
+    SetPetNameTimestamp(0);
+    SetPetExperience(0);
+    SetPetNextLevelExperience(uint32(sObjectMgr->GetXPForLevel(GetLevel() + 1)* sWorld->getRate(RATE_XP_PET_NEXT_LEVEL)));
     ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
 
     if (cinfo->type == CREATURE_TYPE_BEAST)
     {
-        SetUInt32Value(UNIT_FIELD_BYTES_0, 0x02020100);
+        SetClass(CLASS_WARRIOR);
         SetSheath(SHEATH_STATE_MELEE);
-        SetByteFlag(UNIT_FIELD_BYTES_2, 2, UNIT_CAN_BE_RENAMED | UNIT_CAN_BE_ABANDONED);
+        ReplaceAllPetFlags(UNIT_CAN_BE_RENAMED | UNIT_CAN_BE_ABANDONED);
     }
 
     return true;
@@ -1086,7 +1086,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     SetAttackTime(OFF_ATTACK, attackTime);
     SetAttackTime(RANGED_ATTACK, BASE_ATTACK_TIME);
 
-    SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);
+    SetModCastingSpeed(1.0f);
 
     // scale
     SetObjectScale(GetNativeObjectScale());
@@ -1157,7 +1157,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
             {
                 SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(petlevel - (petlevel / 4)));
                 SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(petlevel + (petlevel / 4)));
-                SetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP, uint32(sObjectMgr->GetXPForLevel(petlevel)* sWorld->getRate(RATE_XP_PET_NEXT_LEVEL)));
+                SetPetNextLevelExperience(uint32(sObjectMgr->GetXPForLevel(petlevel)* sWorld->getRate(RATE_XP_PET_NEXT_LEVEL)));
                 break;
             }
         case SUMMON_PET:
@@ -2464,16 +2464,16 @@ void Pet::FillPetInfo(PetStable::PetInfo* petInfo) const
     petInfo->CreatureId = GetEntry();
     petInfo->DisplayId = GetNativeDisplayId();
     petInfo->Level = GetLevel();
-    petInfo->Experience = GetUInt32Value(UNIT_FIELD_PETEXPERIENCE);
+    petInfo->Experience = GetPetExperience();
     petInfo->ReactState = GetReactState();
     petInfo->Name = GetName();
-    petInfo->WasRenamed = !HasByteFlag(UNIT_FIELD_BYTES_2, 2, UNIT_CAN_BE_RENAMED);
+    petInfo->WasRenamed = !HasPetFlag(UNIT_CAN_BE_RENAMED);
     petInfo->Health = GetHealth();
     petInfo->Mana = GetPower(POWER_MANA);
     petInfo->Happiness = GetPower(POWER_HAPPINESS);
     petInfo->ActionBar = GenerateActionBarData();
     petInfo->LastSaveTime = GameTime::GetGameTime().count();
-    petInfo->CreatedBySpellId = GetUInt32Value(UNIT_CREATED_BY_SPELL);
+    petInfo->CreatedBySpellId = GetCreatedBySpell();
     petInfo->Type = getPetType();
 }
 

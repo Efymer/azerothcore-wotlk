@@ -255,7 +255,7 @@ public:
                     creature->SetVisible(false);
                 if (!GetPersistentData(PERSISTENT_DATA_LK_INTRO))
                 {
-                    creature->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_ATTACK2HTIGHT);
+                    creature->SetEmoteState(EMOTE_ONESHOT_ATTACK2HTIGHT);
                     creature->CastSpell(creature, SPELL_SOUL_REAPER, true);
                 }
                 else if (GetBossState(DATA_LICH_KING) != DONE)
@@ -279,7 +279,7 @@ public:
                 if (!GetPersistentData(PERSISTENT_DATA_LK_INTRO))
                 {
                     creature->SetSheath(SHEATH_STATE_MELEE);
-                    creature->SetUInt32Value(UNIT_NPC_EMOTESTATE, GetTeamIdInInstance() == TEAM_ALLIANCE ? EMOTE_ONESHOT_ATTACK2HTIGHT : EMOTE_ONESHOT_ATTACK1H);
+                    creature->SetEmoteState(GetTeamIdInInstance() == TEAM_ALLIANCE ? EMOTE_ONESHOT_ATTACK2HTIGHT : EMOTE_ONESHOT_ATTACK1H);
                     creature->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                     creature->CastSpell(creature, GetTeamIdInInstance() == TEAM_ALLIANCE ? SPELL_JAINA_ICE_BARRIER : SPELL_SYLVANAS_CLOAK_OF_DARKNESS, true);
                 }
@@ -362,7 +362,7 @@ public:
                         if (Creature* general = GetCreature(NPC_FROSTSWORN_GENERAL))
                         {
                             general->SetVisible(true);
-                            general->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                            general->SetEmoteState(EMOTE_ONESHOT_NONE);
                             general->SetReactState(REACT_AGGRESSIVE);
                             general->HandleEmoteCommand(EMOTE_ONESHOT_EMERGE);
                         }
@@ -435,11 +435,11 @@ public:
                     reflection->SetVisible(true);
 
                     Item* weapon = player->GetWeaponForAttack(BASE_ATTACK);
-                    reflection->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, weapon ? weapon->GetEntry() : 0);
+                    reflection->SetVirtualItem(0, weapon ? weapon->GetEntry() : 0);
                     weapon = player->GetWeaponForAttack(OFF_ATTACK);
-                    reflection->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, weapon ? weapon->GetEntry() : 0);
+                    reflection->SetVirtualItem(1, weapon ? weapon->GetEntry() : 0);
                     weapon = player->GetWeaponForAttack(RANGED_ATTACK);
-                    reflection->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2, weapon ? weapon->GetEntry() : 0);
+                    reflection->SetVirtualItem(2, weapon ? weapon->GetEntry() : 0);
                     player->CastSpell(reflection, SPELL_HOR_CLONE, true);
                     player->CastSpell(reflection, SPELL_HOR_CLONE_NAME, true);
                 });
@@ -501,7 +501,7 @@ public:
                     leader->AI()->Reset();
                     leader->setActive(false);
                     leader->RemoveUnitMovementFlag(MOVEMENTFLAG_WALKING);
-                    leader->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                    leader->SetEmoteState(EMOTE_ONESHOT_NONE);
                 }
                 if (Creature* lichKing = GetCreature(NPC_LICH_KING_BOSS))
                 {
@@ -517,7 +517,7 @@ public:
                     lichKing->AI()->Reset();
                     lichKing->setActive(false);
                     lichKing->RemoveUnitMovementFlag(MOVEMENTFLAG_WALKING);
-                    lichKing->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                    lichKing->SetEmoteState(EMOTE_ONESHOT_NONE);
                     lichKing->SetSpeed(MOVE_RUN, lichKing->GetCreatureTemplate()->speed_run);
                 }
                 _isLichKingFightActive = false;
@@ -968,7 +968,7 @@ private:
                     lk->UpdatePosition(PathWaypoints[PATH_WP_COUNT - 2], true);
                     lk->StopMovingOnCurrentPos();
                     lk->RemoveAllAuras();
-                    lk->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_CUSTOM_SPELL_02);
+                    lk->SetEmoteState(EMOTE_ONESHOT_CUSTOM_SPELL_02);
                     if (!lk->IsVisible())
                         lk->SetVisible(true);
                     if (Creature* leader = GetCreature(NPC_SYLVANAS_PART2))
@@ -976,7 +976,7 @@ private:
                         leader->UpdatePosition(PathWaypoints[PATH_WP_COUNT - 1], true);
                         leader->StopMovingOnCurrentPos();
                         leader->RemoveAllAuras();
-                        leader->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_READY1H);
+                        leader->SetEmoteState(EMOTE_ONESHOT_READY1H);
                         if (!leader->IsVisible())
                             leader->SetVisible(true);
                         lk->CastSpell(leader, SPELL_HARVEST_SOUL, false);
@@ -1018,10 +1018,10 @@ private:
                 break;
             case 5:
                 if (Creature* leader = GetCreature(NPC_SYLVANAS_PART2))
-                    leader->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                    leader->SetEmoteState(EMOTE_ONESHOT_NONE);
                 if (Creature* lichKing = GetCreature(NPC_LICH_KING_BOSS))
                 {
-                    lichKing->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                    lichKing->SetEmoteState(EMOTE_ONESHOT_NONE);
                     lichKing->GetThreatMgr().ClearAllThreat();
                     lichKing->CombatStop(true);
                     lichKing->InterruptNonMeleeSpells(true);

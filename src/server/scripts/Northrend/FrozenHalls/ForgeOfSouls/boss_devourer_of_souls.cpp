@@ -135,7 +135,7 @@ struct boss_devourer_of_souls : public BossAI
             me->SetOrientation(me->GetAngle(target));
             me->SetControlled(true, UNIT_STATE_ROOT);
             me->DisableRotate(true);
-            me->SetGuidValue(UNIT_FIELD_TARGET, ObjectGuid::Empty);
+            me->SetTarget(ObjectGuid::Empty);
             me->SetReactState(REACT_PASSIVE);
             me->GetMotionMaster()->Clear(false);
             me->GetMotionMaster()->MoveIdle();
@@ -319,7 +319,7 @@ class spell_wailing_souls_periodic_aura : public AuraScript
                     target->ToCreature()->SetReactState(REACT_AGGRESSIVE);
                 if (target->GetVictim())
                 {
-                    target->SetGuidValue(UNIT_FIELD_TARGET, target->GetVictim()->GetGUID());
+                    target->SetTarget(target->GetVictim()->GetGUID());
                     target->GetMotionMaster()->MoveChase(target->GetVictim());
                 }
             }

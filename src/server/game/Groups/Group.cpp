@@ -35,7 +35,6 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
-#include "UpdateFieldFlags.h"
 #include "Util.h"
 #include "World.h"
 #include "WorldPacket.h"
@@ -79,7 +78,7 @@ static void SendRollWonItemViaMail(Player* player, LootItem const* lootItem, uin
     {
         mailItem->SetBinding(true);
         mailItem->SetSoulboundTradeable(looters);
-        mailItem->SetUInt32Value(ITEM_FIELD_CREATE_PLAYED_TIME, player->GetTotalPlayedTime());
+        mailItem->SetCreatePlayedTime(player->GetTotalPlayedTime());
 
         std::string lootersStr;
         for (ObjectGuid const& guid : looters)
@@ -528,7 +527,7 @@ bool Group::AddMember(Player* player, uint8 roles /* = 0 */)
             // Broadcast new player group member fields to rest of the group
             player->SetFieldNotifyFlag(UF_FLAG_PARTY_MEMBER);
 
-            UpdateData groupData;
+            UpdateData groupData(player->GetMapId());
             WorldPacket groupDataPacket;
 
             // Broadcast group members' fields to player
@@ -550,7 +549,7 @@ bool Group::AddMember(Player* player, uint8 roles /* = 0 */)
 
                     if (itrMember->HaveAtClient(player))
                     {
-                        UpdateData newData;
+                        UpdateData newData(player->GetMapId());
                         WorldPacket newDataPacket;
                         player->BuildValuesUpdateBlockForPlayer(&newData, itrMember);
                         if (newData.HasData())

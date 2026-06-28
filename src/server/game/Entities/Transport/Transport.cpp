@@ -33,7 +33,10 @@
 
 MotionTransport::MotionTransport() : Transport(), _transportInfo(nullptr), _isMoving(true), _pendingStop(false), _triggeredArrivalEvent(false), _triggeredDepartureEvent(false), _passengersLoaded(false), _delayedTeleport(false)
 {
-    m_updateFlag = UPDATEFLAG_TRANSPORT | UPDATEFLAG_LOWGUID | UPDATEFLAG_STATIONARY_POSITION | UPDATEFLAG_ROTATION;
+    // [1c.4] structured CreateObjectBits: legacy UPDATEFLAG_TRANSPORT (moving-transport timer) has no direct
+    // CreateObjectBits equivalent yet in this port's movement-block cutover; keep Stationary + Rotation.
+    m_updateFlag.Stationary = true;
+    m_updateFlag.Rotation = true;
 }
 
 MotionTransport::~MotionTransport()
@@ -84,7 +87,7 @@ bool MotionTransport::CreateMoTrans(ObjectGuid::LowType guidlow, uint32 entry, u
 
     if (GameObjectTemplateAddon const* addon = GetTemplateAddon())
     {
-        SetUInt32Value(GAMEOBJECT_FACTION, addon->faction);
+        SetFaction(addon->faction);
         ReplaceAllGameObjectFlags((GameObjectFlags)addon->flags);
     }
 
@@ -688,7 +691,9 @@ void MotionTransport::DoEventIfAny(KeyFrame const& node, bool departure)
 
 StaticTransport::StaticTransport() : Transport(), _needDoInitialRelocation(false)
 {
-    m_updateFlag = UPDATEFLAG_TRANSPORT | UPDATEFLAG_LOWGUID | UPDATEFLAG_STATIONARY_POSITION | UPDATEFLAG_ROTATION;
+    // [1c.4] structured CreateObjectBits: see MotionTransport note; legacy UPDATEFLAG_TRANSPORT timer pending.
+    m_updateFlag.Stationary = true;
+    m_updateFlag.Rotation = true;
 }
 
 StaticTransport::~StaticTransport()
@@ -784,7 +789,7 @@ bool StaticTransport::Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* m
 
     if (GameObjectTemplateAddon const* addon = GetTemplateAddon())
     {
-        SetUInt32Value(GAMEOBJECT_FACTION, addon->faction);
+        SetFaction(addon->faction);
         ReplaceAllGameObjectFlags((GameObjectFlags)addon->flags);
     }
 
@@ -933,8 +938,8 @@ void StaticTransport::RelocateToProgress(uint32 progress)
         // rotate path by PathRotation
         // pussywizard: PathRotation in db is only simple orientation rotation, so don't use sophisticated and not working code
         // reminder: WorldRotation only influences model rotation, not the path
-        float sign = GetFloatValue(GAMEOBJECT_PARENTROTATION + 2) >= 0.0f ? 1.0f : -1.0f;
-        float pathRotAngle = sign * 2.0f * acos(GetFloatValue(GAMEOBJECT_PARENTROTATION + 3));
+        float sign = GetParentRotation().z >= 0.0f ? 1.0f : -1.0f;
+        float pathRotAngle = sign * 2.0f * acos(GetParentRotation().w);
         float cs = cos(pathRotAngle), sn = std::sin(pathRotAngle);
         float nx = pos.x * cs - pos.y * sn;
         float ny = pos.x * sn + pos.y * cs;

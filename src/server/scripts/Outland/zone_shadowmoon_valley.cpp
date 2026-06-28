@@ -617,7 +617,7 @@ public:
                     case EVENT_WALK_TO_MUTTON:
                         me->SetWalk(true);
                         me->GetMotionMaster()->MovePoint(1, x, y, z);
-                        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+                        me->SetEmoteState(EMOTE_STATE_NONE);
                         me->HandleEmoteCommand(EMOTE_ONESHOT_CHEER);
                         break;
                     case EVENT_POISONED:
@@ -830,10 +830,10 @@ public:
             switch (AnimationCount)
             {
                 case 0:
-                    me->SetUInt32Value(UNIT_FIELD_BYTES_1, 8);
+                    me->SetStandState(8);
                     break;
                 case 3:
-                    me->RemoveFlag(UNIT_FIELD_BYTES_1, 8);
+                    me->SetStandState(UNIT_STAND_STATE_STAND);
                     break;
                 case 5:
                     if (Player* AggroTarget = ObjectAccessor::GetPlayer(*me, AggroTargetGUID))

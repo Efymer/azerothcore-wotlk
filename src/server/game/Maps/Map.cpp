@@ -381,7 +381,7 @@ bool Map::AddToMap(Transport* obj, bool /*checkTransport*/)
     {
         if (itr->GetSource()->GetTransport() != obj)
         {
-            UpdateData data;
+            UpdateData data(obj->GetMapId());
             obj->BuildCreateUpdateBlockForPlayer(&data, itr->GetSource());
             WorldPacket packet;
             data.BuildPacket(packet);
@@ -758,7 +758,7 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
     Map::PlayerList const& players = GetPlayers();
     if (!players.IsEmpty())
     {
-        UpdateData data;
+        UpdateData data(obj->GetMapId());
         obj->BuildOutOfRangeUpdateBlock(&data);
         WorldPacket packet;
         data.BuildPacket(packet);
@@ -1619,7 +1619,7 @@ void Map::SendInitSelf(Player* player)
     LOG_DEBUG("maps", "Creating player data for himself {}", player->GetGUID().ToString());
 
     WorldPacket packet;
-    UpdateData data;
+    UpdateData data(player->GetMapId());
 
     // attach to player data current transport data
     if (Transport* transport = player->GetTransport())
@@ -1666,7 +1666,7 @@ void Map::SendInitTransports(Player* player)
         return;
 
     // Hack to send out transports
-    UpdateData transData;
+    UpdateData transData(player->GetMapId());
     for (TransportsContainer::const_iterator itr = _transports.begin(); itr != _transports.end(); ++itr)
         if (*itr != player->GetTransport())
             (*itr)->BuildCreateUpdateBlockForPlayer(&transData, player);
@@ -1685,7 +1685,7 @@ void Map::SendRemoveTransports(Player* player)
         return;
 
     // Hack to send out transports
-    UpdateData transData;
+    UpdateData transData(player->GetMapId());
     for (TransportsContainer::const_iterator itr = _transports.begin(); itr != _transports.end(); ++itr)
         if (*itr != player->GetTransport())
             (*itr)->BuildOutOfRangeUpdateBlock(&transData);
@@ -3039,19 +3039,25 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
         bones = new Corpse();
         bones->Create(corpse->GetGUID().GetCounter());
 
-        for (uint8 i = OBJECT_FIELD_TYPE + 1; i < CORPSE_END; ++i)                    // don't overwrite guid and object type
-            bones->SetUInt32Value(i, corpse->GetUInt32Value(i));
+        // copy corpse appearance to bones (structured UF; index-range copy is no longer possible)
+        bones->SetUpdateFieldValue(bones->m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::DynamicFlags), uint32(*corpse->m_corpseData->DynamicFlags));
+        bones->SetUpdateFieldValue(bones->m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::PartyGUID), corpse->m_corpseData->PartyGUID);
+        bones->SetUpdateFieldValue(bones->m_values.ModifyValue(&Corpse::m_corpseData).ModifyValue(&UF::CorpseData::GuildGUID), corpse->m_corpseData->GuildGUID);
+        bones->SetDisplayId(corpse->m_corpseData->DisplayID);
+        bones->SetRace(corpse->m_corpseData->RaceID);
+        bones->SetSex(corpse->m_corpseData->Sex);
+        bones->SetClass(corpse->m_corpseData->Class);
+        bones->SetFactionTemplate(corpse->m_corpseData->FactionTemplate);
+        // [1c.4] TODO: copy corpse->m_corpseData->Customizations (DynamicUpdateField) once a Corpse::SetCustomizations wrapper exists
 
         bones->SetCellCoord(corpse->GetCellCoord());
         bones->Relocate(corpse->GetPositionX(), corpse->GetPositionY(), corpse->GetPositionZ(), corpse->GetOrientation());
         bones->SetPhaseMask(corpse->GetPhaseMask(), false);
 
-        bones->SetUInt32Value(CORPSE_FIELD_FLAGS, CORPSE_FLAG_UNK2 | CORPSE_FLAG_BONES);
-        bones->SetGuidValue(CORPSE_FIELD_OWNER, corpse->GetOwnerGUID());
+        bones->ReplaceAllFlags(CORPSE_FLAG_UNK2 | CORPSE_FLAG_BONES);
+        bones->SetOwnerGUID(corpse->GetOwnerGUID());
 
-        for (uint8 i = 0; i < EQUIPMENT_SLOT_END; ++i)
-            if (corpse->GetUInt32Value(CORPSE_FIELD_ITEM + i))
-                bones->SetUInt32Value(CORPSE_FIELD_ITEM + i, 0);
+        // bones never carry the corpse's equipment (Items default to 0 on a fresh Corpse)
 
         AddCorpse(bones);
 

@@ -651,45 +651,11 @@ public:
     }
 
     //Edit Unit field
-    static bool HandleModifyBitCommand(ChatHandler* handler, uint16 field, uint32 bit)
+    static bool HandleModifyBitCommand(ChatHandler* handler, uint16 /*field*/, uint32 /*bit*/)
     {
-        Unit* target = handler->getSelectedUnit();
-        if (!target)
-        {
-            handler->SendErrorMessage(LANG_NO_CHAR_SELECTED);
-            return false;
-        }
-
-        // check online security
-        if (target->IsPlayer() && handler->HasLowerSecurity(target->ToPlayer()))
-        {
-            return false;
-        }
-
-        if (field < OBJECT_END || field >= target->GetValuesCount())
-        {
-            handler->SendErrorMessage(LANG_BAD_VALUE);
-            return false;
-        }
-
-        if (bit < 1 || bit > 32)
-        {
-            handler->SendErrorMessage(LANG_BAD_VALUE);
-            return false;
-        }
-
-        if (target->HasFlag(field, (1 << (bit - 1))))
-        {
-            target->RemoveFlag(field, (1 << (bit - 1)));
-            handler->PSendSysMessage(LANG_REMOVE_BIT, bit, field);
-        }
-        else
-        {
-            target->SetFlag(field, (1 << (bit - 1)));
-            handler->PSendSysMessage(LANG_SET_BIT, bit, field);
-        }
-
-        return true;
+        // [1c.4] TODO: raw flat update-field bit access removed under the structured UpdateField model (3.4.3)
+        handler->SendErrorMessage("Raw update-field bit access is unsupported under the structured UpdateField model (3.4.3).");
+        return false;
     }
 
     static bool HandleModifyHonorCommand(ChatHandler* handler, int32 amount)
@@ -872,7 +838,7 @@ public:
             return false;
 
         if (!target->GetAuraEffectsByType(SPELL_AURA_MOUNTED).empty())
-            target->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, displayID);
+            target->SetMountDisplayId(displayID);
         else
             return false;
 
@@ -899,7 +865,7 @@ public:
     //change standstate
     static bool HandleModifyStandStateCommand(ChatHandler* handler, uint32 anim)
     {
-        handler->GetSession()->GetPlayer()->SetUInt32Value(UNIT_NPC_EMOTESTATE, anim);
+        handler->GetSession()->GetPlayer()->SetEmoteState(Emote(anim));
         return true;
     }
 
@@ -962,8 +928,8 @@ public:
         }
 
         // Set gender
-        target->SetByteValue(UNIT_FIELD_BYTES_0, 2, gender);
-        target->SetByteValue(PLAYER_BYTES_3, 0, gender);
+        target->SetSex(gender);
+        // [1c.4] TODO: NativeSex setter missing (was PLAYER_BYTES_3 byte0 gender)
 
         // Change display ID
         target->InitDisplayIds();

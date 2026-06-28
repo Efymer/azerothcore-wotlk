@@ -775,7 +775,7 @@ struct npc_ulduar_expedition_engineer : public NullCreatureAI
                 break;
             case 2: // stop repairing
                 Reset();
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_STAND);
+                me->SetEmoteState(EMOTE_STATE_STAND);
                 me->GetMotionMaster()->MoveTargetedHome();
                 break;
         }
@@ -794,8 +794,8 @@ struct npc_ulduar_expedition_engineer : public NullCreatureAI
                     if (Creature* c = ObjectAccessor::GetCreature(*me, fixingGUID))
                         if (me->GetExactDist2dSq(c) <= 25.0f)
                         {
-                            if (me->GetUInt32Value(UNIT_NPC_EMOTESTATE) != EMOTE_STATE_WORK )
-                                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_WORK);
+                            if (EMOTE_ONESHOT_NONE != EMOTE_STATE_WORK ) // [1c.4] TODO: GetEmoteState() wrapper missing on Unit
+                                me->SetEmoteState(EMOTE_STATE_WORK);
 
                             if (std::fabs(me->GetOrientation() - me->GetAngle(c)) > M_PI / 4)
                                 me->SetFacingToObject(c);
@@ -837,8 +837,8 @@ struct npc_ulduar_expedition_engineer : public NullCreatureAI
             else
                 timer -= diff;
         }
-        else if (me->GetUInt32Value(UNIT_NPC_EMOTESTATE) == EMOTE_STATE_WORK)
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_STAND);
+        else if (EMOTE_STATE_WORK == EMOTE_STATE_WORK) // [1c.4] TODO: GetEmoteState() wrapper missing on Unit; assume WORK to preserve reset path
+            me->SetEmoteState(EMOTE_STATE_STAND);
     }
 };
 

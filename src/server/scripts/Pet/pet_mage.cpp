@@ -83,7 +83,7 @@ struct npc_pet_mage_mirror_image : CasterAI
 
         // xinef: Glyph of Mirror Image (4th copy)
         float angle = 0.0f;
-        switch (me->GetUInt32Value(UNIT_CREATED_BY_SPELL))
+        switch (me->GetCreatedBySpell())
         {
             case SPELL_SUMMON_MIRROR_IMAGE1:
                 angle = 0.5f * M_PI;
@@ -120,7 +120,7 @@ struct npc_pet_mage_mirror_image : CasterAI
             if (Aura* visAura = itr->second->GetBase())
             {
                 // Ebon Gargoyle
-                if (visAura->GetId() == 49206 && me->GetUInt32Value(UNIT_CREATED_BY_SPELL) == SPELL_SUMMON_MIRROR_IMAGE1)
+                if (visAura->GetId() == 49206 && me->GetCreatedBySpell() == SPELL_SUMMON_MIRROR_IMAGE1)
                 {
                     if (Unit* gargoyle = visAura->GetCaster())
                         _ebonGargoyleGUID = gargoyle->GetGUID();

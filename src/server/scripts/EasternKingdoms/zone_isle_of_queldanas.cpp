@@ -128,7 +128,7 @@ public:
         {
             me->SetVisible(false);
             me->SetRegeneratingHealth(true);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+            me->SetEmoteState(EMOTE_ONESHOT_NONE);
             me->SetStandState(UNIT_STAND_STATE_STAND);
             playerGUID.Clear();
             morlenGUID.Clear();
@@ -170,7 +170,7 @@ public:
                 if (summon->GetEntry() == NPC_MORLEN_COLDGRIP)
                 {
                     me->RemoveAurasDueToSpell(67541);
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                    me->SetEmoteState(EMOTE_ONESHOT_NONE);
                     me->GetMotionMaster()->MoveCharge(11779.30f, -7065.43f, 24.92f, me->GetSpeed(MOVE_RUN), EVENT_CHARGE);
                     events.ScheduleEvent(EVENT_OUTRO_0, 0ms);
                     events.ScheduleEvent(EVENT_OUTRO_1, 5s);
@@ -280,7 +280,7 @@ public:
                 case EVENT_GO_FIGHTPOINT:
                     me->SetWalk(true);
                     me->GetMotionMaster()->MovePoint(0, 11779.30f, -7065.43f, 24.92f);
-                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_READY2H);
+                    me->SetEmoteState(EMOTE_STATE_READY2H);
                     break;
                 case EVENT_TALK_SPAWN_0:
                 case EVENT_TALK_SPAWN_1:

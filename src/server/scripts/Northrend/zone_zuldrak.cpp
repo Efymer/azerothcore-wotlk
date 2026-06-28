@@ -673,7 +673,7 @@ public:
         void Reset() override
         {
             me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_COWER);
+            me->SetEmoteState(EMOTE_STATE_COWER);
             _heading = me->GetOrientation();
         }
 
@@ -687,7 +687,7 @@ public:
                 {
                     case EVENT_RECRUIT_1:
                         me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                        me->SetEmoteState(EMOTE_ONESHOT_NONE);
                         Talk(SAY_RECRUIT);
                         _events.ScheduleEvent(EVENT_RECRUIT_2, 3s);
                         break;

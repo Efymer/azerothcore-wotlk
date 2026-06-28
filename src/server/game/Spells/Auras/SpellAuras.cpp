@@ -831,7 +831,7 @@ void Aura::RefreshDuration(bool withMods)
         int32 duration = m_spellInfo->GetMaxDuration();
         // Calculate duration of periodics affected by haste.
         if (caster->HasAuraTypeWithAffectMask(SPELL_AURA_PERIODIC_HASTE, m_spellInfo) || m_spellInfo->HasAttribute(SPELL_ATTR5_SPELL_HASTE_AFFECTS_PERIODIC))
-            duration = int32(duration * caster->GetFloatValue(UNIT_MOD_CAST_SPEED));
+            duration = int32(duration * caster->m_unitData->ModCastingSpeed);
         SetMaxDuration(duration);
 
         SetDuration(duration);
@@ -876,7 +876,7 @@ void Aura::RefreshTimersWithMods()
     m_maxDuration = CalcMaxDuration();
     if ((caster && caster->HasAuraTypeWithAffectMask(SPELL_AURA_PERIODIC_HASTE, m_spellInfo)) || m_spellInfo->HasAttribute(SPELL_ATTR5_SPELL_HASTE_AFFECTS_PERIODIC))
     {
-        m_maxDuration = int32(m_maxDuration * caster->GetFloatValue(UNIT_MOD_CAST_SPEED));
+        m_maxDuration = int32(m_maxDuration * caster->m_unitData->ModCastingSpeed);
     }
 
     // xinef: we should take ModSpellDuration into account, but none of the spells using this function is affected by contents of ModSpellDuration

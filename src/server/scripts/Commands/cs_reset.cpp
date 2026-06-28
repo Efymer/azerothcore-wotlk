@@ -92,10 +92,7 @@ public:
         Player* playerTarget = target->GetConnectedPlayer();
 
         playerTarget->SetHonorPoints(0);
-        playerTarget->SetUInt32Value(PLAYER_FIELD_KILLS, 0);
-        playerTarget->SetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 0);
-        playerTarget->SetUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION, 0);
-        playerTarget->SetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION, 0);
+        // [1c.4] TODO: setters missing for PLAYER_FIELD_KILLS / LIFETIME_HONORABLE_KILLS / TODAY_CONTRIBUTION / YESTERDAY_CONTRIBUTION UFs
         playerTarget->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL);
 
         return true;
@@ -118,18 +115,21 @@ public:
 
         player->SetFactionForRace(player->getRace());
 
-        player->SetUInt32Value(UNIT_FIELD_BYTES_0, ((player->getRace()) | (player->getClass() << 8) | (player->getGender() << 16) | (powerType << 24)));
+        // Race is unchanged on reset (no SetRace wrapper); Class/Sex/DisplayPower split out of the legacy UNIT_FIELD_BYTES_0
+        player->SetClass(player->getClass());
+        player->SetSex(player->getGender());
+        player->SetDisplayPower(powerType);
 
         // reset only if player not in some form;
         if (player->GetShapeshiftForm() == FORM_NONE)
             player->InitDisplayIds();
 
-        player->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_PVP);
+        player->ReplaceAllPvpFlags(UNIT_BYTE2_FLAG_PVP);
 
         player->ReplaceAllUnitFlags(UNIT_FLAG_PLAYER_CONTROLLED);
 
         //-1 is default value
-        player->SetUInt32Value(PLAYER_FIELD_WATCHED_FACTION_INDEX, uint32(-1));
+        player->SetWatchedFactionIndex(uint32(-1));
         return true;
     }
 
@@ -159,7 +159,7 @@ public:
         playerTarget->InitTaxiNodesForLevel();
         playerTarget->InitGlyphsForLevel();
         playerTarget->InitTalentForLevel();
-        playerTarget->SetUInt32Value(PLAYER_XP, 0);
+        playerTarget->SetXP(0);
 
         playerTarget->_ApplyAllLevelScaleItemMods(true);
 

@@ -871,7 +871,7 @@ public:
                 {
                     _playerGUID = player->GetGUID();
                     me->SetGameObjectFlag((GameObjectFlags)1);
-                    me->RemoveByteFlag(GAMEOBJECT_BYTES_1, 0, 1);
+                    me->SetGoState(GO_STATE_ACTIVE);
                     _events.ScheduleEvent(EVENT_STILLBLADE_SPAWN, 1s);
                 }
             }
@@ -898,7 +898,7 @@ public:
                 case EVENT_RESET_BRAZIER:
                 {
                     me->RemoveGameObjectFlag((GameObjectFlags)1);
-                    me->SetByteFlag(GAMEOBJECT_BYTES_1, 0, 1);
+                    me->SetGoState(GO_STATE_READY);
                     break;
                 }
                 default:

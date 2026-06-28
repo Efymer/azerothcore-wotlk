@@ -27,8 +27,6 @@ Bag::Bag(): Item()
     m_objectType |= TYPEMASK_CONTAINER;
     m_objectTypeId = TYPEID_CONTAINER;
 
-    m_valuesCount = CONTAINER_END;
-
     memset(m_bagslot, 0, sizeof(Item*) * MAX_BAG_SIZE);
 }
 
@@ -78,20 +76,20 @@ bool Bag::Create(ObjectGuid::LowType guidlow, uint32 itemid, Player const* owner
     SetEntry(itemid);
     SetObjectScale(1.0f);
 
-    SetGuidValue(ITEM_FIELD_OWNER, owner ? owner->GetGUID() : ObjectGuid::Empty);
-    SetGuidValue(ITEM_FIELD_CONTAINED, owner ? owner->GetGUID() : ObjectGuid::Empty);
+    SetOwnerGUID(owner ? owner->GetGUID() : ObjectGuid::Empty);
+    SetContainedIn(owner ? owner->GetGUID() : ObjectGuid::Empty);
 
-    SetUInt32Value(ITEM_FIELD_MAXDURABILITY, itemProto->MaxDurability);
-    SetUInt32Value(ITEM_FIELD_DURABILITY, itemProto->MaxDurability);
-    SetUInt32Value(ITEM_FIELD_STACK_COUNT, 1);
+    SetMaxDurability(itemProto->MaxDurability);
+    SetDurability(itemProto->MaxDurability);
+    SetCount(1);
 
     // Setting the number of Slots the Container has
-    SetUInt32Value(CONTAINER_FIELD_NUM_SLOTS, itemProto->ContainerSlots);
+    SetBagSize(itemProto->ContainerSlots);
 
     // Cleaning 20 slots
     for (uint8 i = 0; i < MAX_BAG_SIZE; ++i)
     {
-        SetGuidValue(CONTAINER_FIELD_SLOT_1 + (i * 2), ObjectGuid::Empty);
+        SetContainerSlot(i, ObjectGuid::Empty);
         m_bagslot[i] = nullptr;
     }
 
@@ -109,11 +107,11 @@ bool Bag::LoadFromDB(ObjectGuid::LowType guid, ObjectGuid owner_guid, Field* fie
         return false;
 
     ItemTemplate const* itemProto = GetTemplate(); // checked in Item::LoadFromDB
-    SetUInt32Value(CONTAINER_FIELD_NUM_SLOTS, itemProto->ContainerSlots);
+    SetBagSize(itemProto->ContainerSlots);
     // cleanup bag content related item value fields (its will be filled correctly from `character_inventory`)
     for (uint8 i = 0; i < MAX_BAG_SIZE; ++i)
     {
-        SetGuidValue(CONTAINER_FIELD_SLOT_1 + (i * 2), ObjectGuid::Empty);
+        SetContainerSlot(i, ObjectGuid::Empty);
         delete m_bagslot[i];
         m_bagslot[i] = nullptr;
     }
@@ -148,7 +146,7 @@ void Bag::RemoveItem(uint8 slot, bool /*update*/)
         m_bagslot[slot]->SetContainer(nullptr);
 
     m_bagslot[slot] = nullptr;
-    SetGuidValue(CONTAINER_FIELD_SLOT_1 + (slot * 2), ObjectGuid::Empty);
+    SetContainerSlot(slot, ObjectGuid::Empty);
 }
 
 void Bag::StoreItem(uint8 slot, Item* pItem, bool /*update*/)
@@ -158,21 +156,58 @@ void Bag::StoreItem(uint8 slot, Item* pItem, bool /*update*/)
     if (pItem && pItem->GetGUID() != this->GetGUID())
     {
         m_bagslot[slot] = pItem;
-        SetGuidValue(CONTAINER_FIELD_SLOT_1 + (slot * 2), pItem->GetGUID());
-        pItem->SetGuidValue(ITEM_FIELD_CONTAINED, GetGUID());
-        pItem->SetGuidValue(ITEM_FIELD_OWNER, GetOwnerGUID());
+        SetContainerSlot(slot, pItem->GetGUID());
+        pItem->SetContainedIn(GetGUID());
+        pItem->SetOwnerGUID(GetOwnerGUID());
         pItem->SetContainer(this);
         pItem->SetSlot(slot);
     }
 }
 
-void Bag::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target)
+void Bag::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) const
 {
     Item::BuildCreateUpdateBlockForPlayer(data, target);
 
     for (uint32 i = 0; i < GetBagSize(); ++i)
         if (m_bagslot[i])
             m_bagslot[i]->BuildCreateUpdateBlockForPlayer(data, target);
+}
+
+void Bag::BuildValuesCreate(ByteBuffer* data, Player const* target) const
+{
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
+    std::size_t sizePos = data->wpos();
+    *data << uint32(0);
+    *data << uint8(flags);
+    m_objectData->WriteCreate(*data, flags, this, target);
+    m_itemData->WriteCreate(*data, flags, this, target);
+    m_containerData->WriteCreate(*data, flags, this, target);
+    data->put<uint32>(sizePos, data->wpos() - sizePos - 4);
+}
+
+void Bag::BuildValuesUpdate(ByteBuffer* data, Player const* target) const
+{
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
+    std::size_t sizePos = data->wpos();
+    *data << uint32(0);
+    *data << uint32(m_values.GetChangedObjectTypeMask());
+
+    if (m_values.HasChanged(TYPEID_OBJECT))
+        m_objectData->WriteUpdate(*data, flags, this, target);
+
+    if (m_values.HasChanged(TYPEID_ITEM))
+        m_itemData->WriteUpdate(*data, flags, this, target);
+
+    if (m_values.HasChanged(TYPEID_CONTAINER))
+        m_containerData->WriteUpdate(*data, flags, this, target);
+
+    data->put<uint32>(sizePos, data->wpos() - sizePos - 4);
+}
+
+void Bag::ClearUpdateMask(bool remove)
+{
+    m_values.ClearChangesMask(&Bag::m_containerData);
+    Item::ClearUpdateMask(remove);
 }
 
 // If the bag is empty returns true

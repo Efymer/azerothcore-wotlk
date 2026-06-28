@@ -73,7 +73,7 @@ public:
         std::string titleNameStr = Acore::StringFormat(target->getGender() == GENDER_MALE ? titleInfo->Name.Str[handler->GetSessionDbcLocale()] : titleInfo->Name1.Str[handler->GetSessionDbcLocale()], target->GetName());
 
         target->SetTitle(titleInfo);
-        target->SetUInt32Value(PLAYER_CHOSEN_TITLE, titleInfo->MaskID);
+        target->SetChosenTitle(titleInfo->MaskID);
 
         handler->PSendSysMessage(LANG_TITLE_CURRENT_RES, uint32(titleId), titleNameStr, tNameLink);
 
@@ -136,9 +136,9 @@ public:
 
         handler->PSendSysMessage(LANG_TITLE_REMOVE_RES, uint32(titleId), titleNameStr, tNameLink);
 
-        if (!target->HasTitle(target->GetInt32Value(PLAYER_CHOSEN_TITLE)))
+        if (!target->HasTitle(target->GetChosenTitle()))
         {
-            target->SetUInt32Value(PLAYER_CHOSEN_TITLE, 0);
+            target->SetChosenTitle(0);
             handler->PSendSysMessage(LANG_CURRENT_TITLE_RESET, tNameLink);
         }
 
@@ -167,12 +167,12 @@ public:
 
         mask &= ~titles2;                                     // remove non-existing titles
 
-        target->SetUInt64Value(PLAYER__FIELD_KNOWN_TITLES, mask);
+        // [1c.4] TODO: KnownTitles is now a dynamic uint64[] list; no public bulk-mask setter (was PLAYER__FIELD_KNOWN_TITLES). Use Player::SetTitle per-title.
         handler->SendSysMessage(LANG_DONE);
 
-        if (!target->HasTitle(target->GetInt32Value(PLAYER_CHOSEN_TITLE)))
+        if (!target->HasTitle(target->GetChosenTitle()))
         {
-            target->SetUInt32Value(PLAYER_CHOSEN_TITLE, 0);
+            target->SetChosenTitle(0);
             handler->PSendSysMessage(LANG_CURRENT_TITLE_RESET, handler->GetNameLink(target));
         }
 

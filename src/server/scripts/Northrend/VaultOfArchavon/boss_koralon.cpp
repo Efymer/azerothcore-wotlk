@@ -108,7 +108,7 @@ public:
         {
             if (rotateTimer)
             {
-                me->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, 0);
+                { } // [1c.4] TODO: Unit channel-object clear wrapper missing (was UNIT_FIELD_CHANNEL_OBJECT = 0)
                 rotateTimer += diff;
                 if (rotateTimer >= 3000)
                 {

@@ -97,7 +97,7 @@ void HandleBothDead(Creature* creature, bool jarien, Unit* killer)
         chest->setActive(true);
         chest->SetGoState(GO_STATE_READY);
         chest->SetLootState(GO_READY);
-        chest->SetUInt32Value(GAMEOBJECT_FACTION, 35);
+        chest->SetFaction(35);
     }
 }
 

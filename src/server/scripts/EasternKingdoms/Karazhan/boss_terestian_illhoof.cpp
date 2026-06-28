@@ -208,7 +208,7 @@ struct boss_terestian_illhoof : public BossAI
         if (summoned->GetEntry() == NPC_PORTAL)
         {
             summoned->SetReactState(REACT_PASSIVE);
-            if (summoned->GetUInt32Value(UNIT_CREATED_BY_SPELL) == SPELL_FIENDISH_PORTAL_1)
+            if (summoned->GetCreatedBySpell() == SPELL_FIENDISH_PORTAL_1)
             {
                 Talk(SAY_SUMMON);
             }
